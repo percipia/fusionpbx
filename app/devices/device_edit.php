@@ -538,7 +538,7 @@
 	if (empty($device_vendor)) {
 		//get the device vendor using the device address
 		$device_vendor = device::get_vendor($device_address ?? null);
-		
+
 		//if the vendor was not found using the device address use an alternative method
 		if (empty($device_vendor)) {
 			$template_array = explode("/", $device_template ?? '');
