@@ -25,8 +25,9 @@
 	  Mark J Crane <markjcrane@fusionpbx.com>
 	 */
 
-//set default
-	$is_included = false;
+//set the include path
+	$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
+	set_include_path(parse_ini_file($conf[0])['document.root']);
 
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
@@ -52,24 +53,38 @@
 	$extensions = $_POST['extensions'] ?? [];
 
 //process the http post data by action
+	if ($action != '' && is_array($extensions) && @sizeof($extensions) != 0) {
+		//validate the token
+		$token = new token;
+		if (!$token->validate($_SERVER['PHP_SELF'])) {
+			message::add($text['message-invalid_token'],'negative');
+			header('Location: calls.php');
+			exit;
+		}
 	if (!empty($action) && count($extensions) > 0) {
 		switch ($action) {
 			case 'toggle_call_forward':
 				if (permission_exists('call_forward')) {
 					$obj = new call_forward;
 					$obj->toggle($extensions);
+					//set message
+					message::add($text['message-toggle']);
 				}
 				break;
 			case 'toggle_follow_me':
 				if (permission_exists('follow_me')) {
 					$obj = new follow_me;
 					$obj->toggle($extensions);
+					//set message
+					message::add($text['message-toggle']);
 				}
 				break;
 			case 'toggle_do_not_disturb':
 				if (permission_exists('do_not_disturb')) {
 					$obj = new do_not_disturb;
 					$obj->toggle($extensions);
+					//set message
+					message::add($text['message-toggle']);
 				}
 				break;
 		}
