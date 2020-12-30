@@ -83,7 +83,22 @@
 				unset($array);
 			}
 
-		//if call center app is installed then update the user_status
+			// Check if we have access to the do_not_disturb class
+			if (class_exists('do_not_disturb')) {
+				$uuids = array();
+				foreach ($_SESSION['user']['extension'] as $x => $ext) {
+					$uuids[] = $ext["extension_uuid"];
+				}
+
+				$obj = new do_not_disturb;
+				if ($user_status === "Do Not Disturb") {
+					$obj->enable($uuids);
+				} else {
+					$obj->disable($uuids);
+				}
+			}
+
+			//if call center app is installed then update the user_status
 			if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/call_centers')) {
 				//get the call center agent uuid
 					$sql = "select call_center_agent_uuid from v_call_center_agents ";
