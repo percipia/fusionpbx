@@ -22,7 +22,9 @@
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
+	Andrew Querol <andrew@querol.me>
 */
+include "root.php";
 
 //define the dnd class
 	class do_not_disturb {
@@ -45,20 +47,19 @@
 							$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
 						}
 
-					//update the database user_status
-						$user_status = "Do Not Disturb";
-						$sql  = "update v_users set ";
-						$sql .= "user_status = :user_status ";
-						$sql .= "where domain_uuid = :domain_uuid ";
-						$sql .= "and username = :username ";
-						$parameters['user_status'] = "Do Not Disturb";
-						$parameters['domain_uuid'] = $this->domain_uuid;
-						$parameters['username'] = $_SESSION['username'];
-						$database = new database;
-						$database->execute($sql);
-				}
+		public function disable(array $uuids) {
+			if (!permission_exists('do_not_disturb')) {
+				return;
+			}
+			$this->set($uuids, false);
 		}
 
+		public function enable(array $uuids) {
+			if (!permission_exists('do_not_disturb')) {
+				return;
+			}
+			$this->set($uuids, true);
+		}
 		public function set() {
 			//determine whether to update the dial string
 				$sql = "select extension_uuid, extension, number_alias ";
@@ -131,6 +132,7 @@
 
 		/**
 		 * toggle records
+		 * @param array $uuids The uuids to toggle
 		 */
 		public function toggle($records) {
 
@@ -199,35 +201,25 @@
 								unset($sql, $parameters, $rows, $row);
 							}
 
-						//build update array
-							$x = 0;
-							foreach ($extensions as $uuid => $extension) {
+			$this->set($uuids, null);
+		} //function
 
-								//toggle feature
-									$array[$this->table][$x][$this->uuid_prefix.'uuid'] = $uuid;
-									$array[$this->table][$x][$this->toggle_field] = $extension['state'] == $this->toggle_values[0] ? $this->toggle_values[1] : $this->toggle_values[0];
+		protected function update(array $extension) : array {
+			$extension = parent::update($extension);
+			//disable other features
+			if ($extension['do_not_disturb'] == feature_base::enabled) {
+				$extension['forward_all_enabled'] = feature_base::disabled; //false
+				$extension['follow_me_enabled'] = feature_base::disabled; //false
+			}
+			return $extension;
+		}
 
-								//disable other features
-									if ($array[$this->table][$x][$this->toggle_field] == $this->toggle_values[0]) { //true
-										$array[$this->table][$x]['forward_all_enabled'] = $this->toggle_values[1]; //false
-										$array[$this->table][$x]['follow_me_enabled'] = $this->toggle_values[1]; //false
-										if (is_uuid($extension['follow_me_uuid'])) {
-											$array['follow_me'][$x]['follow_me_uuid'] = $extension['follow_me_uuid'];
-											$array['follow_me'][$x]['follow_me_enabled'] = $this->toggle_values[1]; //false
-										}
-									}
-
-								//increment counter
-									$x++;
-
-							}
-
-						//save the changes
-							if (is_array($array) && @sizeof($array) != 0) {
-
-								//grant temporary permissions
-									$p = new permissions;
-									$p->add('extension_edit', 'temp');
+		/**
+		 * @param array $uuids The extension UUIDs to perform this operation on
+		 * @param ?bool $new_state The new state or null to toggle
+		 */
+		private function set(array $uuids, ?bool $new_state) {
+			$extensions = $this->getExistingState($uuids);
 
 								//save the array
 									$database = new database;
@@ -276,17 +268,13 @@
 										}
 									}
 
-								//set message
-									message::add($text['message-toggle']);
-
-							}
-							unset($records, $extensions, $extension);
-					}
-
+				// Build the update array and perform any per-extension updates
+				$updates['extensions'][] = $this->update($extension);
 			}
+			$this->save($updates);
 
-		} //function
-
+			unset($records, $extensions, $extension, $updates);
+		}
 	} //class
 
 ?>
