@@ -149,7 +149,7 @@
 		 * @param ?bool $new_state The new state or null to toggle
 		 */
 		private function set(array $uuids, ?bool $new_state) {
-			$extensions = $this->getExistingState($uuids);
+			$extensions = $this->get_existing_state($uuids);
 
 								//save the array
 									$database = new database;
