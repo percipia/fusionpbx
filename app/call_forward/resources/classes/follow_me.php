@@ -26,7 +26,9 @@
 	Salvatore Caruso <salvatore.caruso@nems.it>
 	Riccardo Granchi <riccardo.granchi@nems.it>
 	Errol Samuels <voiptology@gmail.com>
+	Andrew Querol <andrew@querol.me>
 */
+include "root.php";
 
 //define the follow me class
 	class follow_me {
@@ -94,30 +96,6 @@
 				$p = new permissions;
 				$p->add('follow_me_add', 'temp');
 			//execute insert
-				$database = new database;
-				$database->app_name = 'calls';
-				$database->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
-				$database->save($array);
-				unset($array);
-			//revoke temporary permissions
-				$p->delete('follow_me_add', 'temp');
-
-				$this->follow_me_destinations();
-
-		}
-
-		public function update() {
-
-			//build follow me update array
-				$array['follow_me'][0]['follow_me_uuid'] = $this->follow_me_uuid;
-				$array['follow_me'][0]['cid_name_prefix'] = $this->cid_name_prefix;
-				$array['follow_me'][0]['cid_number_prefix'] = $this->cid_number_prefix;
-				$array['follow_me'][0]['follow_me_enabled'] = $this->follow_me_enabled;
-				$array['follow_me'][0]['follow_me_ignore_busy'] = $this->follow_me_ignore_busy;
-			//grant temporary permissions
-				$p = new permissions;
-				$p->add('follow_me_add', 'temp');
-			//execute update
 				$database = new database;
 				$database->app_name = 'calls';
 				$database->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
@@ -223,55 +201,25 @@
 				}
 		}
 
-		public function set() {
-
-			//get the extension_uuid
-				$parameters['follow_me_uuid'] = $this->follow_me_uuid;
-				$sql = "select extension_uuid from v_extensions ";
-				$sql .= "where follow_me_uuid = :follow_me_uuid ";
-				$database = new database;
-				$result = $database->select($sql, $parameters);
-				$extension_uuid = $result[0]['extension_uuid'];
-
-			//grant temporary permissions
-				$p = new permissions;
-				$p->add("follow_me_edit", 'temp');
-				$p->add("extension_edit", 'temp');
-
-			//add follow me to the array
-				$array['follow_me'][0]["follow_me_uuid"] = $this->follow_me_uuid;
-				$array['follow_me'][0]["domain_uuid"] = $this->domain_uuid;
-
-			//add extensions to the array
-				$array['extensions'][0]["extension_uuid"] = $extension_uuid;
-				$array['extensions'][0]["dial_domain"] = $this->domain_name;
-				$array['extensions'][0]["follow_me_destinations"] = '';
-				$array['extensions'][0]["follow_me_enabled"] = $this->follow_me_enabled;
-
-			//save the destination
-				$database = new database;
-				$database->app_name = 'follow_me';
-				$database->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
-				$database->save($array);
-
-			//remove the temporary permission
-				$p->delete("follow_me_edit", 'temp');
-				$p->delete("extension_edit", 'temp');
-
+			$this->set($uuids, null);
 		} //function
 
+		protected function update(array $extension) : array {
+			$extension = parent::update($extension);
+			//disable other features
+			if ($extension['follow_me_enabled'] == feature_base::enabled) {
+				$extension['do_not_disturb'] = feature_base::disabled; //false
+				$extension['forward_all_enabled'] = feature_base::disabled; //false
+			}
+			return $extension;
+		}
 
 		/**
-		 * declare private variables
+		 * @param array $uuids The extension UUIDs to perform this operation on
+		 * @param ?bool $new_state The new state or null to toggle
 		 */
-		private $app_name;
-		private $app_uuid;
-		private $permission;
-		private $list_page;
-		private $table;
-		private $uuid_prefix;
-		private $toggle_field;
-		private $toggle_values;
+		private function set(array $uuids, ?bool $new_state) {
+			$extensions = $this->getExistingState($uuids);
 
 		/**
 		 * toggle records
