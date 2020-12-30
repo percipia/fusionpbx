@@ -21,12 +21,13 @@
 	  Copyright (C) 2010 - 2023
 	  All Rights Reserved.
 
-	  Contributor(s):
-	  Mark J Crane <markjcrane@fusionpbx.com>
-	  Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
-	  Errol Samuels <voiptology@gmail.com>
-
-	 */
+	Contributor(s):
+	Mark J Crane <markjcrane@fusionpbx.com>
+	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
+	Errol Samuels <voiptology@gmail.com>
+	Andrew Querol <andrew@querol.me>
+*/
+include "root.php";
 
 //define the call_forward class
 	class call_forward {
@@ -136,11 +137,11 @@
 				$language = new text;
 				$text = $language->get();
 
-				
+
 				// initialize an empty array
 				$uuids = [];
 				$extensions = [];
-				
+
 				//get current toggle state
 				foreach ($records as $x => $record) {
 					if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
