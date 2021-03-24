@@ -24,12 +24,12 @@
 	Mark J Crane <markjcrane@fusionpbx.com>
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
+include "root.php";
 
 //define the provision class
 	class provision {
 
 		public $domain_uuid;
-		public $domain_name;
 		public $template_dir;
 		public $device_address;
 		public $device_template;
@@ -247,6 +247,24 @@
 				unset($parameters);
 
 			}
+		}
+
+		/**
+		 * Takes in a template name(grandstream/grp2615) and resolves the full path to the template or false if it cannot be found
+		 * @param $template_dir - The base device template directory
+		 * @param $device_template - The device template to resolve
+		 * @return string
+		 */
+		public function resolve_template($template_dir, $device_template) {
+			// Check for an alias that we should redirect to.
+			if (file_exists("{$template_dir}/{$device_template}/.alias")) {
+				$aliasContents = file_get_contents("{$template_dir}/{$device_template}/.alias");
+				if ($aliasContents !== false) {
+					// Strip any leading dots or slashes and any dots or whitespace anywhere then set it as the device template
+					$device_template = preg_replace(array('/^[\.\/\x5c]+/', '/\./', '/\s/'), '', $aliasContents);
+				}
+			}
+			return path_join($template_dir, $device_template);
 		}
 
 		public function render() {
@@ -514,7 +532,7 @@
 							$templates['Flyingvoice FIP15G'] = 'flyingvoice/fip15g';
 							$templates['Flyingvoice FIP16'] = 'flyingvoice/fip16';
 							$templates['Flyingvoice FIP16PLUS'] = 'flyingvoice/fip16plus';
-							
+
 							foreach ($templates as $key=>$value){
 								if(stripos($_SERVER['HTTP_USER_AGENT'],$key)!== false) {
 									$device_template = $value;
@@ -650,7 +668,7 @@
 
 			//if the domain name directory exists then only use templates from it
 				if (is_dir($template_dir.'/'.$domain_name)) {
-					$device_template = $domain_name.'/'.$device_template;
+					$template_dir = $template_dir.'/'.$domain_name;
 				}
 
 			//initialize a template object
@@ -661,7 +679,7 @@
 				else {
 					$view->engine = "smarty";
 				}
-				$view->template_dir = $template_dir ."/".$device_template."/";
+				$view->template_dir = $this->resolve_template($template_dir, $device_template);
 				$view->cache_dir = $_SESSION['server']['temp']['dir'];
 				$view->init();
 
@@ -892,7 +910,7 @@
 								if (is_uuid($device_user_uuid) && $_SESSION['provision']['contact_groups']['boolean'] == "true") {
 									$this->contact_append($contacts, $line, $domain_uuid, $device_user_uuid, 'groups');
 								}
-	
+
 							//get the contacts assigned to the user and add to the contacts array
 								if (is_uuid($device_user_uuid) && $_SESSION['provision']['contact_users']['boolean'] == "true") {
 									$this->contact_append($contacts, $line, $domain_uuid, $device_user_uuid, 'users');
@@ -1203,10 +1221,10 @@
 						elseif (file_exists($template_dir."/".$device_template ."/{\$mac}")) {
 							$file = "{\$mac}";
 						}
-						elseif (file_exists($template_dir."/".$device_template ."/{\$mac}.xml")) {
+						elseif (file_exists($view->template_dir ."/{\$mac}.xml")) {
 							$file = "{\$mac}.xml";
 						}
-						elseif (file_exists($template_dir."/".$device_template ."/{\$mac}.cfg")) {
+						elseif (file_exists($view->template_dir ."/{\$mac}.cfg")) {
 							$file = "{\$mac}.cfg";
 						}
 						else {
@@ -1216,10 +1234,10 @@
 					}
 					else {
 						//make sure the file exists
-						if (!file_exists($template_dir."/".$device_template ."/".$file)) {
-							$this->http_error('404');
+						if (!file_exists($view->template_dir ."/".$file)) {
+							echo "file not found ".$device_template ."/".$file;
 							if ($_SESSION['provision']['debug']['boolean'] == 'true') {
-								echo ":$template_dir/$device_template/$file<br/>";
+								echo "Full Path: $view->template_dir/$file<br/>";
 								echo "template_dir: $template_dir<br/>";
 								echo "device_template: $device_template<br/>";
 								echo "file: $file";
@@ -1278,6 +1296,7 @@
 					foreach ($result as &$row) {
 						//get the values from the database and set as variables
 							$domain_uuid = $row["domain_uuid"];
+							$domain_name = $_SESSION['domains'][$domain_uuid]['domain_name'];
 							$device_uuid = $row["device_uuid"];
 							$device_address = $row["device_address"];
 							$device_label = $row["device_label"];
@@ -1295,6 +1314,18 @@
 
 						//loop through the provision template directory
 							$dir_array = array();
+							if (strlen($device_template) > 0) {
+								$template_dir = $this->template_dir;
+								//set the template directory
+								if (strlen($provision["template_dir"]) > 0) {
+									$template_dir = $provision["template_dir"];
+								}
+								//if the domain name directory exists then only use templates from it
+								if (is_dir($template_dir.'/'.$domain_name)) {
+									$template_dir = $template_dir.'/'.$domain_name;
+								}
+								$template_path = $this->resolve_template($template_dir, $device_template);
+
 							if (!empty($device_template)) {
 								$template_path = path_join($this->template_dir, $device_template);
 								$dir_list = opendir($template_path);
@@ -1302,7 +1333,8 @@
 									$x = 0;
 									while (false !== ($file = readdir($dir_list))) {
 										$ignore = $file == "." || $file == ".." || substr($file, -3) == ".db" ||
-											substr($file, -4) == ".svn" || substr($file, -4) == ".git";
+											substr($file, -4) == ".svn" || substr($file, -4) == ".git" ||
+											substr($file, 0, 1) === "."; // Ignore any dot files
 										if (!$ignore) {
 											$dir_array[] = path_join($template_path, $file);
 											if ($x > 1000) { break; };
