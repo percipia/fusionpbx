@@ -1246,7 +1246,7 @@
 
 		} //end render function
 
-		function write() {
+		function write($uuid) {
 			//build the provision array
 				$provision = array();
 				if (is_array($_SESSION['provision'])) {
@@ -1266,12 +1266,18 @@
 					return;
 				}
 
-			//get the devices from database
-				$sql = "select * from v_devices ";
-				//$sql .= "where domain_uuid = :domain_uuid ";
-				//$parameters['domain_uuid'] = $this->domain_uuid;
+			//get single device from database unless uuid provided
 				$database = new database;
-				$result = $database->select($sql, null, 'all');
+				if (is_null($uuid)) {
+					$sql = "select * from v_devices ";
+					$result = $database->select($sql, null, 'all');
+					//$sql .= "where domain_uuid = :domain_uuid ";
+					//$parameters['domain_uuid'] = $this->domain_uuid;
+				} else {
+					$sql = "select * from v_devices where device_uuid = :device_uuid";
+					$parameters['device_uuid'] = $dev_uuid;
+					$result = $database->select($sql, $parameters, 'all');
+				}
 
 			//process each device
 				if (is_array($result)) {

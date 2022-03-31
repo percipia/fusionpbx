@@ -481,7 +481,7 @@
 					if (!empty($_SESSION['provision']['path']['text'])) {
 						$prov = new provision;
 						$prov->domain_uuid = $domain_uuid;
-						$response = $prov->write();
+						$response = $prov->write($device_uuid);
 					}
 
 				//set the message
