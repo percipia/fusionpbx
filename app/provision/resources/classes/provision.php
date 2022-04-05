@@ -1268,15 +1268,15 @@
 
 			//get single device from database unless uuid provided
 				$database = new database;
-				if (is_null($uuid)) {
+				if (is_uuid($uuid)) {
+					$sql = "select * from v_devices where device_uuid = :device_uuid";
+					$parameters['device_uuid'] = $uuid;
+					$result = $database->select($sql, $parameters, 'all');
+				} else {
 					$sql = "select * from v_devices ";
 					$result = $database->select($sql, null, 'all');
 					//$sql .= "where domain_uuid = :domain_uuid ";
 					//$parameters['domain_uuid'] = $this->domain_uuid;
-				} else {
-					$sql = "select * from v_devices where device_uuid = :device_uuid";
-					$parameters['device_uuid'] = $dev_uuid;
-					$result = $database->select($sql, $parameters, 'all');
 				}
 
 			//process each device
@@ -1346,7 +1346,7 @@
 										$provision_dir_array = explode(";", $provision["path"]);
 										if (is_array($provision_dir_array)) {
 											foreach ($provision_dir_array as $directory) {
-												//destinatino file path
+												//destination file path
 													$dest_path = path_join($directory, $file_name);
 
 													if ($device_enabled == 'true') {
