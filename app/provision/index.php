@@ -24,6 +24,10 @@
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
 
+//set the include path
+	$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
+	set_include_path(parse_ini_file($conf[0])['document.root']);
+
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
 	require_once "resources/functions/device_by.php";
@@ -451,6 +455,20 @@
 	$prov->device_address = $device_address;
 	$prov->file = $file;
 	$file_contents = $prov->render();
+
+	$dom = new DOMDocument;
+	$dom->preserveWhiteSpace = false;
+	$dom->formatOutput = false;
+	$isXML = $dom->loadXML($file_contents, LIBXML_NOERROR|LIBXML_ERR_FATAL|LIBXML_ERR_NONE);
+	// Remove all comments and whitespace if valid XML, $pretty is empty, and enabled in settings
+	if ($isXML === true && empty($pretty) && $provision["minify_xml"] == "true") {
+		$xpath = new DOMXPath($dom);
+		// Iterate backwards over the XML file
+		for ($els = $xpath->query('//comment()'), $i = $els->length - 1; $i >= 0; $i--) {
+			$els->item($i)->parentNode->removeChild($els->item($i));
+		}
+		$file_contents = $dom->saveXML();
+	}
 
 //deliver the customized config over HTTP/HTTPS
 	//need to make sure content-type is correct

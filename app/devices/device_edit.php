@@ -22,6 +22,10 @@
 
 */
 
+//set the include path
+	$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
+	set_include_path(parse_ini_file($conf[0])['document.root']);
+
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
 
@@ -93,9 +97,9 @@
 				exit;
 			}
 
-		//device device address
-			if (permission_exists('device_address')) {
-				$device_address = $_POST["device_address"];
+		//device mac address
+			if (permission_exists('device_mac_address')) {
+				$device_mac_address = $_POST["device_mac_address"];
 			}
 			else {
 				$sql = "select device_address from v_devices ";
