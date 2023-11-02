@@ -24,6 +24,11 @@
 	Mark J Crane <markjcrane@fusionpbx.com>
 */
 
+//includes
+//set the include path
+$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
+set_include_path(parse_ini_file($conf[0])['document.root']);
+
 //includes files
 require_once dirname(__DIR__, 3) . "/resources/require.php";
 require_once "resources/check_auth.php";
@@ -60,7 +65,7 @@ if (is_array($activity)) {
 }
 if (!empty($groups)) {
 	$groups = array_unique($groups);
-	sort($groups); 
+	sort($groups);
 }
 
 //get the valet info
@@ -335,12 +340,12 @@ if (is_array($activity)) {
 				}
 			}
 		}
-		if ($found_count > 0) {	
+		if ($found_count > 0) {
 			//determine block style by state (if any) and register status
 			$style = !empty($ext_state) ? "op_ext op_state_".$ext_state : "op_ext";
 		}
 		else {
-			$style = "off_ext";	
+			$style = "off_ext";
 		}
 		unset($extension_number, $found_count, $array);
 
@@ -641,7 +646,7 @@ if (sizeof($user_extensions) > 0) {
 if (sizeof($grouped_extensions) > 0) {
 	//alphabetical order
 	ksort($grouped_extensions);
-	
+
 	//loop through the groups
 	foreach ($grouped_extensions as $group => $extensions) {
 		echo "<div class=\"heading\"><strong>".ucwords(escape($group))."</strong></div>\n";
