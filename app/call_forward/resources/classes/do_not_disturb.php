@@ -22,6 +22,7 @@
 
 	Contributor(s):
 	Mark J Crane <markjcrane@fusionpbx.com>
+	Andrew Querol <andrew@querol.me>
 */
 
 //define the dnd class
@@ -45,92 +46,23 @@
 							$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
 						}
 
-					//update the database user_status
-						$user_status = "Do Not Disturb";
-						$sql  = "update v_users set ";
-						$sql .= "user_status = :user_status ";
-						$sql .= "where domain_uuid = :domain_uuid ";
-						$sql .= "and username = :username ";
-						$parameters['user_status'] = "Do Not Disturb";
-						$parameters['domain_uuid'] = $this->domain_uuid;
-						$parameters['username'] = $_SESSION['username'];
-						$database = new database;
-						$database->execute($sql);
-				}
+		public function disable(array $uuids) {
+			if (!permission_exists('do_not_disturb')) {
+				return;
+			}
+			$this->set($uuids, false);
 		}
 
-		public function set() {
-			//determine whether to update the dial string
-				$sql = "select extension_uuid, extension, number_alias ";
-				$sql .= "from v_extensions ";
-				$sql .= "where domain_uuid = :domain_uuid ";
-				if (is_uuid($this->extension_uuid)) {
-					$sql .= "and extension_uuid = :extension_uuid ";
-					$parameters['extension_uuid'] = $this->extension_uuid;
-				}
-				else {
-					$sql .= "and extension = :extension ";
-					$parameters['extension'] = $this->extension;
-				}
-				$parameters['domain_uuid'] = $this->domain_uuid;
-				$database = new database;
-				$row = $database->select($sql, $parameters, 'row');
-				if (is_array($row) && @sizeof($row) != 0) {
-					if (is_uuid($this->extension_uuid)) {
-						$this->extension_uuid = $row["extension_uuid"];
-					}
-					if (empty($this->extension)) {
-						if (empty($row["number_alias"])) {
-							$this->extension = $row["extension"];
-						}
-						else {
-							$this->extension = $row["number_alias"];
-						}
-					}
-				}
-				unset($sql, $parameters, $row);
-
-			//build extension update array
-				$array['extensions'][0]['extension_uuid'] = $this->extension_uuid;
-				$array['extensions'][0]['do_not_disturb'] = $this->enabled;
-
-			//grant temporary permissions
-				$p = new permissions;
-				$p->add('extension_edit', 'temp');
-
-			//execute update
-				$database = new database;
-				$database->app_name = 'calls';
-				$database->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
-				$database->save($array);
-				unset($array);
-
-			//revoke temporary permissions
-				$p->delete('extension_edit', 'temp');
-
-			//delete extension from the cache
-				$cache = new cache;
-				$cache->delete("directory:".$this->extension."@".$this->domain_name);
-				if(!empty($this->number_alias)){
-					$cache->delete("directory:".$this->number_alias."@".$this->domain_name);
-				}
-
-		} //function
-
-		/**
-		 * declare private variables
-		 */
-		private $app_name;
-		private $app_uuid;
-		private $permission;
-		private $list_page;
-		private $table;
-		private $uuid_prefix;
-		private $toggle_field;
-		private $toggle_values;
+		public function enable(array $uuids) {
+			if (!permission_exists('do_not_disturb')) {
+				return;
+			}
+			$this->set($uuids, true);
+		}
 
 		/**
 		 * toggle records
+		 * @param array $uuids The uuids to toggle
 		 */
 		public function toggle($records) {
 
@@ -199,35 +131,25 @@
 								unset($sql, $parameters, $rows, $row);
 							}
 
-						//build update array
-							$x = 0;
-							foreach ($extensions as $uuid => $extension) {
+			$this->set($uuids, null);
+		} //function
 
-								//toggle feature
-									$array[$this->table][$x][$this->uuid_prefix.'uuid'] = $uuid;
-									$array[$this->table][$x][$this->toggle_field] = $extension['state'] == $this->toggle_values[0] ? $this->toggle_values[1] : $this->toggle_values[0];
+		protected function update(array $extension) : array {
+			//disable other features
+			if ($extension['do_not_disturb'] == feature_base::enabled) {
+				$extension['forward_all_enabled'] = feature_base::disabled; //false
+				$extension['follow_me_enabled'] = feature_base::disabled; //false
+			}
+			// Important to have the parent update last. Otherwise the above information will not be sent for feature key syncing.
+			return parent::update($extension);
+		}
 
-								//disable other features
-									if ($array[$this->table][$x][$this->toggle_field] == $this->toggle_values[0]) { //true
-										$array[$this->table][$x]['forward_all_enabled'] = $this->toggle_values[1]; //false
-										$array[$this->table][$x]['follow_me_enabled'] = $this->toggle_values[1]; //false
-										if (is_uuid($extension['follow_me_uuid'])) {
-											$array['follow_me'][$x]['follow_me_uuid'] = $extension['follow_me_uuid'];
-											$array['follow_me'][$x]['follow_me_enabled'] = $this->toggle_values[1]; //false
-										}
-									}
-
-								//increment counter
-									$x++;
-
-							}
-
-						//save the changes
-							if (is_array($array) && @sizeof($array) != 0) {
-
-								//grant temporary permissions
-									$p = new permissions;
-									$p->add('extension_edit', 'temp');
+		/**
+		 * @param array $uuids The extension UUIDs to perform this operation on
+		 * @param ?bool $new_state The new state or null to toggle
+		 */
+		private function set(array $uuids, ?bool $new_state) {
+			$extensions = $this->get_existing_state($uuids);
 
 								//save the array
 									$database = new database;
@@ -275,18 +197,24 @@
 											$cache->delete("directory:".$extension['number_alias']."@".$_SESSION['domain_name']);
 										}
 									}
+			// Set the DND state
+			$updates = array();
+			foreach ($extensions as $uuid => $extension) {
+				// Create a copy of $new_state since we do not want to clobber it when toggling.
+				$updated_state = $new_state;
+				if (is_null($new_state)) {
+					$updated_state = $extension['do_not_disturb'] != feature_base::enabled;
+				}
+				// Update the extension array with the new DND state
+				$extension['do_not_disturb'] = $updated_state ? feature_base::enabled : feature_base::disabled;
 
-								//set message
-									message::add($text['message-toggle']);
-
-							}
-							unset($records, $extensions, $extension);
-					}
-
+				// Build the update array and perform any per-extension updates
+				$updates['extensions'][] = $this->update($extension);
 			}
+			$this->save($updates);
 
-		} //function
-
+			unset($records, $extensions, $extension, $updates);
+		}
 	} //class
 
 ?>
