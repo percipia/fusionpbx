@@ -25,6 +25,10 @@
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
 
+//set the include path
+	$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
+	set_include_path(parse_ini_file($conf[0])['document.root']);
+
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
 	require_once "resources/check_auth.php";
@@ -83,7 +87,22 @@
 				unset($array);
 			}
 
-		//if call center app is installed then update the user_status
+			// Check if we have access to the do_not_disturb class
+			if (class_exists('do_not_disturb')) {
+				$uuids = array();
+				foreach ($_SESSION['user']['extension'] as $x => $ext) {
+					$uuids[] = $ext["extension_uuid"];
+				}
+
+				$obj = new do_not_disturb;
+				if ($user_status === "Do Not Disturb") {
+					$obj->enable($uuids);
+				} else {
+					$obj->disable($uuids);
+				}
+			}
+
+			//if call center app is installed then update the user_status
 			if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/call_centers')) {
 				//get the call center agent uuid
 					$sql = "select call_center_agent_uuid from v_call_center_agents ";
@@ -97,11 +116,15 @@
 
 				//update the user_status
 					if (is_uuid($call_center_agent_uuid)) {
-						$fp = event_socket_create();
-						$switch_cmd .= "callcenter_config agent set status ".$call_center_agent_uuid." '".$user_status."'";
-						$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
-					}
+						$fp = event_socket_create($_SESSION['event_socket_ip_address'], $_SESSION['event_socket_port'], $_SESSION['event_socket_password']);
+						if ($fp) {
+							//update the user_status
+							$cmd = "api callcenter_config agent set status " . $call_center_agent_uuid . " '" . $user_status . "'";
+							$response = event_socket_request($fp, $cmd);
 
+							//update the user state
+							$cmd = "api callcenter_config agent set state " . $call_center_agent_uuid . " Waiting";
+							$response = event_socket_request($fp, $cmd);
 				//update the user state
 					if (is_uuid($call_center_agent_uuid)) {
 						$cmd = "api callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
@@ -272,7 +295,8 @@ unset($refresh_default);
 		url += '&vd_ext_from=' + document.getElementById('vd_ext_from').value;
 		url += '&vd_ext_to=' + document.getElementById('vd_ext_to').value;
 		url += '&group=' + ((document.getElementById('group')) ? document.getElementById('group').value : '');
-		url += '&filter=' + ((document.getElementById('search')) ? document.getElementById('search').value : '');
+		url += '&extension_filter=' + ((document.getElementById('extension_filter')) ? document.getElementById('extension_filter').value : '');
+		url += '&name_filter=' + ((document.getElementById('name_filter')) ? document.getElementById('name_filter').value : '');
 		url += '&eavesdrop_dest=' + ((document.getElementById('eavesdrop_dest')) ? document.getElementById('eavesdrop_dest').value : '');
 		if (document.getElementById('sort1'))
 			if (document.getElementById('sort1').value == '1') url += '&sort';
@@ -360,7 +384,8 @@ unset($refresh_default);
 			url += '&vd_ext_from=' + document.getElementById('vd_ext_from').value;
 			url += '&vd_ext_to=' + document.getElementById('vd_ext_to').value;
 			url += '&group=' + ((document.getElementById('group')) ? document.getElementById('group').value : '');
-			url += '&filter=' + ((document.getElementById('search')) ? document.getElementById('search').value : '');
+			url += '&extension_filter=' + ((document.getElementById('extension_filter')) ? document.getElementById('extension_filter').value : '');
+			url += '&name_filter=' + ((document.getElementById('name_filter')) ? document.getElementById('name_filter').value : '');
 			url += '&eavesdrop_dest=' + ((document.getElementById('eavesdrop_dest')) ? document.getElementById('eavesdrop_dest').value : '');
 			if (document.getElementById('sort1'))
 				if (document.getElementById('sort1').value == '1') url += '&sort';
