@@ -354,7 +354,7 @@
 									if (!empty($_SESSION['provision']['path']['text'])) {
 										$prov = new provision;
 										$prov->domain_uuid = $_SESSION['domain_uuid'];
-										$response = $prov->write();
+										$response = $prov->write(null);
 									}
 
 								//set message
@@ -861,7 +861,7 @@
 									if (!empty($_SESSION['provision']['path']['text'])) {
 										$prov = new provision;
 										$prov->domain_uuid = $_SESSION['domain_uuid'];
-										$response = $prov->write();
+										$response = $prov->write(null);
 									}
 
 								//set message

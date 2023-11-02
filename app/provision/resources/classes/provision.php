@@ -24,7 +24,6 @@
 	Mark J Crane <markjcrane@fusionpbx.com>
 	Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 */
-include "root.php";
 
 //define the provision class
 	class provision {
@@ -532,7 +531,7 @@ include "root.php";
 							$templates['Flyingvoice FIP15G'] = 'flyingvoice/fip15g';
 							$templates['Flyingvoice FIP16'] = 'flyingvoice/fip16';
 							$templates['Flyingvoice FIP16PLUS'] = 'flyingvoice/fip16plus';
-
+							
 							foreach ($templates as $key=>$value){
 								if(stripos($_SERVER['HTTP_USER_AGENT'],$key)!== false) {
 									$device_template = $value;
@@ -1218,7 +1217,7 @@ include "root.php";
 						elseif (file_exists($template_dir."/".$device_template ."/{\$address}.xml")) {
 							$file = "{\$address}.xml";
 						}
-						elseif (file_exists($template_dir."/".$device_template ."/{\$mac}")) {
+						elseif (file_exists($view->template_dir ."/{\$mac}")) {
 							$file = "{\$mac}";
 						}
 						elseif (file_exists($view->template_dir ."/{\$mac}.xml")) {
@@ -1264,7 +1263,7 @@ include "root.php";
 
 		} //end render function
 
-		function write() {
+		function write($uuid) {
 			//build the provision array
 				$provision = array();
 				if (is_array($_SESSION['provision'])) {
@@ -1284,12 +1283,18 @@ include "root.php";
 					return;
 				}
 
-			//get the devices from database
-				$sql = "select * from v_devices ";
-				//$sql .= "where domain_uuid = :domain_uuid ";
-				//$parameters['domain_uuid'] = $this->domain_uuid;
+			//get single device from database unless uuid provided
 				$database = new database;
-				$result = $database->select($sql, null, 'all');
+				if (is_uuid($uuid)) {
+					$sql = "select * from v_devices where device_uuid = :device_uuid";
+					$parameters['device_uuid'] = $uuid;
+					$result = $database->select($sql, $parameters, 'all');
+				} else {
+					$sql = "select * from v_devices ";
+					$result = $database->select($sql, null, 'all');
+					//$sql .= "where domain_uuid = :domain_uuid ";
+					//$parameters['domain_uuid'] = $this->domain_uuid;
+				}
 
 			//process each device
 				if (is_array($result)) {
@@ -1326,8 +1331,6 @@ include "root.php";
 								}
 								$template_path = $this->resolve_template($template_dir, $device_template);
 
-							if (!empty($device_template)) {
-								$template_path = path_join($this->template_dir, $device_template);
 								$dir_list = opendir($template_path);
 								if ($dir_list) {
 									$x = 0;
@@ -1372,7 +1375,7 @@ include "root.php";
 										$provision_dir_array = explode(";", $provision["path"]);
 										if (is_array($provision_dir_array)) {
 											foreach ($provision_dir_array as $directory) {
-												//destinatino file path
+												//destination file path
 													$dest_path = path_join($directory, $file_name);
 
 													if ($device_enabled == 'true') {

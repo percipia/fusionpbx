@@ -29,6 +29,9 @@
 	$conf = glob("{/usr/local/etc,/etc}/fusionpbx/config.conf", GLOB_BRACE);
 	set_include_path(parse_ini_file($conf[0])['document.root']);
 
+//set default
+    $is_included = false;
+
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
 	require_once "resources/check_auth.php";
@@ -61,7 +64,6 @@
 			header('Location: calls.php');
 			exit;
 		}
-	if (!empty($action) && count($extensions) > 0) {
 		switch ($action) {
 			case 'toggle_call_forward':
 				if (permission_exists('call_forward')) {
@@ -88,8 +90,7 @@
 				}
 				break;
 		}
-
-		header('Location: call_forward.php' . ($search != '' ? '?search=' . urlencode($search) : null));
+		header('Location: calls.php'.($search != '' ? '?search='.urlencode($search) : null));
 		exit;
 	}
 
@@ -320,8 +321,7 @@
 			echo "<tr class='list-row' href='" . $list_row_url . "'>\n";
 			if (!$is_included && $extensions) {
 				echo "	<td class='checkbox'>\n";
-				echo "		<input type='checkbox' name='extensions[$x][checked]' id='checkbox_" . $x . "' value='true' onclick=\"if (!this.checked) { document.getElementById('checkbox_all').checked = false; }\">\n";
-				echo "		<input type='hidden' name='extensions[$x][uuid]' value='" . escape($row['extension_uuid']) . "' />\n";
+				echo "		<input type='checkbox' name='extensions[]' id='checkbox_{$x}' value='".escape($row['extension_uuid'])."' onclick=\"if (!this.checked) { document.getElementById('checkbox_all').checked = false; }\">\n";
 				echo "	</td>\n";
 
 				if ($show == "all" && permission_exists('call_forward_all')) {

@@ -293,6 +293,9 @@
 	if (permission_exists('device_profile_view')) {
 		echo button::create(['type'=>'button','label'=>$text['button-profiles'],'icon'=>'clone','link'=>'device_profiles.php']);
 	}
+	if (permission_exists('device_config_build')) {
+		echo button::create(['type' => 'button', 'label' => $text['button-rebuild'], 'icon' => 'sync-alt', 'link' => 'device_build.php?cmd=rebuild']);
+	}
 	$margin_left = permission_exists('device_import') || permission_exists('device_export') || permission_exists('device_vendor_view') || permission_exists('device_profile_view') ? "margin-left: 15px;" : null;
 	if (permission_exists('device_add') && (empty($_SESSION['limit']['devices']['numeric']) || ($total_devices < $_SESSION['limit']['devices']['numeric']))) {
 		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'id'=>'btn_add','style'=>$margin_left,'link'=>'device_edit.php']);
