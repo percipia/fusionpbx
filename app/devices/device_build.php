@@ -28,8 +28,7 @@
 //redirects user to their current page when accessed and displays a status message.
 
 //includes
-	include "root.php";
-	require_once "resources/require.php";
+	require_once dirname(__DIRNAME__, 2) . "resources/require.php";
 	require_once "resources/check_auth.php";
 
 //check permissions
