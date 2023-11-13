@@ -94,8 +94,8 @@
 			}
 
 		//device mac address
-			if (permission_exists('device_mac_address')) {
-				$device_mac_address = $_POST["device_mac_address"];
+			if (permission_exists('device_address')) {
+				$device_address = $_POST["device_address"];
 			}
 			else {
 				$sql = "select device_address from v_devices ";
