@@ -49,6 +49,7 @@
 		 * toggle records
 		 * @param array $uuids The uuids to toggle
 		 */
+		/* Comment out duplicate method to fix call forwards
 		public function toggle(array $uuids) {
 			if (!permission_exists('follow_me')) {
 				return;
@@ -56,6 +57,7 @@
 
 			$this->set($uuids, null);
 		} //function
+		*/
 
 		protected function update(array $extension) : array {
 			//disable other features
