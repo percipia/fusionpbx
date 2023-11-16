@@ -57,7 +57,7 @@
 		$token = new token;
 		if (!$token->validate($_SERVER['PHP_SELF'])) {
 			message::add($text['message-invalid_token'],'negative');
-			header('Location: calls.php');
+			header('Location: call_forward.php');
 			exit;
 		}
 		switch ($action) {
@@ -86,7 +86,7 @@
 				}
 				break;
 		}
-		header('Location: calls.php'.($search != '' ? '?search='.urlencode($search) : null));
+		header('Location: call_forward.php'.($search != '' ? '?search='.urlencode($search) : null));
 		exit;
 	}
 

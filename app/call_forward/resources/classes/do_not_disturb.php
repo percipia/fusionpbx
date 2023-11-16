@@ -70,7 +70,7 @@
 				$this->app_name = 'calls';
 				$this->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
 				$this->permission = 'do_not_disturb';
-				$this->list_page = 'calls.php';
+				$this->list_page = 'call_forward.php';
 				$this->table = 'extensions';
 				$this->uuid_prefix = 'extension_';
 				$this->toggle_field = 'do_not_disturb';
