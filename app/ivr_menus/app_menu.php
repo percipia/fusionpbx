@@ -7,11 +7,14 @@
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Automatische Vermittlung";
 	$apps[$x]['menu'][$y]['title']['de-ch'] = "Automatische Vermittlung";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Automatische Vermittlung";
-	$apps[$x]['menu'][$y]['title']['fr-fr'] = "IVR Menus";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Μενού IVR";
+	$apps[$x]['menu'][$y]['title']['es-cl'] = "IVR Menús";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "IVR Menús";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "IVR Menus";
+	$apps[$x]['menu'][$y]['title']['fr-fr'] = "IVR Menus";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "IVR תפריטים";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Menu IVR";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "IVR მენიუ";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "IVR menu";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Zapowiedzi głosowe (IVR)";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Menu de IVR";
@@ -20,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Голосовые меню (IVR)";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "IVR Meny";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Відео Кошик";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "IVR Menüleri";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "IVR 菜单";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "IVR メニュー";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "IVR 메뉴";

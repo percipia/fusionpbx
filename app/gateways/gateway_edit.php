@@ -227,20 +227,16 @@
 					save_gateway_xml();
 
 				//clear the cache
-					$fp = event_socket_create();
-					$hostname = trim(event_socket_request($fp, 'api switchname'));
+					$esl = event_socket::create();
+					$hostname = trim(event_socket::api('switchname'));
 					$cache = new cache;
 					$cache->delete("configuration:sofia.conf:".$hostname);
 
 				//rescan the external profile to look for new or stopped gateways
 					//create the event socket connection
-						$fp = event_socket_create();
-						$tmp_cmd = 'api sofia profile external rescan';
-						$response = event_socket_request($fp, $tmp_cmd);
-						unset($tmp_cmd);
+						$esl = event_socket::create();
+						$response = event_socket::api('sofia profile external rescan');
 						usleep(1000);
-					//close the connection
-						fclose($fp);
 					//clear the apply settings reminder
 						$_SESSION["reload_xml"] = false;
 
@@ -395,7 +391,7 @@
 	echo "<br /><br />\n";
 
 	echo "<form name='frm' id='frm' method='post'>\n";
-
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -934,7 +930,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
-	echo "<br><br>";
+	echo "</div>\n";
 
 	if ($action == "update") {
 		echo "<input type='hidden' name='gateway_uuid' value='".escape($gateway_uuid)."'>\n";
@@ -942,6 +938,7 @@
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
 
 	echo "</form>";
+	echo "<br><br>";
 
 //hide password fields before submit
 	echo "<script>\n";

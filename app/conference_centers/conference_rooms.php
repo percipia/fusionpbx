@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -37,6 +37,9 @@
 		echo "access denied";
 		exit;
 	}
+
+//connect to the database
+	$database = new database;
 
 //add multi-lingual support
 	$language = new text;
@@ -98,9 +101,9 @@
 					$default_voice = 'callie';
 					$switch_cmd = "conference ".$meeting_uuid."@".$_SESSION['domain_name']." play ".$_SESSION['switch']['sounds']['dir']."/".$default_language."/".$default_dialect."/".$default_voice."/ivr/ivr-recording_started.wav";
 				//connect to event socket
-					$fp = event_socket_create();
-					if ($fp) {
-						$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
+					$esl = event_socket::create();
+					if ($esl) {
+						$switch_result = event_socket::api($switch_cmd);
 					}
 			}
 
@@ -126,7 +129,6 @@
 			}
 
 		//save to the data
-			$database = new database;
 			$database->app_name = 'conference_rooms';
 			$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 			$database->save($array);
@@ -137,12 +139,12 @@
 
 //get conference array
 	$switch_cmd = "conference xml_list";
-	$fp = event_socket_create();
-	if (!$fp) {
-		//connection to even socket failed
+	$esl = event_socket::create();
+	if (!$esl->is_connected()) {
+		trigger_error('Unable to connect to FreeSWITCH', E_USER_WARNING);
 	}
 	else {
-		$xml_str = trim(event_socket_request($fp, 'api '.$switch_cmd));
+		$xml_str = trim(event_socket::api($switch_cmd));
 		try {
 			$xml = new SimpleXMLElement($xml_str, true);
 		}
@@ -220,7 +222,7 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-conference_rooms']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-conference_rooms']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'conference_centers.php']);
 	if (permission_exists('conference_room_add')) {
@@ -270,6 +272,7 @@
 	echo "<input type='hidden' id='toggle_field' name='toggle_field' value=''>\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('conference_room_add') || permission_exists('conference_room_edit') || permission_exists('conference_room_delete')) {
@@ -454,10 +457,10 @@
 			else if (permission_exists('conference_active_view')) {
 				echo "		<a href='".PROJECT_PATH."/app/conferences_active/conferences_active.php'>".$text['label-view']."</a>\n";
 			}
-			if (permission_exists('conference_cdr_view')) {	
+			if (permission_exists('conference_cdr_view')) {
 				echo "		<a href='/app/conference_cdr/conference_cdr.php?id=".urlencode($row['conference_room_uuid'])."'>".$text['button-cdr']."</a>\n";
 			}
-			if (permission_exists('conference_session_view')) {	
+			if (permission_exists('conference_session_view')) {
 				echo "		<a href='conference_sessions.php?id=".urlencode($row['conference_room_uuid'])."'>".$text['label-sessions']."</a>\n";
 			}
 			echo "	</td>\n";
@@ -495,6 +498,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".!empty($paging_controls)."</div>\n";
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";

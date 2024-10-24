@@ -68,10 +68,9 @@ if ($domains_processed == 1) {
 		if (!empty($setting->get('recordings','storage_type')) && $setting->get('recordings','storage_type') == 'base64') {
 			$sql = "select phrase_detail_uuid, phrase_detail_data ";
 			$sql .= "from v_phrase_details where phrase_detail_function = 'play-file' ";
-			$database = new database;
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
-				foreach ($result as $index => &$row) {
+				foreach ($result as $index => $row) {
 					$phrase_detail_uuid = $row['phrase_detail_uuid'];
 					$phrase_detail_data = $row['phrase_detail_data'];
 					if (substr_count($phrase_detail_data, $setting->get('switch','recordings').'/'.$domain_name) > 0) {
@@ -87,7 +86,6 @@ if ($domains_processed == 1) {
 					$p = new permissions;
 					$p->add('phrase_detail_edit', 'temp');
 
-					$database = new database;
 					$database->app_name = 'phrases';
 					$database->app_uuid = '5c6f597c-9b78-11e4-89d3-123b93f75cba';
 					$database->save($array, false);
@@ -105,10 +103,9 @@ if ($domains_processed == 1) {
 			$sql .= "from v_phrase_details where ";
 			$sql .= "phrase_detail_function = 'execute' ";
 			$sql .= "and phrase_detail_data like 'lua(streamfile.lua %)' ";
-			$database = new database;
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
-				foreach ($result as $index => &$row) {
+				foreach ($result as $index => $row) {
 					$phrase_detail_uuid = $row['phrase_detail_uuid'];
 					$phrase_detail_data = $row['phrase_detail_data'];
 					//update function and data to use standard method
@@ -125,7 +122,6 @@ if ($domains_processed == 1) {
 					$p = new permissions;
 					$p->add('phrase_detail_edit', 'temp');
 
-					$database = new database;
 					$database->app_name = 'phrases';
 					$database->app_uuid = '5c6f597c-9b78-11e4-89d3-123b93f75cba';
 					$database->save($array, false);
@@ -142,11 +138,10 @@ if ($domains_processed == 1) {
 		//save_phrases_xml();
 
 	//delete the phrase from memcache
-		$fp = event_socket_create();
-		if ($fp) {
+		$esl = event_socket::create();
+		if ($esl->is_connected()) {
 			//get phrase languages
 			$sql = "select distinct phrase_language from v_phrases order by phrase_language asc ";
-			$database = new database;
 			$result = $database->select($sql, null, 'all');
 			//delete memcache var
 			if (!empty($result)) {
@@ -158,7 +153,7 @@ if ($domains_processed == 1) {
 			}
 			unset($sql, $result, $row);
 		}
-		unset($fp);
+		unset($esl);
 
 }
 

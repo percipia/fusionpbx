@@ -48,13 +48,12 @@ class sounds {
 				$database = new database;
 				$recordings = $database->select($sql, $parameters, 'all');
 				if (is_array($recordings) && @sizeof($recordings) != 0) {
-					foreach ($recordings as &$row) {
+					foreach ($recordings as $x => $row) {
 						$recording_name = $row["recording_name"];
 						$recording_filename = $row["recording_filename"];
 						$recording_path = !empty($this->full_path) && is_array($this->full_path) && in_array('recordings', $this->full_path) ? $_SESSION['switch']['recordings']['dir'].'/'.$_SESSION['domain_name'].'/' : null;
 						$array['recordings'][$x]['name'] = $recording_name;
 						$array['recordings'][$x]['value'] = $recording_path.$recording_filename;
-						$x++;
 					}
 				}
 				unset($sql, $parameters, $recordings, $row);
@@ -67,7 +66,7 @@ class sounds {
 				$database = new database;
 				$phrases = $database->select($sql, $parameters, 'all');
 				if (is_array($phrases) && @sizeof($phrases) != 0) {
-					foreach ($phrases as &$row) {
+					foreach ($phrases as $row) {
 						$array['phrases'][$x]['name'] = "phrase:".$row["phrase_name"];
 						$array['phrases'][$x]['value'] = "phrase:".$row["phrase_uuid"];
 						$x++;

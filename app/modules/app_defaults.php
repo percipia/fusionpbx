@@ -38,10 +38,9 @@
 		//add the access control list to the database
 			$sql = "select * from v_modules ";
 			$sql .= "where module_order is null ";
-			$database = new database;
 			$modules = $database->select($sql, null, 'all');
 			if (is_array($modules) && @sizeof($modules) != 0) {
-				foreach ($modules as $index => &$row) {
+				foreach ($modules as $index => $row) {
 					//get the module details
 						$mod = $module->info($row['module_name']);
 					//update the module order
@@ -49,7 +48,6 @@
 						$array['modules'][$index]['module_order'] = $mod['module_order'];
 				}
 				if (is_array($array) && @sizeof($array) != 0) {
-					$database = new database;
 					$database->app_name = 'modules';
 					$database->app_uuid = '5eb9cba1-8cb6-5d21-e36a-775475f16b5e';
 					$database->save($array, false);

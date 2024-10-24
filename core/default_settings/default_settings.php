@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008 - 2023
+	Portions created by the Initial Developer are Copyright (C) 2008 - 2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -36,6 +36,15 @@
 		echo "access denied";
 		exit;
 	}
+
+//set permissions
+	$permission = array();
+	$permission['default_setting_add'] = permission_exists('default_setting_add');
+	$permission['default_setting_all'] = permission_exists('default_setting_all');
+	$permission['default_setting_edit'] = permission_exists('default_setting_edit');
+	$permission['default_setting_delete'] = permission_exists('default_setting_delete');
+	$permission['domain_select'] = permission_exists('domain_select');
+	$permission['domain_setting_add'] = permission_exists('domain_setting_add');
 
 //add multi-lingual support
 	$language = new text;
@@ -63,6 +72,15 @@
 	$search = preg_replace('#[^a-zA-Z0-9_\-\. ]#', '', $search);
 	$default_setting_category = preg_replace('#[^a-zA-Z0-9_\-\.]#', '', $default_setting_category);
 
+//determine whether to non-default (custom) settings only
+	if (!empty($default_setting_category) && $default_setting_category == 'custom') {
+		$custom_settings = true;
+		$default_setting_category = null;
+	}
+	else {
+		$custom_settings = false;
+	}
+
 //set from session variables
 	$list_row_edit_button = !empty($_SESSION['theme']['list_row_edit_button']['boolean']) ? $_SESSION['theme']['list_row_edit_button']['boolean'] : 'false';
 
@@ -80,20 +98,20 @@
 	if (!empty($action) && !empty($default_settings)) {
 		switch ($action) {
 			case 'copy':
-				if (permission_exists('default_setting_add')) {
+				if ($permission['default_setting_add']) {
 					$obj = new default_settings;
 					$obj->domain_uuid = $domain_uuid;
 					$obj->copy($default_settings);
 				}
 				break;
 			case 'toggle':
-				if (permission_exists('default_setting_edit')) {
+				if ($permission['default_setting_edit']) {
 					$obj = new default_settings;
 					$obj->toggle($default_settings);
 				}
 				break;
 			case 'delete':
-				if (permission_exists('default_setting_delete')) {
+				if ($permission['default_setting_delete']) {
 					$obj = new default_settings;
 					$obj->delete($default_settings);
 				}
@@ -124,7 +142,7 @@
 		$sql .= "lower(default_setting_category) = :default_setting_category ";
 		$parameters['default_setting_category'] = strtolower($default_setting_category);
 	}
-	$database = new database;
+	$database = database::new();
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //get the list
@@ -148,7 +166,6 @@
 	}
 	$sql .= order_by($order_by, $order, 'default_setting_category, default_setting_subcategory, default_setting_order', 'asc');
 	//$sql .= limit_offset($rows_per_page, $offset ?? '');  //$offset is always null
-	$database = new database;
 	$default_settings = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -173,7 +190,6 @@
 	$sql .= ") as quantity ";
 	$sql .= "from v_default_settings as d1 ";
 	$sql .= "order by d1.default_setting_category asc ";
-	$database = new database;
 	$rows = $database->select($sql, $parameters ?? null, 'all');
 	if (!empty($rows) && @sizeof($rows) != 0) {
 		foreach ($rows as $row) {
@@ -186,6 +202,14 @@
 
 //get the list of categories
 	if (!empty($default_setting_categories)) {
+		//show the array
+		$categories = [];
+
+		//add custom to the list of categories
+		$categories['custom']['formatted'] = $text['label-custom'];
+		$categories['custom']['count'] = null;
+		
+		//add the other catefories to the array
 		foreach ($default_setting_categories as $default_setting_category => $quantity) {
 			$category = strtolower($default_setting_category);
 			switch ($category) {
@@ -201,9 +225,12 @@
 			$categories[$default_setting_category]['formatted'] = $category;
 			$categories[$default_setting_category]['count'] = $quantity;
 		}
-		ksort($categories);
+
+		//unset variables
 		unset($default_setting_categories, $default_setting_category, $category);
 	}
+
+
 
 //get the list of installed apps from the core and mod directories
 	$config_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/app_config.php");
@@ -250,7 +277,7 @@
 	require_once "resources/header.php";
 
 //copy settings javascript
-	if (permission_exists("domain_select") && permission_exists("domain_setting_add")) {
+	if ($permission['domain_select'] && $permission['domain_setting_add']) {
 		echo "<script language='javascript' type='text/javascript'>\n";
 		echo "	function show_domains() {\n";
 		echo "		document.getElementById('action').value = 'copy';\n";
@@ -272,15 +299,15 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-default_settings']." (".number_format($num_rows).")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-default_settings']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	echo button::create(['type'=>'button','label'=>$text['label-domain'],'icon'=>$_SESSION['theme']['button_icon_domain'],'style'=>'','link'=>PROJECT_PATH.'/core/domain_settings/domain_settings.php?id='.$domain_uuid]);
 	echo button::create(['label'=>$text['button-reload'],'icon'=>$_SESSION['theme']['button_icon_reload'],'type'=>'button','id'=>'button_reload','link'=>'default_settings_reload.php'.(!empty($search) ? '?search='.urlencode($search) : null),'style'=>'margin-right: 15px;']);
-	if (permission_exists('default_setting_add')) {
+	if ($permission['default_setting_add']) {
 		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'id'=>'btn_add','link'=>'default_setting_edit.php?'.$query_string]);
 	}
-	if (permission_exists('default_setting_add') && !empty($default_settings)) {
-		if (permission_exists("domain_select") && permission_exists("domain_setting_add")) {
+	if ($permission['default_setting_add'] && !empty($default_settings)) {
+		if ($permission['domain_select'] && $permission['domain_setting_add']) {
 			echo button::create(['type'=>'button','label'=>$text['button-copy'],'id'=>'btn_copy','name'=>'btn_copy','style'=>'display: none;','icon'=>$_SESSION['theme']['button_icon_copy'],'id'=>'btn_copy','onclick'=>'show_domains();']);
 			echo button::create(['type'=>'button','label'=>$text['button-cancel'],'id'=>'btn_copy_cancel','icon'=>$_SESSION['theme']['button_icon_cancel'],'style'=>'display: none;','onclick'=>'hide_domains();']);
 			echo 		"<select name='domain_uuid' class='formfld' style='display: none; width: auto;' id='target_domain_uuid' onchange=\"document.getElementById('domain_uuid').value = this.options[this.selectedIndex].value;\">\n";
@@ -293,10 +320,10 @@
 			echo button::create(['type'=>'button','label'=>$text['button-paste'],'icon'=>$_SESSION['theme']['button_icon_paste'],'id'=>'btn_paste','style'=>'display: none;','onclick'=>"if (confirm('".$text['confirm-copy']."')) { list_action_set('copy'); list_form_submit('form_list'); } else { this.blur(); return false; }"]);
 		}
 	}
-	if (permission_exists('default_setting_edit') && $default_settings) {
+	if ($permission['default_setting_edit'] && $default_settings) {
 		echo button::create(['type'=>'button','label'=>$text['button-toggle'],'icon'=>$_SESSION['theme']['button_icon_toggle'],'id'=>'btn_toggle','name'=>'btn_toggle','style'=>'display: none;','onclick'=>"modal_open('modal-toggle','btn_toggle');"]);
 	}
-	if (permission_exists('default_setting_delete') && $default_settings) {
+	if ($permission['default_setting_delete'] && $default_settings) {
 		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'id'=>'btn_delete','name'=>'btn_delete','style'=>'display: none;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 	}
 	echo 		"<form id='form_search' class='inline' method='get'>\n";
@@ -307,8 +334,9 @@
 		foreach ($categories as $category_name => $category) {
 			$selected = (!empty($_GET['default_setting_category']) && $_GET['default_setting_category'] == $category_name) ? " selected='selected'" : null;
 			echo "		<option value='".escape($category_name)."' $selected>".escape($category['formatted']).($category['count'] ? " (".$category['count'].")" : null)."</option>\n";
+			if ($category['formatted'] == $text['label-custom']) { echo "<option disabled='disabled'></option>\n"; }
 		}
-		echo "			<option disabled='disabled'>\n";
+		echo "			<option disabled='disabled'></option>\n";
 		echo "			<option value=''>".$text['label-all']."</option>\n";
 		echo "		</select>";
 	}
@@ -323,10 +351,10 @@
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
-	if (permission_exists('default_setting_edit') && $default_settings) {
+	if ($permission['default_setting_edit'] && $default_settings) {
 		echo modal::create(['id'=>'modal-toggle','type'=>'toggle','actions'=>button::create(['type'=>'button','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_toggle','style'=>'float: right; margin-left: 15px;','collapse'=>'never','onclick'=>"modal_close(); list_action_set('toggle'); list_form_submit('form_list');"])]);
 	}
-	if (permission_exists('default_setting_delete') && $default_settings) {
+	if ($permission['default_setting_delete'] && $default_settings) {
 		echo modal::create(['id'=>'modal-delete','type'=>'delete','actions'=>button::create(['type'=>'button','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','onclick'=>"modal_close(); list_action_set('delete'); list_form_submit('form_list');"])]);
 	}
 
@@ -364,17 +392,26 @@
 				$row['default_setting_enabled'] = 'false';
 			}
 
+			//set the font weight, default value and filter for non-custom settings
 			if (!empty($field)) {
+				//check for custom settings filter
 				if ($row['default_setting_value'] !== $field['default_setting_value']) {
 					$setting_bold = 'font-weight:bold;';
 				}
+				
+				//set the default value
 				if (!empty($field['default_setting_value'])) {
 					$default_value = 'Default: '.$field['default_setting_value'];
 				}
 				else {
 					$default_value = 'Default: null';
 				}
-				if ($row['default_setting_enabled'] != $field['default_setting_enabled']) {
+				
+				//check if default enabled
+				if ($row['default_setting_enabled'] == $field['default_setting_enabled']) {
+					if ($custom_settings) {	continue; }
+				}
+				else {
 					$default_enabled = $field['default_setting_enabled'];
 					$enabled_bold = true;
 				}
@@ -399,20 +436,21 @@
 			if ($previous_default_setting_category != $row['default_setting_category']) {
 				if (!empty($previous_default_setting_category)) {
 					echo "</table>\n";
-					echo "<br />\n";
+					echo "</div>\n";
 					echo "</div>\n";
 				}
 				echo "<div class='category' id='category_".$default_setting_category."'>\n";
 				echo "<b>".escape($label_default_setting_category)."</b><br>\n";
 
+				echo "<div class='card'>\n";
 				echo "<table class='list'>\n";
 				echo "<tr class='list-header'>\n";
-				if (permission_exists('default_setting_add') || permission_exists('default_setting_edit') || permission_exists('default_setting_delete')) {
+				if ($permission['default_setting_add'] || $permission['default_setting_edit'] || $permission['default_setting_delete']) {
 					echo "	<th class='checkbox'>\n";
 					echo "		<input type='checkbox' id='checkbox_all_".$default_setting_category."' name='checkbox_all' onclick=\"list_all_toggle('".$default_setting_category."'); checkbox_on_change(this);\">\n";
 					echo "	</th>\n";
 				}
-				if ($show == 'all' && permission_exists('default_setting_all')) {
+				if ($show == 'all' && $permission['default_setting_all']) {
 					echo th_order_by('domain_name', $text['label-domain'], $order_by, $order);
 				}
 				echo th_order_by('default_setting_subcategory', $text['label-subcategory'], $order_by, $order, null, "class='pct-35'");
@@ -420,26 +458,26 @@
 				echo th_order_by('default_setting_value', $text['label-value'], $order_by, $order, null, "class='pct-30'");
 				echo th_order_by('default_setting_enabled', $text['label-enabled'], $order_by, $order, null, "class='center'");
 				echo "	<th class='pct-25 hide-sm-dn'>".$text['label-description']."</th>\n";
-				if (permission_exists('default_setting_edit') && $list_row_edit_button == 'true') {
+				if ($permission['default_setting_edit'] && $list_row_edit_button == 'true') {
 					echo "	<td class='action-button'>&nbsp;</td>\n";
 				}
 				echo "</tr>\n";
 			}
-			if (permission_exists('default_setting_edit')) {
+			if ($permission['default_setting_edit']) {
 				$list_row_url = "default_setting_edit.php?id=".urlencode($row['default_setting_uuid']).'&'.$query_string;
 			}
 			echo "<tr class='list-row' href='".$list_row_url."'>\n";
-			if (permission_exists('default_setting_add') || permission_exists('default_setting_edit') || permission_exists('default_setting_delete')) {
+			if ($permission['default_setting_add'] || $permission['default_setting_edit'] || $permission['default_setting_delete']) {
 				echo "	<td class='checkbox'>\n";
 				echo "		<input type='checkbox' name='default_settings[$x][checked]' id='checkbox_".$x."' class='checkbox_".$default_setting_category."' value='true' onclick=\"checkbox_on_change(this); if (!this.checked) { document.getElementById('checkbox_all_".$default_setting_category."').checked = false; }\">\n";
 				echo "		<input type='hidden' name='default_settings[$x][uuid]' value='".escape($row['default_setting_uuid'])."' />\n";
 				echo "	</td>\n";
 			}
-			if ($show == 'all' && permission_exists('default_setting_all')) {
+			if ($show == 'all' && $permission['default_setting_all']) {
 				echo "	<td>".escape($_SESSION['domains'][$row['domain_uuid']]['domain_name'])."</td>\n";
 			}
 			echo "	<td class='overflow no-wrap'>";
-			if (permission_exists('default_setting_edit')) {
+			if ($permission['default_setting_edit']) {
 				echo "<a href='".$list_row_url."'>".escape($row['default_setting_subcategory'])."</a>";
 			}
 			else {
@@ -462,9 +500,8 @@
 				$sql = "select * from v_menus ";
 				$sql .= "where menu_uuid = :menu_uuid ";
 				$parameters['menu_uuid'] = $row['default_setting_value'];
-				$database = new database;
 				$sub_result = $database->select($sql, $parameters ?? null, 'all');
-				foreach ($sub_result as &$sub_row) {
+				foreach ($sub_result as $sub_row) {
 					echo $sub_row["menu_language"]." - ".$sub_row["menu_name"]."\n";
 				}
 				unset($sql, $sub_result, $sub_row);
@@ -492,7 +529,7 @@
 			else if ($category == 'theme' && $subcategory == 'custom_css_code' && $name == 'text') {
 				echo "		[...]\n";
 			}
-			else if ($subcategory == 'password' || substr_count($subcategory, '_password') > 0 || $category == "login" && $subcategory == "password_reset_key" && $name == "text" || substr_count($subcategory, '_secret') > 0) {
+			else if ($subcategory == 'password' || substr_count($subcategory, '_password') > 0 || substr_count($subcategory, '_key') > 0 || substr_count($subcategory, '_secret') > 0) {
 				echo "		".str_repeat('*', strlen($row['default_setting_value'] ?? ''));
 			}
 			else if ($category == 'theme' && $subcategory == 'button_icons' && $name == 'text') {
@@ -551,7 +588,7 @@
 				}
 			}
 			echo "	</td>\n";
-			if (permission_exists('default_setting_edit')) {
+			if ($permission['default_setting_edit']) {
 				echo "	<td class='no-link center'>\n";
 				if (!empty($enabled_bold)) {
 					echo button::create(['type'=>'submit','class'=>'link','style'=>'font-weight:bold', 'label'=>$text['label-'.$row['default_setting_enabled']],'title'=>$text['button-toggle'],'onclick'=>"list_self_check('checkbox_".$x."'); list_action_set('toggle'); list_form_submit('form_list')"]);
@@ -566,7 +603,7 @@
 			}
 			echo "	</td>\n";
 			echo "	<td class='description overflow hide-sm-dn' title=\"".escape($row['default_setting_description'])."\">".escape($row['default_setting_description'])."</td>\n";
-			if (permission_exists('default_setting_edit') && $list_row_edit_button == 'true') {
+			if ($permission['default_setting_edit'] && $list_row_edit_button == 'true') {
 				echo "	<td class='action-button'>\n";
 				echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$_SESSION['theme']['button_icon_edit'],'link'=>$list_row_url]);
 				echo "	</td>\n";
@@ -581,6 +618,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "</div>\n";
 

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2018 - 2022
+	Portions created by the Initial Developer are Copyright (C) 2018-2024
 	the Initial Developer. All Rights Reserved.
 */
 
@@ -118,10 +118,7 @@
 					$cache->delete("configuration:acl.conf");
 
 					//create the event socket connection
-					$fp = event_socket_create();
-					if ($fp) {
-						event_socket_request($fp, "api reloadacl");
-					}
+					event_socket::api("reloadacl");
 
 					//redirect the user
 					header('Location: access_control_edit.php?id='.$id);
@@ -154,13 +151,14 @@
 			$array['access_controls'][0]['access_control_default'] = $access_control_default;
 			$array['access_controls'][0]['access_control_description'] = $access_control_description;
 			$y = 0;
-			if (is_array($access_control_nodes)) {
+			if (!empty($access_control_nodes) && is_array($access_control_nodes)) {
 				foreach ($access_control_nodes as $row) {
 
 					//validate the data
 					if (!is_uuid($row["access_control_node_uuid"])) { continue; }
 					if ($row["node_type"] != 'allow' && $row["node_type"] != 'deny') { continue; }
 					if (isset($row["node_cidr"]) && $row["node_cidr"] != '') {
+
 						$cidr_array = explode("/", str_replace("\\", "/", $row["node_cidr"]));
 						if (filter_var($cidr_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 							if (isset($cidr_array[1]) && is_numeric($cidr_array[1])) {
@@ -172,23 +170,61 @@
 								$node_cidr = $row["node_cidr"].'/32';
 							}
 						}
-						elseif(filter_var($cidr_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+						else if(filter_var($cidr_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
 							//valid IPv6 address
 							$node_cidr = $row["node_cidr"];
 						}
+
+						//build the sub array
+						if (!empty($node_cidr)) {
+							$array['access_controls'][0]['access_control_nodes'][$y]['access_control_node_uuid'] = $row["access_control_node_uuid"];
+							$array['access_controls'][0]['access_control_nodes'][$y]['node_type'] = $row["node_type"];
+							$array['access_controls'][0]['access_control_nodes'][$y]['node_cidr'] = $node_cidr;
+							$array['access_controls'][0]['access_control_nodes'][$y]['node_description'] = $row["node_description"];
+							$y++;
+
+							//unset values
+							unset($cidr_array, $node_cidr);
+						}
+						//digs to attempt
+						else {
+							$digs[] = [
+								'type'=>$row['node_type'],
+								'value'=>$row['node_cidr'],
+								'description'=>$row['node_description'],
+							];
+						}
+
 					}
 
-					//build the sub array
-					$array['access_controls'][0]['access_control_nodes'][$y]['access_control_node_uuid'] = $row["access_control_node_uuid"];
-					$array['access_controls'][0]['access_control_nodes'][$y]['node_type'] = $row["node_type"];
-					$array['access_controls'][0]['access_control_nodes'][$y]['node_cidr'] = $node_cidr;
-					$array['access_controls'][0]['access_control_nodes'][$y]['node_description'] = $row["node_description"];
-					$y++;
-
-					//unset values
-					unset($cidr_array, $node_cidr);
-
 				}
+
+				//attempt digs
+				if (!empty($digs) && is_array($digs)) {
+					foreach ($digs as $dig) {
+						$response = shell_exec("dig +noall +answer ".$dig['value']." | awk '{ print $5 }'");
+						if (!empty($response)) {
+							$lines = explode("\n", $response);
+							foreach ($lines as $l => $line) {
+								if (!empty($line) && filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+									//check for duplicate
+									if (!empty($array['access_controls'][0]['access_control_nodes']) && is_array($array['access_controls'][0]['access_control_nodes'])) {
+										foreach ($array['access_controls'][0]['access_control_nodes'] as $n => $node) {
+											if ($node['node_cidr'] == $line.'/32') { continue 2; }
+										}
+									}
+									//add to array
+									$array['access_controls'][0]['access_control_nodes'][$y]['access_control_node_uuid'] = uuid();
+									$array['access_controls'][0]['access_control_nodes'][$y]['node_type'] = $dig['type'];
+									$array['access_controls'][0]['access_control_nodes'][$y]['node_cidr'] = $line.'/32';
+									$array['access_controls'][0]['access_control_nodes'][$y]['node_description'] = !empty($dig['description']) ? $dig['description'] : $dig['value'];
+									$y++;
+								}
+							}
+						}
+					}
+				}
+
 			}
 
 		//save the data
@@ -204,10 +240,7 @@
 			$cache->delete("configuration:acl.conf");
 
 		//create the event socket connection
-			$fp = event_socket_create();
-			if ($fp) {
-				event_socket_request($fp, "api reloadacl");
-			}
+			event_socket::async("reloadacl");
 
 		//redirect the user
 			if (isset($action)) {
@@ -326,6 +359,7 @@
 		}
 	}
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -440,6 +474,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>";
 	echo "<br /><br />";
 
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";

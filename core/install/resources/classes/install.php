@@ -35,7 +35,10 @@ if (!class_exists('install')) {
 			//set the default config file location
 			$os = strtoupper(substr(PHP_OS, 0, 3));
 			switch ($os) {
-			case "BSD":
+				case "FRE":
+				case "OPE":
+				case "NET":
+				case "BSD":
 				$config_path = '/usr/local/etc/fusionpbx';
 				$config_file = $config_path.'/config.conf';
 				$document_root = '/usr/local/www/fusionpbx';
@@ -66,8 +69,8 @@ if (!class_exists('install')) {
 				$cache_location = '/var/cache/fusionpbx';
 				break;
 			case "WIN":
-				$config_path = $_SERVER["DOCUMENT_ROOT"].DIRECTORY_SEPARATOR.'resources';
-				$config_file = $config_path.DIRECTORY_SEPARATOR.'config.conf';
+				$system_drive = getenv('SystemDrive');
+				$config_path = $system_drive . DIRECTORY_SEPARATOR . 'ProgramData' . DIRECTORY_SEPARATOR . 'fusionpbx' ;
 				$config_file = $config_path.DIRECTORY_SEPARATOR.'config.conf';
 				$document_root = $_SERVER["DOCUMENT_ROOT"];
 

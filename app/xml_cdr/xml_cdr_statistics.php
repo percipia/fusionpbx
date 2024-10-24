@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -156,11 +156,12 @@
 	echo $text['label-call-statistics-description']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	?>
 	<script src='/resources/chartjs/chart.min.js'></script>
 	<script src='/resources/chartjs/chartjs-adapter-date-fns.bundle.min.js'></script>
 
-	<div align='center' style="justify-content: center;">
+	<div align='center' style="justify-content: center; margin-bottom: 25px;">
 		<div style="max-width: 100%; width: 800px; height: 280px;">
 			<canvas id="cdr_stats_chart" style="width: 100%; height: 100%;"></canvas>
 		</div>
@@ -271,8 +272,10 @@
 	</script>
 
 	<?php
+	echo "</div>\n";
 
 //show the results
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	echo "	<th>".$text['label-hours']."</th>\n";
@@ -334,6 +337,7 @@
 		$i++;
 	}
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br><br>";
 
 //include the footer

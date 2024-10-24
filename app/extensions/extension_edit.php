@@ -38,6 +38,9 @@
 		exit;
 	}
 
+//initialize the database object
+	$database = new database;
+
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
@@ -59,7 +62,6 @@
 			$sql .= "from v_extensions ";
 			$sql .= "where domain_uuid = :domain_uuid ";
 			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-			$database = new database;
 			$total_extensions = $database->select($sql, $parameters, 'column');
 			unset($sql, $parameters);
 
@@ -81,7 +83,6 @@
 			else { //lookup extension based on submitted uuid
 				$sql = "select extension from v_extensions where extension_uuid = :extension_uuid";
 				$parameters['extension_uuid'] = $extension_uuid;
-				$database = new database;
 				$extension = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 			}
@@ -132,9 +133,13 @@
 			$absolute_codec_string = $_POST["absolute_codec_string"];
 			$force_ping = $_POST["force_ping"];
 			$dial_string = $_POST["dial_string"];
+			$extension_language = $_POST["extension_language"];
 			$extension_type = $_POST["extension_type"];
 			$enabled = $_POST["enabled"] ?? 'false';
 			$description = $_POST["description"];
+
+			//set defaults
+			$extension_language = $extension_language ?? '';
 
 			//outbound caller id number - only allow numeric and +
 			if (!empty($outbound_caller_id_number)) {
@@ -157,7 +162,7 @@
 				else{
 					$subnet = 32;
 				}
-				
+
 				if(($addr = inet_pton($ipaddr)) !== false){
 					$ips[] = $ipaddr.'/'.$subnet;
 				}
@@ -182,7 +187,6 @@
 				}
 				$sql .= "order by device_address asc ";
 				$parameters['domain_uuid'] = $domain_uuid;
-				$database = new database;
 				$total_devices = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 
@@ -223,7 +227,6 @@
 					$sql .= "d1.domain_uuid = d2.domain_uuid and ";
 					$sql .= "d1.device_address = :device_address ";
 					$parameters['device_address'] = $device_address;
-					$database = new database;
 					$row = $database->select($sql, $parameters, 'row');
 					if (is_array($row)) {
 						if ($_SESSION['domain_uuid'] == $row['domain_uuid']) {
@@ -262,7 +265,6 @@
 			$p->add('extension_user_delete', 'temp');
 
 		//save the array
-			$database = new database;
 			$database->app_name = 'extensions';
 			$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 			$database->delete($array);
@@ -290,7 +292,6 @@
 				$p->add('device_line_delete', 'temp');
 
 			//save the array
-				$database = new database;
 				$database->app_name = 'extensions';
 				$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 				$database->delete($array);
@@ -425,6 +426,12 @@
 										$password = generate_password($password_length, $password_strength);
 									}
 
+								//seperate the language components into language, dialect and voice
+									$language_array = explode("/",$extension_language);
+									$extension_language = $language_array[0] ?? 'en';
+									$extension_dialect = $language_array[1] ?? 'us';
+									$extension_voice = $language_array[2] ?? 'callie';
+
 								//create the data array
 									$array["extensions"][$i]["domain_uuid"] = $domain_uuid;
 									$array["extensions"][$i]["extension_uuid"] = $extension_uuid;
@@ -530,6 +537,11 @@
 										if (permission_exists('extension_dial_string')) {
 											$array["extensions"][$i]["dial_string"] = $dial_string;
 										}
+									}
+									if (permission_exists('extension_language')) {
+										$array['extensions'][0]["extension_language"] = $extension_language;
+										$array['extensions'][0]["extension_dialect"] = $extension_dialect;
+										$array['extensions'][0]["extension_voice"] = $extension_voice;
 									}
 									if (permission_exists('extension_type')) {
 										$array["extensions"][$i]["extension_type"] = $extension_type;
@@ -675,7 +687,6 @@
 											$sql .= "and domain_uuid = :domain_uuid ";
 											$parameters['voicemail_id'] = $voicemail_id;
 											$parameters['domain_uuid'] = $domain_uuid;
-											$database = new database;
 											$row = $database->select($sql, $parameters, 'row');
 											if (is_array($row) && @sizeof($row) != 0) {
 												$voicemail_uuid = $row["voicemail_uuid"];
@@ -751,7 +762,6 @@
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 						$parameters['server_address'] = $_SESSION['domain_name'];
 						$parameters['user_id'] = $extension;
-						$database = new database;
 						$database->execute($sql, $parameters);
 						unset($sql, $parameters);
 					}
@@ -765,23 +775,20 @@
 						$parameters['device_key_label'] = $effective_caller_id_name;
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 						$parameters['device_key_value'] = $extension;
-						$database = new database;
 						$database->execute($sql, $parameters);
 						unset($sql, $parameters);
 					}
 
 				//save to the data
-					$database = new database;
 					$database->app_name = 'extensions';
 					$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
-					$database->save($array);
-					$message = $database->message;
+					$message = $database->save($array);
 					unset($array);
 
-				//reload acl if allowed
+				//reload the access control list
 					if (permission_exists("extension_cidr")) {
-						$fp = event_socket_create();
-						if ($fp) { event_socket_request($fp, "api reloadacl"); }
+						$event_socket = event_socket::create();
+						if ($event_socket->is_connected()) { event_socket::api("reloadacl"); }
 					}
 
 				//check the permissions
@@ -809,7 +816,6 @@
 								$sql = "select user_context from v_extensions ";
 								$sql .= "where extension_uuid = :extension_uuid ";
 								$parameters['extension_uuid'] = $extension_uuid;
-								$database = new database;
 								$user_context = $database->select($sql, $parameters, 'column');
 							}
 							$cache = new cache;
@@ -848,7 +854,6 @@
 		$sql = "select * from v_extensions ";
 		$sql .= "where extension_uuid = :extension_uuid ";
 		$parameters['extension_uuid'] = $extension_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && @sizeof($row) != 0) {
 			$domain_uuid = $row["domain_uuid"];
@@ -888,6 +893,9 @@
 			$absolute_codec_string = $row["absolute_codec_string"];
 			$force_ping = $row["force_ping"];
 			$dial_string = $row["dial_string"];
+			$extension_language = $row["extension_language"];
+			$extension_voice = $row["extension_voice"];
+			$extension_dialect = $row["extension_dialect"];
 			$extension_type = $row["extension_type"];
 			$enabled = $row["enabled"];
 			$description = $row["description"];
@@ -906,7 +914,6 @@
 			$sql .= "and voicemail_id = :voicemail_id ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['voicemail_id'] = is_numeric($number_alias) ? $number_alias : $extension;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (is_array($row) && @sizeof($row) != 0) {
 				$voicemail_password = str_replace("#", "", $row["voicemail_password"] ?? '');
@@ -930,13 +937,14 @@
 	$sql = "select d.device_address, d.device_template, d.device_description, l.device_line_uuid, l.device_uuid, l.line_number ";
 	$sql .= "from v_device_lines as l, v_devices as d ";
 	$sql .= "where (l.user_id = :user_id_1 or l.user_id = :user_id_2)";
+	$sql .= "and l.password = :password ";
 	$sql .= "and l.domain_uuid = :domain_uuid ";
 	$sql .= "and l.device_uuid = d.device_uuid ";
 	$sql .= "order by l.line_number, d.device_address asc ";
 	$parameters['user_id_1'] = $extension ?? null;
 	$parameters['user_id_2'] = $number_alias ?? null;
+	$parameters['password'] = $password ?? null;
 	$parameters['domain_uuid'] = $domain_uuid;
-	$database = new database;
 	$device_lines = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -949,7 +957,6 @@
 	}
 	$sql .= "order by device_address asc ";
 	$parameters['domain_uuid'] = $domain_uuid;
-	$database = new database;
 	$devices = $database->select($sql, $parameters, 'all');
 	if (!empty($devices) && is_array($devices)) {
 		$total_devices = @sizeof($devices);
@@ -961,7 +968,6 @@
 	$sql .= "from v_device_vendors ";
 	$sql .= "where enabled = 'true' ";
 	$sql .= "order by name asc ";
-	$database = new database;
 	$device_vendors = $database->select($sql, null, 'all');
 	unset($sql);
 
@@ -976,7 +982,6 @@
 		$sql .= "order by u.username asc ";
 		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['extension_uuid'] = $extension_uuid;
-		$database = new database;
 		$assigned_users = $database->select($sql, $parameters, 'all');
 		if (is_array($assigned_users) && @sizeof($assigned_users) != 0) {
 			foreach($assigned_users as $row) {
@@ -998,7 +1003,6 @@
 	$sql .= "and user_enabled = 'true' ";
 	$sql .= "order by username asc ";
 	$parameters['domain_uuid'] = $domain_uuid;
-	$database = new database;
 	$users = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters, $assigned_user_uuids, $assigned_user_uuid);
 
@@ -1008,7 +1012,6 @@
 	$sql .= "and destination_type = 'inbound' ";
 	$sql .= "order by destination_number asc ";
 	$parameters['domain_uuid'] = $domain_uuid;
-	$database = new database;
 	$destinations = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -1020,7 +1023,6 @@
 		$sql .= "and destination_type_emergency = 1 ";
 		$sql .= "order by destination_number asc ";
 		$parameters['domain_uuid'] = $domain_uuid;
-		$database = new database;
 		$emergency_destinations = $database->select($sql, $parameters, 'all');
 		unset($sql, $parameters);
 	}
@@ -1028,13 +1030,27 @@
 //change toll allow delimiter
 	$toll_allow = str_replace(':',',', $toll_allow ?? '');
 
+//get installed languages
+	$language_paths = glob($_SESSION["switch"]['sounds']['dir']."/*/*/*");
+	foreach ($language_paths as $key => $path) {
+		$path = str_replace($_SESSION["switch"]['sounds']['dir'].'/', "", $path);
+		$path_array = explode('/', $path);
+		if (count($path_array) <> 3 || strlen($path_array[0]) <> 2 || strlen($path_array[1]) <> 2) {
+			unset($language_paths[$key]);
+		}
+		$language_paths[$key] = str_replace($_SESSION["switch"]['sounds']['dir']."/","",$language_paths[$key] ?? '');
+		if (empty($language_paths[$key])) {
+			unset($language_paths[$key]);
+		}
+	}
+
 //set the defaults
 	if (empty($user_context)) { $user_context = $_SESSION['domain_name']; }
 	if (empty($max_registrations)) { $max_registrations = $_SESSION['extension']['max_registrations']['numeric'] ?? ''; }
 	if (empty($accountcode)) { $accountcode = get_accountcode(); }
-	if (empty($limit_max)) { $limit_max = '5'; }
+	if (empty($limit_max)) { $limit_max = $_SESSION['extension']['limit_max']['numeric'] ?? 5; }
 	if (empty($limit_destination)) { $limit_destination = '!USER_BUSY'; }
-	if (empty($call_timeout)) { $call_timeout = '30'; }
+	if (empty($call_timeout)) { $call_timeout = $_SESSION['extension']['call_timeout']['numeric'] ?? 30; }
 	if (empty($call_screen_enabled)) { $call_screen_enabled = 'false'; }
 	if (empty($user_record)) { $user_record = $_SESSION['extension']['user_record_default']['text']; }
 	if (empty($voicemail_transcription_enabled)) { $voicemail_transcription_enabled = $_SESSION['voicemail']['transcription_enabled_default']['boolean']; }
@@ -1108,7 +1124,7 @@
 			unset($button_margin);
 		}
 		if (permission_exists('follow_me') || permission_exists('call_forward') || permission_exists('do_not_disturb')) {
-			echo button::create(['type'=>'button','label'=>$text['button-call_forward'],'icon'=>'project-diagram','style'=>($button_margin ?? ''),'link'=>'../call_forward/call_forward_edit.php?id='.urlencode($extension_uuid)]);
+			echo button::create(['type'=>'button','label'=>$text['button-call_forward'],'icon'=>'diagram-project','style'=>($button_margin ?? ''),'link'=>'../call_forward/call_forward_edit.php?id='.urlencode($extension_uuid)]);
 			unset($button_margin);
 		}
 		if (permission_exists('extension_setting_view')) {
@@ -1124,6 +1140,7 @@
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -1132,7 +1149,7 @@
 	echo "</td>\n";
 	echo "<td width='70%' class='vtable' align='left'>\n";
 	if ($action == "add" || permission_exists("extension_extension")) {
-		echo "    <input class='formfld' type='text' name='extension' autocomplete='new-password' maxlength='255' value=\"".escape($extension ?? '')."\" required='required'>\n";
+		echo "    <input class='formfld' type='text' name='extension' autocomplete='new-password' maxlength='255' value=\"".escape($extension ?? '')."\" required='required' placeholder=\"".($_SESSION['extension']['extension_range']['text'] ?? '')."\">\n";
 		echo "    <input type='text' style='display: none;' disabled='disabled'>\n"; //help defeat browser auto-fill
 		echo "<br />\n";
 		echo $text['description-extension']."\n";
@@ -1271,7 +1288,7 @@
 			echo "    <br />\n";
 			echo "    ".$text['description-accountcode']."\n";
 			echo "</td>\n";
-			echo "</tr>\n";	
+			echo "</tr>\n";
 	}
 
 	if (permission_exists('device_edit') && (empty($extension_type) || $extension_type != 'virtual')) {
@@ -1458,7 +1475,7 @@
 			if (!empty($destinations)) {
 				echo "	<select name='outbound_caller_id_name' id='outbound_caller_id_name' class='formfld'>\n";
 				echo "	<option value=''></option>\n";
-				foreach ($destinations as &$row) {
+				foreach ($destinations as $row) {
 					if(!empty($row["destination_caller_id_name"])){
 						if (!empty($outbound_caller_id_name) && $row["destination_caller_id_name"] == $outbound_caller_id_name) {
 							echo "		<option value='".escape($row["destination_caller_id_name"])."' selected='selected'>".escape($row["destination_caller_id_name"])."</option>\n";
@@ -1495,7 +1512,7 @@
 			if (!empty($destinations)) {
 				echo "	<select name='outbound_caller_id_number' id='outbound_caller_id_number' class='formfld'>\n";
 				echo "	<option value=''></option>\n";
-				foreach ($destinations as &$row) {
+				foreach ($destinations as $row) {
 					$tmp = $row["destination_caller_id_number"];
 					if(empty($tmp)){
 						$tmp = $row["destination_number"];
@@ -1536,7 +1553,7 @@
 			if (!empty($emergency_destinations)) {
 				echo "	<select name='emergency_caller_id_name' id='emergency_caller_id_name' class='formfld'>\n";
 				echo "		<option value=''></option>\n";
-				foreach ($emergency_destinations as &$row) {
+				foreach ($emergency_destinations as $row) {
 					$tmp = $row["destination_caller_id_name"];
 					if(empty($tmp)){
 						$tmp = $row["destination_description"];
@@ -1582,7 +1599,7 @@
 				if (permission_exists('emergency_caller_id_select_empty')) {
 					echo "		<option value=''></option>\n";
 				}
-				foreach ($emergency_destinations as &$row) {
+				foreach ($emergency_destinations as $row) {
 					$tmp = $row["destination_caller_id_number"];
 					if(empty($tmp)){
 						$tmp = $row["destination_number"];
@@ -1725,6 +1742,7 @@
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
 		echo "    <select class='formfld' name='voicemail_enabled'>\n";
+		echo "    <option value=''></option>\n";
 		if ($voicemail_enabled == "true") {
 			echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
 		}
@@ -1754,13 +1772,14 @@
 		echo "</td>\n";
 		echo "</tr>\n";
 
-		if (permission_exists('voicemail_transcription_enabled')) {
+		if (permission_exists('voicemail_transcription_enabled') && ($_SESSION['transcribe']['enabled']['boolean'] ?? '') == "true") {
 			echo "<tr>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "	".$text['label-voicemail_transcription_enabled']."\n";
 			echo "</td>\n";
 			echo "<td class='vtable' align='left'>\n";
 			echo "	<select class='formfld' name='voicemail_transcription_enabled' id='voicemail_transcription_enabled'>\n";
+			echo "    <option value=''></option>\n";
 			echo "    	<option value='true' ".(($voicemail_transcription_enabled == "true") ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
 			echo "    	<option value='false' ".(($voicemail_transcription_enabled == "false") ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
 			echo "	</select>\n";
@@ -1898,6 +1917,7 @@
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
 		echo "    <select class='formfld' name='call_screen_enabled'>\n";
+		echo "    <option value=''></option>\n";
 		if ($call_screen_enabled == "true") {
 			echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
 		}
@@ -1972,6 +1992,36 @@
 		echo "</tr>\n";
 	}
 
+	if (permission_exists('extension_language')) {
+		echo "<tr>\n";
+		echo "<td class='vncell' valign='top' align='left' nowrap>\n";
+		echo "	".$text['label-language']."\n";
+		echo "</td>\n";
+		echo "<td class='vtable' align='left'>\n";
+		echo "  <select class='formfld' type='text' name='extension_language'>\n";
+		echo "		<option></option>\n";
+		if (!empty($extension_language) && !empty($extension_dialect) && !empty($extension_voice)) {
+			$language_formatted = $extension_language."-".$extension_dialect." ".$extension_voice;
+			echo "		<option value='".escape($extension_language.'/'.$extension_dialect.'/'.$extension_voice)."' selected='selected'>".escape($language_formatted)."</option>\n";
+		}
+		if (!empty($language_paths)) {
+			foreach ($language_paths as $key => $language_variables) {
+				$language_variables = explode('/',$language_paths[$key]);
+				$language = $language_variables[0];
+				$dialect = $language_variables[1];
+				$voice = $language_variables[2];
+				if (empty($language_formatted) || $language_formatted != $language.'-'.$dialect.' '.$voice) {
+					echo "		<option value='".$language."/".$dialect."/".$voice."'>".$language."-".$dialect." ".$voice."</option>\n";
+				}
+			}
+		}
+		echo "  </select>\n";
+		echo "<br />\n";
+		echo $text['description-language']."\n";
+		echo "</td>\n";
+		echo "</tr>\n";
+	}
+
 	if (permission_exists('extension_type')) {
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
@@ -1979,6 +2029,7 @@
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
 		echo "	<select class='formfld' name='extension_type' id='extension_type'>\n";
+		echo "		<option value=''></option>\n";
 		echo "		<option value='default' ".(($extension_type == "default") ? "selected='selected'" : null).">".$text['label-default']."</option>\n";
 		echo "		<option value='virtual' ".(($extension_type == "virtual") ? "selected='selected'" : null).">".$text['label-virtual']."</option>\n";
 		echo "	</select>\n";
@@ -2234,6 +2285,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if (isset($page) && is_numeric($page)) {

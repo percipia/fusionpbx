@@ -16,17 +16,17 @@
 --
 --	The Initial Developer of the Original Code is
 --	Mark J Crane <markjcrane@fusionpbx.com>
---	Copyright (C) 2015-2023
+--	Copyright (C) 2015-2024
 --	the Initial Developer. All Rights Reserved.
 --
 --	Contributor(s):
 --		Mark J. Crane
 
---set the debug options
-	debug["sql"] = true;
-
 --create the api object
 	api = freeswitch.API();
+
+--get the server hostname
+	hostname = api:executeString("hostname");
 
 --include config.lua
 	require "resources.functions.config";
@@ -34,6 +34,9 @@
 --connect to the database
 	local Database = require "resources.functions.database";
 	dbh = Database.new('system');
+
+--set the debug options
+	debug["sql"] = false;
 
 --include json library
 	local json
@@ -60,6 +63,7 @@
 
 --escape shell arguments to prevent command injection
 	local function shell_esc(x)
+		if (x == nil) then return '' end
 		return (x:gsub('\\', '\\\\')
 			:gsub('\'', '\\\''))
 	end
@@ -140,10 +144,12 @@
 	hangup_cause_q850 = tonumber(env:getHeader("hangup_cause_q850"));
 	fax_file = env:getHeader("fax_file");
 
---prevent nil errors
-	if (fax_file == nil) then
+--update the fax file if fax_filename is set
+	if (env:getHeader("fax_filename") ~= nil) then
 		fax_file = env:getHeader("fax_filename");
 	end
+
+--prevent nil errors
 	if (fax_uri == nil) then
 		fax_uri = "";
 	end
@@ -210,28 +216,6 @@
 		array = explode("/", fax_file);
 		fax_file_name = array[count(array)];
 	end
-
---fax to email
-	cmd = quote(shell_esc(php_dir).."/"..shell_esc(php_bin)).." "..quote(shell_esc(document_root).."/secure/fax_to_email.php").." ";
-	cmd = cmd .. "email="..quote(shell_esc(fax_email)).." ";
-	cmd = cmd .. "extension="..quote(shell_esc(fax_extension)).." ";
-	cmd = cmd .. "name="..quote(shell_esc(fax_file)).." ";
-	cmd = cmd .. "messages=" .. quote("result:"..shell_esc(fax_result_text).." sender:"..shell_esc(fax_remote_station_id).." pages:"..shell_esc(fax_document_total_pages)).." ";
-	cmd = cmd .. "domain="..quote(shell_esc(domain_name)).." ";
-	cmd = cmd .. "caller_id_name=" .. quote(shell_esc(caller_id_name) or '') .. " ";
-	cmd = cmd .. "caller_id_number=" .. quote(shell_esc(caller_id_number) or '') .. " ";
-	if #fax_forward_number > 0 then
-		cmd = cmd .. "fax_relay=true ";
-	else
-		cmd = cmd .. "fax_relay=false ";
-	end
-	if #fax_prefix > 0 then
-		cmd = cmd .. "fax_prefix=true ";
-	else
-		cmd = cmd .. "fax_prefix=false ";
-	end
-	freeswitch.consoleLog("notice", "[fax] command: " .. cmd .. "\n");
-	os.execute(cmd);
 
 --add to fax logs
 	sql = "insert into v_fax_logs ";
@@ -312,7 +296,6 @@
 	end
 	sql = sql .. ":fax_time ";
 	sql = sql .. ")";
-
 	local params = {
 		uuid = uuid;
 		domain_uuid = domain_uuid;
@@ -333,11 +316,9 @@
 		fax_date = os.date("%Y-%m-%d %X");
 		fax_time = os.time();
 	};
-
 	if (debug["sql"]) then
 		freeswitch.consoleLog("notice", "[fax] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 	end
-
 	dbh:query(sql, params);
 
 --add the fax files
@@ -345,10 +326,10 @@
 		if (fax_success =="1") then
 			if (storage_type == "base64") then
 				--include the file io
-					local file = require "resources.functions.file"
+				local file = require "resources.functions.file"
 
 				--read file content as base64 string
-					fax_base64 = assert(file.read_base64(fax_file));
+				fax_base64 = assert(file.read_base64(fax_file));
 			end
 
 			local sql = {}
@@ -419,6 +400,89 @@
 				result = dbh:query(sql, params);
 			end
 		end
+	end
+
+--fax to email
+	cmd = quote(shell_esc(php_dir).."/"..shell_esc(php_bin)).." "..quote(shell_esc(document_root).."/secure/fax_to_email.php").." ";
+	cmd = cmd .. "email="..quote(shell_esc(fax_email)).." ";
+	cmd = cmd .. "extension="..quote(shell_esc(fax_extension)).." ";
+	cmd = cmd .. "name="..quote(shell_esc(fax_file)).." ";
+	cmd = cmd .. "messages=" .. quote("Result: "..shell_esc(fax_result_text)..", Sender: "..shell_esc(fax_remote_station_id)..", Pages:"..shell_esc(fax_document_total_pages)).." ";
+	cmd = cmd .. "domain="..quote(shell_esc(domain_name)).." ";
+	cmd = cmd .. "caller_id_name=" .. quote(shell_esc(caller_id_name) or '') .. " ";
+	cmd = cmd .. "caller_id_number=" .. quote(shell_esc(caller_id_number) or '') .. " ";
+	cmd = cmd .. "fax_file_uuid=" .. quote(shell_esc(uuid)) .. " ";
+	if #fax_forward_number > 0 then
+		cmd = cmd .. "fax_relay=true ";
+	else
+		cmd = cmd .. "fax_relay=false ";
+	end
+	if #fax_prefix > 0 then
+		cmd = cmd .. "fax_prefix=true ";
+	else
+		cmd = cmd .. "fax_prefix=false ";
+	end
+	freeswitch.consoleLog("notice", "[fax] command: " .. cmd .. "\n");
+	os.execute(cmd);
+
+--add to the fax queue when the fax_forward_number is set
+	if (fax_forward_number ~= nil) then
+		sql = "insert into v_fax_queue ";
+		sql = sql .. "(";
+		sql = sql .. "fax_queue_uuid, ";
+		sql = sql .. "domain_uuid, ";
+		if (fax_uuid ~= nil) then
+			sql = sql .. "fax_uuid, ";
+		end
+		sql = sql .. "fax_date, ";
+		sql = sql .. "hostname, ";
+		sql = sql .. "fax_caller_id_name, ";
+		sql = sql .. "fax_caller_id_number, ";
+		sql = sql .. "fax_number, ";
+		sql = sql .. "fax_prefix, ";
+		sql = sql .. "fax_email_address, ";
+		sql = sql .. "fax_file, ";
+		sql = sql .. "fax_status, ";
+		sql = sql .. "fax_retry_count, ";
+		sql = sql .. "fax_accountcode, ";
+		sql = sql .. "fax_command ";
+		sql = sql .. ") ";
+		sql = sql .. "values ";
+		sql = sql .. "(";
+		sql = sql .. ":uuid, ";
+		sql = sql .. ":domain_uuid, ";
+		if (fax_uuid ~= nil) then
+			sql = sql .. ":fax_uuid, ";
+		end
+		sql = sql .. "now(), ";
+		sql = sql .. ":hostname, ";
+		sql = sql .. ":fax_caller_id_name, ";
+		sql = sql .. ":fax_caller_id_number, ";
+		sql = sql .. ":fax_number, ";
+		sql = sql .. ":fax_prefix, ";
+		sql = sql .. ":fax_email_address, ";
+		sql = sql .. ":fax_file, ";
+		sql = sql .. ":fax_status, ";
+		sql = sql .. ":fax_retry_count, ";
+		sql = sql .. ":fax_accountcode, ";
+		sql = sql .. ":fax_command ";
+		sql = sql .. ")";
+		local params = {
+			uuid = uuid;
+			domain_uuid = domain_uuid;
+			fax_uuid = fax_uuid;
+			hostname = hostname;
+			fax_caller_id_name = fax_caller_id_name;
+			fax_caller_id_number = fax_caller_id_number;
+			fax_number = fax_forward_number;
+			fax_prefix = fax_prefix;
+			fax_email_address = fax_email;
+			fax_file = fax_file;
+			fax_status = 'waiting';
+			fax_retry_count = '0';
+			fax_accountcode = fax_accountcode;
+			fax_command = '';
+		};
 	end
 
 --send the selected variables to the console

@@ -21,6 +21,7 @@
 		$apps[$x]['description']['fr-fr'] = "Gestion d'un domaine ou plusieurs dans le cas d'un système multi-parties.";
 		$apps[$x]['description']['he-il'] = "הגדרות שהוקצו לדומיין מסוים.";
 		$apps[$x]['description']['it-it'] = "Impostazioni assegnate a un determinato dominio.";
+		$apps[$x]['description']['ka-ge'] = "მითითებულ დომენზე მინიჭებული პარამეტრები.";
 		$apps[$x]['description']['nl-nl'] = "Instellingen toegewezen aan een bepaald domein.";
 		$apps[$x]['description']['pl-pl'] = "Ustawienia przypisane do konkretnej domeny.";
 		$apps[$x]['description']['pt-br'] = "Configurações atribuídas a um domínio específico.";
@@ -52,12 +53,6 @@
 		$apps[$x]['db'][$y]['table']['name'] = "v_domain_settings";
 		$apps[$x]['db'][$y]['table']['parent'] = "v_domains";
 		$z=0;
-		$apps[$x]['db'][$y]['fields'][$z]['name'] = "id";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "serial";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "integer";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['mysql'] = "INT NOT NULL AUTO_INCREMENT";
-		$apps[$x]['db'][$y]['fields'][$z]['deprecated'] = "true";
-		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "domain_uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "text";

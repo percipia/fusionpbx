@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -42,9 +42,12 @@
 	$language = new text;
 	$text = $language->get();
 
+//create the database object
+	$database = database::new();
+
 //create event socket
-	$fp = event_socket_create();
-	if (!$fp) {
+	$esl = event_socket::create();
+	if (!$esl->is_connected()) {
 		message::add($text['error-event-socket'], 'negative', 5000);
 	}
 
@@ -52,13 +55,12 @@
 	$sql = "select g.domain_uuid, g.gateway, g.gateway_uuid, d.domain_name ";
 	$sql .= "from v_gateways as g left ";
 	$sql .= "outer join v_domains as d on d.domain_uuid = g.domain_uuid";
-	$database = new database;
 	$gateways = $database->select($sql, null, 'all');
 	unset($sql);
 
 //get the sip profiles
-	if ($fp) {
-		$hostname = trim(event_socket_request($fp, 'api switchname'));
+	if ($esl->is_connected()) {
+		$hostname = trim(event_socket::api('switchname'));
 	}
 	$sql = "select sip_profile_uuid, sip_profile_name from v_sip_profiles ";
 	$sql .= "where sip_profile_enabled = 'true' ";
@@ -69,7 +71,6 @@
 		$parameters['sip_profile_hostname'] = $hostname;
 	}
 	$sql .= "order by sip_profile_name asc ";
-	$database = new database;
 	$rows = $database->select($sql, $parameters ?? null, 'all');
 	if (!empty($rows)) {
 		foreach ($rows as $row) {
@@ -80,8 +81,8 @@
 
 //get status
 	try {
-		$cmd = "api sofia xmlstatus";
-		$xml_response = trim(event_socket_request($fp, $cmd));
+		$cmd = "sofia xmlstatus";
+		$xml_response = trim(event_socket::api($cmd));
 		if ($xml_response) {
 			$xml = new SimpleXMLElement($xml_response);
 		}
@@ -91,8 +92,8 @@
 		message::add($message, 'negative', 5000);
 	}
 	try {
-		$cmd = "api sofia xmlstatus gateway";
-		$xml_response = trim(event_socket_request($fp, $cmd));
+		$cmd = "sofia xmlstatus gateway";
+		$xml_response = trim(event_socket::api($cmd));
 		if ($xml_response) {
 			$xml_gateways = new SimpleXMLElement($xml_response);
 		}
@@ -104,6 +105,7 @@
 
 //define registration object
 	$registration = new registrations;
+	$registration->show = 'all';
 
 //include the header
 	$document['title'] = $text['title-sip_status'];
@@ -131,6 +133,8 @@
 		echo "<br />\n";
 
 		echo "<div id='sofia_status' style='margin-top: 20px; margin-bottom: 40px;'>";
+
+		echo "<div class='card'>\n";
 		echo "<table class='list'>\n";
 		echo "<tr class='list-header'>\n";
 		echo "	<th>".$text['label-name']."</th>\n";
@@ -217,14 +221,14 @@
 
 		echo "</table>\n";
 		echo "</div>\n";
+		echo "</div>\n";
 		unset($gateways, $xml, $xml_gateways);
 	}
 
 //sofia status profile
-	if ($fp && permission_exists('system_status_sofia_status_profile')) {
+	if ($esl && permission_exists('system_status_sofia_status_profile')) {
 		foreach ($sip_profiles as $sip_profile_name => $sip_profile_uuid) {
-			$cmd = "api sofia xmlstatus profile ".$sip_profile_name."";
-			$xml_response = trim(event_socket_request($fp, $cmd));
+			$xml_response = trim(event_socket::api("sofia xmlstatus profile $sip_profile_name"));
 			if ($xml_response == "Invalid Profile!") {
 				$xml_response = "<error_msg>Invalid Profile!</error_msg>";
 				$profile_state = 'stopped';
@@ -239,7 +243,6 @@
 			}
 			catch(Exception $e) {
 				echo $e->getMessage();
-				exit;
 			}
 
 			echo "<div class='action_bar sub'>\n";
@@ -260,6 +263,8 @@
 			echo "</div>\n";
 
 			echo "<div id='".escape($sip_profile_name)."' style='display: none; margin-bottom: 30px;'>";
+
+			echo "<div class='card'>\n";
 			echo "<table width='100%' cellspacing='0' cellpadding='5'>\n";
 			echo "<tr><th colspan='2' style='font-size: 1px; padding: 0;'>&nbsp;</th></tr>\n";
 
@@ -304,21 +309,22 @@
 			}
 			echo "</table>\n";
 			echo "</div>";
+			echo "</div>";
 			unset($xml);
 		}
 	}
 
 //status
-	if ($fp && permission_exists('sip_status_switch_status')) {
-		$cmd = "api status";
-		$response = event_socket_request($fp, $cmd);
+	if ($esl->is_connected() && permission_exists('sip_status_switch_status')) {
+		$response = event_socket::api("status");
 		echo "<b><a href='javascript:void(0);' onclick=\"$('#status').slideToggle();\">".$text['title-status']."</a></b>\n";
 		echo "<div id='status' style='margin-top: 20px; font-size: 9pt;'>";
-		echo "<pre>";
+		echo "<div class='card'>\n";
+		echo "<pre style='margin-bottom: 0;'>";
 		echo trim(escape($response));
 		echo "</pre>\n";
 		echo "</div>";
-		fclose($fp);
+		echo "</div>";
 	}
 
 //include the footer

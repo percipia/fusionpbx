@@ -5,13 +5,16 @@
 	$apps[$x]['menu'][$y]['title']['en-gb'] = "Recordings";
 	$apps[$x]['menu'][$y]['title']['ar-eg'] = "السجلات";
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Aufnahmen";
+	$apps[$x]['menu'][$y]['title']['de-ch'] = "Aufnahmen";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Aufnahmen";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Ηχογραφήσεις";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Grabaciones";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Grabaciones";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Guides vocaux";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Guides vocaux";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "הקלטות";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Registrazioni Audio";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ჩანაწერები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Opnamen";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Nagrywanie rozmów";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Gravações";
@@ -20,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Записи";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Inspelningar";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Записи";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Kayıtlar";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "录音";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "録音";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "녹음";

@@ -7,12 +7,14 @@
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Rufgruppen";
 	$apps[$x]['menu'][$y]['title']['de-ch'] = "Rufgruppen";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Rufgruppen";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Ομάδες Ring";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Grupo de llamados";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Grupos de timbre";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Groupes Ring";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Groupes de sonnerie";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "קבוצות חיוג";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Gruppi di Squillo";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ზარის ჯგუფები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Bel groepen";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Grupy odbiorców rozmów";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Grupos de chamada";
@@ -21,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Группы вызовов";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Ringgrupper";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Дзвінкові групи";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Zil Grupları";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "振铃组";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "着信グループ";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "전화 수신 그룹";

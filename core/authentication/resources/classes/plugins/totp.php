@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -57,6 +57,7 @@ class plugin_totp {
 			$settings['theme']['login_logo_width'] = !empty($_SESSION['theme']['login_logo_width']['text']) ? $_SESSION['theme']['login_logo_width']['text'] : 'auto; max-width: 300px';
 			$settings['theme']['login_logo_height'] = !empty($_SESSION['theme']['login_logo_height']['text']) ? $_SESSION['theme']['login_logo_height']['text'] : 'auto; max-height: 300px';
 			$settings['theme']['message_delay'] = isset($_SESSION['theme']['message_delay']) ? 1000 * (float) $_SESSION['theme']['message_delay'] : 3000;
+			$settings['theme']['background_video'] = isset($_SESSION['theme']['background_video'][0]) ? $_SESSION['theme']['background_video'][0] : null;
 
 		//get the username
 			if (isset($_SESSION["username"])) {
@@ -70,17 +71,9 @@ class plugin_totp {
 		//request the username
 			if (!$this->username && !isset($_POST['authentication_code'])) {
 
-				//set a default template
-				$_SESSION['domain']['template']['name'] = 'default';
-				$_SESSION['theme']['menu_brand_image']['text'] = PROJECT_PATH.'/themes/default/images/logo.png';
-				$_SESSION['theme']['menu_brand_type']['text'] = 'image';
-
 				//get the domain
 				$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
 				$domain_name = $domain_array[0];
-
-				//temp directory
-				$_SESSION['server']['temp']['dir'] = '/tmp';
 
 				//create token
 				//$object = new token;
@@ -94,7 +87,7 @@ class plugin_totp {
 				$view = new template();
 				$view->engine = 'smarty';
 				$view->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/authentication/resources/views/';
-				$view->cache_dir = $_SESSION['server']['temp']['dir'];
+				$view->cache_dir = sys_get_temp_dir();
 				$view->init();
 
 				//assign default values to the template
@@ -180,17 +173,9 @@ class plugin_totp {
 				$_SESSION["user_email"] = $row['user_email'];
 				$_SESSION["contact_uuid"] = $row["contact_uuid"];
 
-				//set a default template
-				$_SESSION['domain']['template']['name'] = 'default';
-				$_SESSION['theme']['menu_brand_image']['text'] = PROJECT_PATH.'/themes/default/images/logo.png';
-				$_SESSION['theme']['menu_brand_type']['text'] = 'image';
-
 				//get the domain
 				$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
 				$domain_name = $domain_array[0];
-
-				//temp directory
-				$_SESSION['server']['temp']['dir'] = '/tmp';
 
 				//create token
 				//$object = new token;
@@ -204,7 +189,7 @@ class plugin_totp {
 				$view = new template();
 				$view->engine = 'smarty';
 				$view->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/authentication/resources/views/';
-				$view->cache_dir = $_SESSION['server']['temp']['dir'];
+				$view->cache_dir = sys_get_temp_dir();
 				$view->init();
 
 				//assign values to the template
@@ -218,6 +203,7 @@ class plugin_totp {
 				$view->assign("login_logo_height", $settings['theme']['login_logo_height']);
 				$view->assign("login_logo_source", $settings['theme']['logo']);
 				$view->assign("favicon", $settings['theme']['favicon']);
+				$view->assign("background_video", $settings['theme']['background_video']);
 				if (!empty($_SESSION['username'])) {
 					$view->assign("username", $_SESSION['username']);
 					$view->assign("button_cancel", $text['button-cancel']);
@@ -341,15 +327,35 @@ class plugin_totp {
 				//clear posted authentication code
 				unset($_POST['authentication_code']);
 
+				//check if contacts app exists
+				$contacts_exists = file_exists($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/contacts/') ? true : false;
+
 				//get the user details
 				if ($auth_valid) {
 					//get user data from the database
-					$sql = "select user_uuid, username, user_email, contact_uuid ";
-					$sql .= "from v_users ";
-					$sql .= "where user_uuid = :user_uuid ";
+					$sql = "select ";
+					$sql .= "	u.user_uuid, ";
+					$sql .= "	u.username, ";
+					$sql .= "	u.user_email, ";
+					$sql .= "	u.contact_uuid ";
+					if ($contacts_exists) {
+						$sql .= ",";
+						$sql .= "c.contact_organization, ";
+						$sql .= "c.contact_name_given, ";
+						$sql .= "c.contact_name_family, ";
+						$sql .= "a.contact_attachment_uuid ";
+					}
+					$sql .= "from ";
+					$sql .= "	v_users as u ";
+					if ($contacts_exists) {
+						$sql .= "left join v_contacts as c on u.contact_uuid = c.contact_uuid and u.contact_uuid is not null ";
+						$sql .= "left join v_contact_attachments as a on u.contact_uuid = a.contact_uuid and u.contact_uuid is not null and a.attachment_primary = 1 and a.attachment_filename is not null and a.attachment_content is not null ";
+					}
+					$sql .= "where ";
+					$sql .= "	u.user_uuid = :user_uuid ";
 					if ($settings['users']['unique'] != "global") {
 						//unique username per domain (not globally unique across system - example: email address)
-						$sql .= "and domain_uuid = :domain_uuid ";
+						$sql .= "and u.domain_uuid = :domain_uuid ";
 						$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
 					}
 					$parameters['user_uuid'] = $_SESSION["user_uuid"];
@@ -406,6 +412,12 @@ class plugin_totp {
 				$result["user_uuid"] = $_SESSION["user_uuid"];
 				$result["domain_uuid"] = $_SESSION["domain_uuid"];
 				$result["contact_uuid"] = $_SESSION["contact_uuid"];
+				if ($contacts_exists) {
+					$result["contact_organization"] = $row["contact_organization"];
+					$result["contact_name_given"] = $row["contact_name_given"];
+					$result["contact_name_family"] = $row["contact_name_family"];
+					$result["contact_image"] = $row["contact_attachment_uuid"];
+				}
 				$result["authorized"] = $auth_valid ? true : false;
 
 				//add the failed login to user logs

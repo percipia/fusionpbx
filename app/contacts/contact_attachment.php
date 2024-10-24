@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2016-2018
+	Portions created by the Initial Developer are Copyright (C) 2016-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -34,6 +34,7 @@
 //get attachment uuid
 	$contact_attachment_uuid = $_GET['id'] ?? '';
 	$action = $_GET['action'] ?? '';
+	$session_id = $_GET['sid'] ?? '';
 
 //get media
 	if (!empty($contact_attachment_uuid) && is_uuid($contact_attachment_uuid)) {
@@ -42,7 +43,7 @@
 		$sql .= "where contact_attachment_uuid = :contact_attachment_uuid ";
 		$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
 		$parameters['contact_attachment_uuid'] = $contact_attachment_uuid;
-		$parameters['domain_uuid'] = $domain_uuid;
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 		$database = new database;
 		$attachment = $database->select($sql, $parameters ?? null, 'row');
 		unset($sql, $parameters);
@@ -51,7 +52,7 @@
 
 		//determine mime type
 		$content_type = 'application/octet-stream'; //set default
-		$allowed_attachment_types = json_decode($_SESSION['contacts']['allowed_attachment_types']['text'] ?? '', true);
+		$allowed_attachment_types = json_decode($_SESSION['contact']['allowed_attachment_types']['text'] ?? '', true);
 		if (!empty($allowed_attachment_types)) {
 			if ($allowed_attachment_types[$attachment_type] != '') {
 				$content_type = $allowed_attachment_types[$attachment_type];
@@ -63,6 +64,10 @@
 				header("Content-type: ".$content_type."; charset=utf-8");
 				header("Content-Disposition: attachment; filename=\"".$attachment['attachment_filename']."\"");
 				header("Content-Length: ".strlen(base64_decode($attachment['attachment_content'])));
+				if (!empty($session_id)) {
+					header("Cache-Control: max-age=86400"); // 24h
+					header("Expires: ". gmdate('D, d M Y H:i:s \G\M\T', time() + 86400)); // 24h
+				}
 				echo base64_decode($attachment['attachment_content']);
 				break;
 			case 'display':

@@ -4,13 +4,12 @@ if ($domains_processed == 1) {
 
 	//add the permissions
 		$sql = "select * from v_permissions \n";
-		$database = new database;
 		$database_permissions = $database->select($sql, null, 'all');
 
 	//get the $apps array from the installed apps from the core and mod directories
 		$config_list = glob($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/*/*/app_config.php");
 		$x = 0;
-		foreach ($config_list as &$config_path) {
+		foreach ($config_list as $config_path) {
 			include($config_path);
 			$x++;
 		}
@@ -50,7 +49,6 @@ if ($domains_processed == 1) {
 				$p->add('permission_add', 'temp');
 
 			//execute insert
-				$database = new database;
 				$database->app_name = 'permissions';
 				$database->app_uuid = 'ce1498a0-46e2-487d-85de-4eec7122a984';
 				$database->save($array, false);

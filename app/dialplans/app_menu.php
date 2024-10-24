@@ -13,6 +13,7 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Plan de numérotation";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "תוכנית חיוג";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Piano Numerazioni";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "დარეკვის გეგმა";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Belplan";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Plan wybierania";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "plano de discagem";
@@ -27,7 +28,7 @@
 	$apps[$x]['menu'][$y]['uuid'] = "b94e8bd9-9eb5-e427-9c26-ff7a6c21552a";
 	$apps[$x]['menu'][$y]['parent_uuid'] = "";
 	$apps[$x]['menu'][$y]['category'] = "internal";
-	$apps[$x]['menu'][$y]['icon'] = "fa-exchange-alt";
+	$apps[$x]['menu'][$y]['icon'] = "fa-solid fa-right-left";
 	$apps[$x]['menu'][$y]['path'] = "";
 	$apps[$x]['menu'][$y]['order'] = "15";
 	$apps[$x]['menu'][$y]['groups'][] = "admin";
@@ -45,6 +46,7 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Gestion du Plan de Numérotation";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "מנהל Dialplan";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Manager di Dialplan";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "დარეკვის გეგმის მმართველი";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Belplan beheer";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Menadżer dialplanu";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Gerenciador de Dialplan";

@@ -247,9 +247,9 @@
 
 		//get the hostname
 			if ($sip_profile_hostname == '') {
-				$fp = event_socket_create();
-				if ($fp) {
-					$sip_profile_hostname = event_socket_request($fp, 'api switchname');
+				$esl = event_socket::create();
+				if ($esl->is_connected()) {
+					$sip_profile_hostname = event_socket::api('switchname');
 				}
 			}
 
@@ -448,6 +448,7 @@
 		}
 	}
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%'  border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -659,6 +660,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>";
 	echo "<br /><br />";
 
 	if ($action == "update") {

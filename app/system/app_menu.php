@@ -7,12 +7,14 @@
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Systemstatus";
 	$apps[$x]['menu'][$y]['title']['de-ch'] = "Systemstatus";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Systemstatus";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Κατάσταση συστήματος";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Estado de Sistema";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Situación del sistema";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "État du système";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Etat Système";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "מצב מערכת";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Stato Sistema";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "სისტემის სტატუსი";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Systeem Status";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Stan systemu";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Estado do sistema";
@@ -21,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Состояние cистемы";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "System Status";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Стан системи ";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Sistem durumu";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "系统状况";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "システムステータス";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "시스템 상태";

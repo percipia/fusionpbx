@@ -37,6 +37,9 @@
 		exit;
 	}
 
+//initialize the database object
+	$database = new database;
+
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
@@ -117,7 +120,7 @@
 							$schema[$i]['fields'][] = $field_name;
 						}
 					}
-					$i++;	
+					$i++;
 				}
 			}
 
@@ -161,6 +164,7 @@
 			echo $text['description-import']."\n";
 			echo "<br /><br />\n";
 
+			echo "<div class='card'>\n";
 			echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 			//loop through user columns
@@ -199,6 +203,7 @@
 			}
 
 			echo "</table>\n";
+			echo "</div>\n";
 			echo "<br /><br />\n";
 
 			echo "<input name='action' type='hidden' value='import'>\n";
@@ -246,14 +251,13 @@
 
 		//user selected fields
 			$fields = $_POST['fields'];
-			
+
 		//set the domain_uuid
 			$domain_uuid = $_SESSION['domain_uuid'];
 
 		//get the users
 			$sql = "select * from v_users where domain_uuid = :domain_uuid ";
 			$parameters['domain_uuid'] = $domain_uuid;
-			$database = new database;
 			$users = $database->select($sql, $parameters, 'all');
 			unset($sql, $parameters);
 
@@ -272,7 +276,7 @@
 								foreach ($fields as $key => $value) {
 									//get the line
 									$result = str_getcsv($line, $delimiter, $enclosure);
-									
+
 									//get the table and field name
 									$field_array = explode(".",$value);
 									$table_name = $field_array[0];
@@ -280,7 +284,7 @@
 									//echo "value: $value<br />\n";
 									//echo "table_name: $table_name<br />\n";
 									//echo "field_name: $field_name<br />\n";
-									
+
 									//get the parent table name
 									$parent = get_parent($schema, $table_name);
 
@@ -289,8 +293,8 @@
 										$result[$key] = preg_replace('{\D}', '', $result[$key]);
 									}
 
-									//set the extension enabled to lower case
-									if ($field_name == 'enabled') {
+									//set various fields to lower case
+									if (in_array($field_name, array('enabled','directory_visible','directory_exten_visible','call_screen_enabled','user_record','do_not_disturb','forward_all_enabled','forward_busy_enabled','forward_no_answer_enabled','forward_user_not_registered_enabled'))) {
 										$result[$key] = strtolower($result[$key]);
 									}
 
@@ -322,7 +326,6 @@
 								if ($row_id === 1000) {
 
 									//save to the data
-										$database = new database;
 										$database->app_name = 'extensions';
 										$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 										$database->save($array);
@@ -342,7 +345,6 @@
 
 				//save to the data
 					if (!empty($array) && is_array($array)) {
-						$database = new database;
 						$database->app_name = 'extensions';
 						$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 						$database->save($array);
@@ -365,7 +367,6 @@
 
 //show content
 	echo "<form name='frmUpload' method='post' enctype='multipart/form-data'>\n";
-
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['header-extension_import']."</b></div>\n";
 	echo "	<div class='actions'>\n";
@@ -378,6 +379,7 @@
 	echo $text['description-import']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table border='0' cellpadding='0' cellspacing='0' width='100%'>\n";
 
 	echo "<tr>\n";
@@ -448,6 +450,7 @@
 	echo "</tr>\n";
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	echo "<input name='type' type='hidden' value='csv'>\n";

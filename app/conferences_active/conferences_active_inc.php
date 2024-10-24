@@ -43,8 +43,8 @@
 	$text = $language->get();
 
 //show content
-	$fp = event_socket_create();
-	if (!$fp) {
+	$fp = event_socket::create();
+	if (!$fp->is_connected()) {
 		$msg = "<div align='center'>".$text['message-connection']."<br /></div>";
 		echo "<div align='center'>\n";
 		echo "<table width='40%'>\n";
@@ -58,7 +58,7 @@
 		echo "</div>\n";
 	}
 	else {
-		$xml_string = trim(event_socket_request($fp, 'api conference xml_list'));
+		$xml_string = trim(event_socket::api('conference xml_list'));
 		try {
 			$xml = new SimpleXMLElement($xml_string);
 		}
@@ -66,6 +66,7 @@
 			//echo $e->getMessage();
 		}
 
+		echo "<div class='card'>\n";
 		echo "<table class='list'>\n";
 		echo "<tr class='list-header'>\n";
 		echo "	<th>".$text['label-name']."</th>\n";
@@ -153,6 +154,7 @@
 				}
 		}
 		echo "</table>\n";
+		echo "</div>\n";
 		echo "<br /><br />";
 	}
 

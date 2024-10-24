@@ -450,7 +450,7 @@
 		$array['email_templates'][$x]['template_language'] = 'en-gb';
 		$array['email_templates'][$x]['template_category'] = 'fax';
 		$array['email_templates'][$x]['template_subcategory'] = 'success_default';
-		$array['email_templates'][$x]['template_subject'] = 'Subject, Fax to: ${number_dialed} SENT';
+		$array['email_templates'][$x]['template_subject'] = 'Fax to: ${number_dialed} SENT';
 		$array['email_templates'][$x]['template_body'] = "<html>\n";
 		$array['email_templates'][$x]['template_body'] .= "<body>\n";
 		$array['email_templates'][$x]['template_body'] .= "We are happy to report the fax was sent successfully. It has been attached for your records.\n";
@@ -504,7 +504,46 @@
 		$array['email_templates'][$x]['template_type'] = 'html';
 		$array['email_templates'][$x]['template_enabled'] = 'true';
 		$array['email_templates'][$x]['template_description'] = '';
+		$x++;
 
+		$array['email_templates'][$x]['email_template_uuid'] = '814c08da-78ff-11ee-b73f-005056a27559';
+		$array['email_templates'][$x]['template_language'] = 'en-gb';
+		$array['email_templates'][$x]['template_category'] = 'plugin';
+		$array['email_templates'][$x]['template_subcategory'] = 'emergency';
+		$array['email_templates'][$x]['template_subject'] = '911 Emergency Call';
+		$array['email_templates'][$x]['template_body'] = "<html>\n";
+		$array['email_templates'][$x]['template_body'] .= "<body>\n";
+		$array['email_templates'][$x]['template_body'] .= "From \${caller_id_name} <a href=\"tel:\${caller_id_number}\">\${caller_id_number}</a><br />\n";
+		$array['email_templates'][$x]['template_body'] .= "<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Emergency Name \${emergency_caller_id_name}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Emergency Name \${emergency_caller_id_number}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Received \${message_date}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Event \${event}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "</body>\n";
+		$array['email_templates'][$x]['template_body'] .= "</html>\n";
+		$array['email_templates'][$x]['template_type'] = 'html';
+		$array['email_templates'][$x]['template_enabled'] = 'true';
+		$array['email_templates'][$x]['template_description'] = '';
+		$x++;
+
+		$array['email_templates'][$x]['email_template_uuid'] = '8928e8d4-78ff-11ee-ac06-005056a27559';
+		$array['email_templates'][$x]['template_language'] = 'en-us';
+		$array['email_templates'][$x]['template_category'] = 'plugin';
+		$array['email_templates'][$x]['template_subcategory'] = 'emergency';
+		$array['email_templates'][$x]['template_subject'] = '911 Emergency Call';
+		$array['email_templates'][$x]['template_body'] = "<html>\n";
+		$array['email_templates'][$x]['template_body'] .= "<body>\n";
+		$array['email_templates'][$x]['template_body'] .= "From \${caller_id_name} <a href=\"tel:\${caller_id_number}\">\${caller_id_number}</a><br />\n";
+		$array['email_templates'][$x]['template_body'] .= "<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Emergency Name \${emergency_caller_id_name}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Emergency Name \${emergency_caller_id_number}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Received \${message_date}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "Event \${event}<br />\n";
+		$array['email_templates'][$x]['template_body'] .= "</body>\n";
+		$array['email_templates'][$x]['template_body'] .= "</html>\n";
+		$array['email_templates'][$x]['template_type'] = 'html';
+		$array['email_templates'][$x]['template_enabled'] = 'true';
+		$array['email_templates'][$x]['template_description'] = '';
 
 		//build array of email template uuids
 		foreach ($array['email_templates'] as $row) {
@@ -521,7 +560,6 @@
 				$parameters['email_template_uuid_'.$index] = $uuid;
 			}
 			$sql .= implode(' or ', $sql_where);
-			$database = new database;
 			$email_templates = $database->select($sql, $parameters, 'all');
 			unset($sql, $sql_where, $parameters);
 
@@ -546,7 +584,6 @@
 			$p->add("email_template_edit", 'temp');
 
 			//save the data
-			$database = new database;
 			$database->app_name = 'email_templates';
 			$database->app_uuid = '8173e738-2523-46d5-8943-13883befd2fd';
 			$database->save($array, false);

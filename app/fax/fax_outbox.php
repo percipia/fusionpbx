@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2021
+	Portions created by the Initial Developer are Copyright (C) 2021-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -98,11 +98,11 @@
 	$switch_cmd = 'show channels as json';
 
 //create the event socket connection
-	$fp = event_socket_create();
+	$esl = event_socket::create();
 
 //send the event socket command and get the array
-	if ($fp) {
-		$json = trim(event_socket_request($fp, 'api '.$switch_cmd));
+	if ($esl->is_connected()) {
+		$json = trim($esl->api($switch_cmd));
 		$results = json_decode($json, "true");
 	}
 
@@ -125,13 +125,14 @@
 	echo "	<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 	//echo "	<input type='hidden' id='my_id' name='my_id' value='' />";
 
-	echo "	<table class='list'>\n";
-	echo "		<tr class='list-header'>\n";
-	echo "			<th>Destination</th>";
-	echo "			<th>Status</th>";
-	echo "			<th>Preview</th>";
-	echo "			<th>Path</th>";
-	echo "		</tr>\n";
+	echo "	<div class='card'>\n";
+	echo "		<table class='list'>\n";
+	echo "			<tr class='list-header'>\n";
+	echo "				<th>Destination</th>";
+	echo "				<th>Status</th>";
+	echo "				<th>Preview</th>";
+	echo "				<th>Path</th>";
+	echo "			</tr>\n";
 
 //loop through the faxes
 	if (isset($results["rows"])) {
@@ -157,7 +158,8 @@
 			}
 		}
 	}
-	echo "	</table>\n";
+	echo "		</table>\n";
+	echo "	</div>\n";
 	echo "	<br />\n";
 	echo "	<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
 	echo "</form>\n";

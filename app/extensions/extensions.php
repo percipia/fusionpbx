@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2020
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -38,6 +38,9 @@
 		echo "access denied";
 		exit;
 	}
+
+//initialize the database object
+	$database = new database;
 
 //add multi-lingual support
 	$language = new text;
@@ -85,43 +88,41 @@
 		$sql = "select count(*) from v_extensions ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-		$database = new database;
 		$total_extensions = $database->select($sql, $parameters, 'column');
 		unset($sql, $parameters);
 	}
 
 //add the search term
 	$search = strtolower($_GET["search"] ?? '');
-	if (!empty($search)) {
-		$sql_search = " and ( ";
-		$sql_search .= "lower(extension) like :search ";
-		$sql_search .= "or lower(number_alias) like :search ";
-		$sql_search .= "or lower(effective_caller_id_name) like :search ";
-		$sql_search .= "or lower(effective_caller_id_number) like :search ";
-		$sql_search .= "or lower(outbound_caller_id_name) like :search ";
-		$sql_search .= "or lower(outbound_caller_id_number) like :search ";
-		$sql_search .= "or lower(emergency_caller_id_name) like :search ";
-		$sql_search .= "or lower(emergency_caller_id_number) like :search ";
-		$sql_search .= "or lower(directory_first_name) like :search ";
-		$sql_search .= "or lower(directory_last_name) like :search ";
-		if (permission_exists("extension_call_group")) {
-			$sql_search .= "or lower(call_group) like :search ";
-		}
-		$sql_search .= "or lower(user_context) like :search ";
-		$sql_search .= "or lower(enabled) like :search ";
-		$sql_search .= "or lower(description) like :search ";
-		$sql_search .= ") ";
-		$parameters['search'] = '%'.$search.'%';
-	}
 
 //get total extension count
-	$sql = "select count(*) from v_extensions where true ";
+	$sql = "select count(*) from v_extensions ";
+	$sql .= "where true ";
 	if (!(!empty($_GET['show']) && $_GET['show'] == "all" && permission_exists('extension_all'))) {
 		$sql .= "and domain_uuid = :domain_uuid ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	}
-	$sql .= $sql_search ?? '';
-	$database = new database;
+	if (!empty($search)) {
+		$sql .= "and ( ";
+		$sql .= " lower(extension) like :search ";
+		$sql .= " or lower(number_alias) like :search ";
+		$sql .= " or lower(effective_caller_id_name) like :search ";
+		$sql .= " or lower(effective_caller_id_number) like :search ";
+		$sql .= " or lower(outbound_caller_id_name) like :search ";
+		$sql .= " or lower(outbound_caller_id_number) like :search ";
+		$sql .= " or lower(emergency_caller_id_name) like :search ";
+		$sql .= " or lower(emergency_caller_id_number) like :search ";
+		$sql .= " or lower(directory_first_name) like :search ";
+		$sql .= " or lower(directory_last_name) like :search ";
+		if (permission_exists("extension_call_group")) {
+			$sql .= " or lower(call_group) like :search ";
+		}
+		$sql .= " or lower(user_context) like :search ";
+		$sql .= " or lower(enabled) like :search ";
+		$sql .= " or lower(description) like :search ";
+		$sql .= ") ";
+		$parameters['search'] = '%'.$search.'%';
+	}
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //prepare to page the results
@@ -136,10 +137,68 @@
 	$offset = $rows_per_page * $page;
 
 //get the extensions
-	$sql = str_replace('count(*)', '*', $sql);
+	$sql = "select e.*, ";
+	$sql .= "( ";
+	$sql .= "	select device_uuid ";
+	$sql .= "	from v_device_lines ";
+	$sql .= "	where domain_uuid = e.domain_uuid ";
+	$sql .= "	and user_id = e.extension ";
+	$sql .= "	limit 1 ";
+	$sql .= ") AS device_uuid, ";
+	if (permission_exists("extension_device_address")) {
+		$sql .= "( ";
+		$sql .= "	select device_address ";
+		$sql .= "	from v_devices ";
+		$sql .= "	where device_uuid in ( ";
+		$sql .= "		select device_uuid ";
+		$sql .= "		from v_device_lines ";
+		$sql .= "		where domain_uuid = e.domain_uuid ";
+		$sql .= "		and user_id = e.extension ";
+		$sql .= "		limit 1) ";
+		$sql .= ") AS device_address, ";
+	}
+	if (permission_exists("extension_device_template")) {
+		$sql .= "( ";
+		$sql .= "	select device_template ";
+		$sql .= "	from v_devices ";
+		$sql .= "	where device_uuid in ( ";
+		$sql .= "		select device_uuid ";
+		$sql .= "		from v_device_lines ";
+		$sql .= "		where domain_uuid = e.domain_uuid ";
+		$sql .= "		and user_id = e.extension ";
+		$sql .= "		limit 1) ";
+		$sql .= ") AS device_template, ";
+	}
+	$sql .= "true as true ";
+	$sql .= "from v_extensions as e ";
+	$sql .= "where true ";
+	if (!(!empty($_GET['show']) && $_GET['show'] == "all" && permission_exists('extension_all'))) {
+		$sql .= "and domain_uuid = :domain_uuid ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+	}
+	if (!empty($search)) {
+		$sql .= "and ( ";
+		$sql .= " lower(extension) like :search ";
+		$sql .= " or lower(number_alias) like :search ";
+		$sql .= " or lower(effective_caller_id_name) like :search ";
+		$sql .= " or lower(effective_caller_id_number) like :search ";
+		$sql .= " or lower(outbound_caller_id_name) like :search ";
+		$sql .= " or lower(outbound_caller_id_number) like :search ";
+		$sql .= " or lower(emergency_caller_id_name) like :search ";
+		$sql .= " or lower(emergency_caller_id_number) like :search ";
+		$sql .= " or lower(directory_first_name) like :search ";
+		$sql .= " or lower(directory_last_name) like :search ";
+		if (permission_exists("extension_call_group")) {
+			$sql .= " or lower(call_group) like :search ";
+		}
+		$sql .= " or lower(user_context) like :search ";
+		$sql .= " or lower(enabled) like :search ";
+		$sql .= " or lower(description) like :search ";
+		$sql .= ") ";
+		$parameters['search'] = '%'.$search.'%';
+	}
 	$sql .= order_by($order_by, $order, null, null, $sort);
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$extensions = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -162,7 +221,7 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['header-extensions']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['header-extensions']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	if (permission_exists('extension_import') && (!isset($_SESSION['limit']['extensions']['numeric']) || $total_extensions < $_SESSION['limit']['extensions']['numeric'])) {
 		echo button::create(['type'=>'button','label'=>$text['button-import'],'icon'=>$_SESSION['theme']['button_icon_import'],'link'=>'extension_imports.php']);
@@ -235,6 +294,7 @@
 	echo "<input type='hidden' id='action' name='action' value=''>\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('extension_enabled') || permission_exists('extension_delete')) {
@@ -246,20 +306,29 @@
 		echo "<th>".$text['label-domain']."</th>\n";
 		//echo th_order_by('domain_name', $text['label-domain'], $order_by, $order);
 	}
+	if (permission_exists('extension_registered')) {
+		echo "<th>&nbsp;</th>\n";
+	}
 	echo th_order_by('extension', $text['label-extension'], $order_by, $order);
 	echo th_order_by('effective_caller_id_name', $text['label-effective_cid_name'], $order_by, $order, null, "class='hide-xs'");
 	if (permission_exists("outbound_caller_id_name")) {
 		echo th_order_by('outbound_caller_id_name', $text['label-outbound_cid_name'], $order_by, $order, null, "class='hide-sm-dn'");
 	}
+	if (permission_exists("outbound_caller_id_number")) {
+		echo th_order_by('outbound_caller_id_number', $text['label-outbound_cid_number'], $order_by, $order, null, "class='hide-md-dn'");
+	}
 	if (permission_exists("extension_call_group")) {
 		echo th_order_by('call_group', $text['label-call_group'], $order_by, $order);
+	}
+	if (permission_exists("extension_device_address")) {
+		echo th_order_by('device_address', $text['label-device_address'], $order_by, $order, null, "class='hide-md-dn'");
+	}
+	if (permission_exists("extension_device_template")) {
+		echo th_order_by('device_template', $text['label-device_template'], $order_by, $order, null, "class='hide-md-dn'");
 	}
 	if (permission_exists("extension_user_context")) {
 		echo th_order_by('user_context', $text['label-user_context'], $order_by, $order);
 	}
-	if (permission_exists('extension_registered')) {
-		echo "<th>".$text['label-is_registered']."</th>\n";
- 	}
 	echo th_order_by('enabled', $text['label-enabled'], $order_by, $order, null, "class='center'");
 	echo th_order_by('description', $text['label-description'], $order_by, $order, null, "class='hide-sm-dn'");
 	if (permission_exists('extension_edit') && !empty($_SESSION['theme']['list_row_edit_button']['boolean']) && $_SESSION['theme']['list_row_edit_button']['boolean'] == 'true') {
@@ -283,27 +352,10 @@
 			if (!empty($_GET['show']) && $_GET['show'] == "all" && permission_exists('extension_all')) {
 				echo "	<td>".escape($_SESSION['domains'][$row['domain_uuid']]['domain_name'])."</td>\n";
 			}
-			echo "	<td>";
-			if (permission_exists('extension_edit')) {
-				echo "<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($row['extension'])."</a>";
-			}
-			else {
-				echo escape($row['extension']);
-			}
-			echo "	</td>\n";
-
-			echo "	<td class='hide-xs'>".escape($row['effective_caller_id_name'])."&nbsp;</td>\n";
-			if (permission_exists("outbound_caller_id_name")) {
-				echo "	<td class='hide-sm-dn'>".escape($row['outbound_caller_id_name'])."&nbsp;</td>\n";
-			}
-			if (permission_exists("extension_call_group")) {
-				echo "	<td>".escape($row['call_group'])."&nbsp;</td>\n";
-			}
-			if (permission_exists("extension_user_context")) {
-				echo "	<td>".escape($row['user_context'])."</td>\n";
-			}
 			if (permission_exists('extension_registered')) {
-				echo "	<td>";
+				$icon_registered_color = $_SESSION['extension']['icon_registered_color']['text'] ?? '#12d600';
+				$icon_unregistered_color = $_SESSION['extension']['icon_unregistered_color']['text'] ?? '#e21b1b';
+
 				$extension_number = $row['extension'].'@'.$_SESSION['domains'][$row['domain_uuid']]['domain_name'];
 				$extension_number_alias = $row['number_alias'];
 				if (!empty($extension_number_alias)) {
@@ -318,13 +370,46 @@
 					}
 				}
 				if ($found_count > 0) {
-					echo $text['label-true']." (".$found_count.")";
+					echo "	<td class='middle button center' style='text-align: center; cursor: help;' title=\"".($found_count > 1 ? $found_count.' '.$text['label-registrations'] : $text['label-registered'])."\">";
+					if ($found_count > 1) {
+						echo "<div style='display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ".$icon_registered_color."; border: 1px solid ".color_adjust($icon_registered_color, -0.07)."; margin-top: 4px;'></div>\n";
+					}
+					echo "		<div style='display: inline-block; width: 8px; height: 8px; line-height: 8px; border-radius: 50%; background-color: ".$icon_registered_color."; border: 1px solid ".color_adjust($icon_registered_color, -0.07)."; margin-top: 4px; ".($found_count > 1 ? 'margin-left: -7px;' : null)."'></div>\n";
 				}
 				else {
-					echo $text['label-false'];
+					echo "	<td class='middle button center' style='text-align: center; cursor: help;' title=\"".$text['label-unregistered']."\">";
+					echo 		"<div style='display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ".$icon_unregistered_color."; border: 1px solid ".color_adjust($icon_unregistered_color, -0.15)."; margin-top: 4px;'></div>\n";
 				}
 				unset($extension_number, $extension_number_alias, $found_count, $array);
-				echo "&nbsp;</td>\n";
+				echo "</td>\n";
+			}
+			echo "	<td>";
+			if (permission_exists('extension_edit')) {
+				echo "<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($row['extension'])."</a>";
+			}
+			else {
+				echo escape($row['extension']);
+			}
+			echo "	</td>\n";
+
+			echo "	<td class='hide-xs'>".escape($row['effective_caller_id_name'])."&nbsp;</td>\n";
+			if (permission_exists("outbound_caller_id_name")) {
+				echo "	<td class='hide-sm-dn'>".escape($row['outbound_caller_id_name'])."&nbsp;</td>\n";
+			}
+			if (permission_exists("outbound_caller_id_number")) {
+				echo "	<td class='hide-md-dn'>".escape($row['outbound_caller_id_number'])."&nbsp;</td>\n";
+			}
+			if (permission_exists("extension_call_group")) {
+				echo "	<td>".escape($row['call_group'])."&nbsp;</td>\n";
+			}
+			if (permission_exists("extension_device_address")) {
+				echo "	<td class='hide-md-dn'><a href='" . PROJECT_PATH . "/app/devices/device_edit.php?id=".escape($row['device_uuid'])."'>".escape($row['device_address'])."</td>\n";
+			}
+			if (permission_exists("extension_device_template")) {
+				echo "	<td class='hide-md-dn'><a href='" . PROJECT_PATH . "/app/devices/device_edit.php?id=".escape($row['device_uuid'])."'>".escape($row['device_template'])."</td>\n";
+			}
+			if (permission_exists("extension_user_context")) {
+				echo "	<td>".escape($row['user_context'])."</td>\n";
 			}
 			if (permission_exists('extension_enabled')) {
 				echo "	<td class='no-link center'>";
@@ -347,6 +432,8 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
+
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 

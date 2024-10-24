@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Gestion d'un domaine ou plusieurs dans le cas d'un système multi-parties.";
 		$apps[$x]['description']['he-il'] = "נהל דומיין בודד או מספר דומיינים עבור ריבוי דיירים.";
 		$apps[$x]['description']['it-it'] = "Gestisci un singolo dominio o più domini per multi-tenant.";
+		$apps[$x]['description']['ka-ge'] = "მართეთ ერთი ან მეტი დომენი მრავალი მომხმარებლისთვის.";
 		$apps[$x]['description']['nl-nl'] = "Beheer een enkel domein of meerdere domeinen voor meerdere huurders.";
 		$apps[$x]['description']['pl-pl'] = "Zarządzaj pojedynczą domeną lub wieloma domenami dla wielu dzierżawców.";
 		$apps[$x]['description']['pt-br'] = "Gerencie um único ou múltiplos domínios para multi-locatários";
@@ -66,12 +67,6 @@
 		$apps[$x]['db'][$y]['table']['name'] = "v_domains";
 		$apps[$x]['db'][$y]['table']['parent'] = "";
 		$z=0;	
-		$apps[$x]['db'][$y]['fields'][$z]['name'] = "id";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "serial";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "integer";
-		$apps[$x]['db'][$y]['fields'][$z]['type']['mysql'] = "INT NOT NULL AUTO_INCREMENT";
-		$apps[$x]['db'][$y]['fields'][$z]['deprecated'] = "true";
-		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "domain_uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['pgsql'] = "uuid";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "text";

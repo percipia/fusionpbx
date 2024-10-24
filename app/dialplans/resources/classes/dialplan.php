@@ -80,20 +80,33 @@
 			private $toggle_field;
 			private $toggle_values;
 
+			/**
+			* Set in the constructor. Must be a database object and cannot be null.
+			* @var database Database Object
+			*/
+			private $database;
+
 			//class constructor
 			public function __construct() {
 				//set the default value
-					$this->dialplan_global = false;
+				$this->dialplan_global = false;
 
 				//assign property defaults
-					$this->app_name = 'dialplans';
-					$this->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db'; //dialplans
-					$this->permission_prefix = 'dialplan_';
-					$this->list_page = 'dialplans.php';
-					$this->table = 'dialplans';
-					$this->uuid_prefix = 'dialplan_';
-					$this->toggle_field = 'dialplan_enabled';
-					$this->toggle_values = ['true','false'];
+				$this->app_name = 'dialplans';
+				$this->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db'; //dialplans
+				$this->permission_prefix = 'dialplan_';
+				$this->list_page = 'dialplans.php';
+				$this->table = 'dialplans';
+				$this->uuid_prefix = 'dialplan_';
+				$this->toggle_field = 'dialplan_enabled';
+				$this->toggle_values = ['true','false'];
+
+				//open a database connection
+				if (empty($setting_array['database'])) {
+					$this->database = database::new();
+				} else {
+					$this->database = $setting_array['database'];
+				}
 			}
 
 			public function dialplan_add() {
@@ -115,10 +128,9 @@
 					$p->add('dialplan_add', 'temp');
 
 				//execute insert
-					$database = new database;
-					$database->app_name = 'dialplans';
-					$database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
-					$database->save($array);
+					$this->database->app_name = 'dialplans';
+					$this->database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
+					$this->database->save($array);
 					unset($array);
 
 				//clear the destinations session array
@@ -148,10 +160,9 @@
 					$p->add('dialplan_edit', 'temp');
 
 				//execute update
-					$database = new database;
-					$database->app_name = 'dialplans';
-					$database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
-					$database->save($array);
+					$this->database->app_name = 'dialplans';
+					$this->database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
+					$this->database->save($array);
 					unset($array);
 
 				//revoke temporary permissions
@@ -164,8 +175,7 @@
 				$sql .= "and app_uuid = :app_uuid ";
 				$parameters['domain_uuid'] = $this->domain_uuid;
 				$parameters['app_uuid'] = $this->app_uuid;
-				$database = new database;
-				return $database->select($sql, $parameters ?? null, 'column') != 0 ? true : false;
+				return $this->database->select($sql, $parameters ?? null, 'column') != 0 ? true : false;
 				unset($sql, $parameters);
 			}
 
@@ -175,8 +185,7 @@
 				$sql .= "and dialplan_uuid = :dialplan_uuid ";
 				$parameters['domain_uuid'] = $this->domain_uuid;
 				$parameters['dialplan_uuid'] = $this->dialplan_uuid;
-				$database = new database;
-				return $database->select($sql, $parameters ?? null, 'column') != 0 ? true : false;
+				return $this->database->select($sql, $parameters ?? null, 'column') != 0 ? true : false;
 				unset($sql, $parameters);
 			}
 
@@ -216,9 +225,6 @@
 					}
 					*/
 
-				//create the database object
-					$database = new database;
-
 				//loop through each domain
 					if (!empty($domains) && is_array($domains) && @sizeof($domains) != 0) {
 						foreach ($domains as $domain) {
@@ -230,8 +236,7 @@
 								$sql .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
 								$sql .= "and app_uuid is not null ";
 								$parameters['domain_uuid'] = $domain['domain_uuid'];
-								//$database = new database;
-								$app_uuids = $database->select($sql, $parameters, 'all');
+								$app_uuids = $this->database->select($sql, $parameters, 'all');
 								unset($parameters);
 
 							//process the dialplan xml files
@@ -331,7 +336,7 @@
 												$group = 0;
 												$order = 5;
 												if (isset($dialplan['condition'])) {
-													foreach ($dialplan['condition'] as &$row) {
+													foreach ($dialplan['condition'] as $row) {
 
 														$array['dialplans'][$x]['dialplan_details'][$y]['domain_uuid'] = $domain_uuid;
 														$array['dialplans'][$x]['dialplan_details'][$y]['dialplan_uuid'] = $dialplan_uuid;
@@ -369,7 +374,7 @@
 															}
 															$order = $order + 5;
 															if (isset($row['action'])) {
-																foreach ($row['action'] as &$row2) {
+																foreach ($row['action'] as $row2) {
 																	$array['dialplans'][$x]['dialplan_details'][$y]['domain_uuid'] = $domain_uuid;
 																	$array['dialplans'][$x]['dialplan_details'][$y]['dialplan_uuid'] = $dialplan_uuid;
 																	$array['dialplans'][$x]['dialplan_details'][$y]['dialplan_detail_tag'] = 'action';
@@ -396,7 +401,7 @@
 																}
 															}
 															if (isset($row['anti-action'])) {
-																foreach ($row['anti-action'] as &$row2) {
+																foreach ($row['anti-action'] as $row2) {
 																	$array['dialplans'][$x]['dialplan_details'][$y]['domain_uuid'] = $domain_uuid;
 																	$array['dialplans'][$x]['dialplan_details'][$y]['dialplan_uuid'] = $dialplan_uuid;
 																	$array['dialplans'][$x]['dialplan_details'][$y]['dialplan_detail_tag'] = 'anti-action';
@@ -455,10 +460,9 @@
 
 							//save the data
 								if (!empty($array)) {
-									//$database = new database;
-									$database->app_name = 'dialplans';
-									$database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
-									$database->save($array);
+									$this->database->app_name = 'dialplans';
+									$this->database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
+									$this->database->save($array);
 									unset($array);
 								}
 
@@ -510,12 +514,11 @@
 							$sql .= "else 100 end, ";
 							$sql .= "s.dialplan_detail_order asc ";
 							$parameters['domain_uuid'] = $this->domain_uuid;
-							$database = new database;
-							$dialplans = $database->select($sql, $parameters ?? null, 'all');
+							$dialplans = $this->database->select($sql, $parameters ?? null, 'all');
 							unset($sql, $parameters);
 							$x = 0; $y = 0;
 							if (!empty($dialplans)) {
-								foreach ($dialplans as &$row) {
+								foreach ($dialplans as $row) {
 									//if the previous dialplan uuid has not been set then set it
 										if (!isset($previous_dialplan_uuid)) { $previous_dialplan_uuid = $row['dialplan_uuid']; }
 
@@ -596,34 +599,40 @@
 
 			//combines array dialplans and dialplan details arrays to match results from the database
 			public function prepare_details($database_array) {
-
+				$array = [];
 				$id = 0;
 				foreach($database_array['dialplans'] as $row) {
 					if (!empty($row['dialplan_details'])) {
 						foreach($row['dialplan_details'] as $detail) {
-							$array[$id]['domain_uuid'] = $row['domain_uuid'];
-							$array[$id]['dialplan_uuid'] = $row['dialplan_uuid'];
-							$array[$id]['app_uuid'] = $row['app_uuid'];
-							$array[$id]['dialplan_context'] = $row['dialplan_context'];
-							$array[$id]['dialplan_name'] = $row['dialplan_name'];
-							$array[$id]['dialplan_number'] = $row['dialplan_number'];
-							$array[$id]['dialplan_continue'] = $row['dialplan_continue'];
-							$array[$id]['dialplan_order'] = $row['dialplan_order'];
-							$array[$id]['dialplan_enabled'] = $row['dialplan_enabled'];
-							$array[$id]['dialplan_description'] = $row['dialplan_description'];
-							$array[$id]['dialplan_detail_uuid'] = $detail['dialplan_detail_uuid'];
-							$array[$id]['dialplan_detail_tag'] = $detail['dialplan_detail_tag'];
-							$array[$id]['dialplan_detail_type'] = $detail['dialplan_detail_type'];
-							$array[$id]['dialplan_detail_data'] = $detail['dialplan_detail_data'];
-							$array[$id]['dialplan_detail_break'] = $detail['dialplan_detail_break'];
-							$array[$id]['dialplan_detail_inline'] = $detail['dialplan_detail_inline'];
-							$array[$id]['dialplan_detail_group'] = $detail['dialplan_detail_group'];
-							$array[$id]['dialplan_detail_order'] = $detail['dialplan_detail_order'];
-							$array[$id]['dialplan_detail_enabled'] = $detail['dialplan_detail_enabled'];
-							$id++;
+							if ($detail['dialplan_detail_enabled'] == 'true') {
+								$array[$id]['domain_uuid'] = $row['domain_uuid'];
+								$array[$id]['dialplan_uuid'] = $row['dialplan_uuid'];
+								$array[$id]['app_uuid'] = $row['app_uuid'];
+								$array[$id]['dialplan_context'] = $row['dialplan_context'];
+								$array[$id]['dialplan_name'] = $row['dialplan_name'];
+								$array[$id]['dialplan_number'] = $row['dialplan_number'];
+								$array[$id]['dialplan_continue'] = $row['dialplan_continue'];
+								$array[$id]['dialplan_order'] = $row['dialplan_order'];
+								$array[$id]['dialplan_enabled'] = $row['dialplan_enabled'];
+								$array[$id]['dialplan_description'] = $row['dialplan_description'];
+								$array[$id]['dialplan_detail_uuid'] = $detail['dialplan_detail_uuid'];
+								$array[$id]['dialplan_detail_tag'] = $detail['dialplan_detail_tag'];
+								$array[$id]['dialplan_detail_type'] = $detail['dialplan_detail_type'];
+								$array[$id]['dialplan_detail_data'] = $detail['dialplan_detail_data'];
+								$array[$id]['dialplan_detail_break'] = $detail['dialplan_detail_break'];
+								$array[$id]['dialplan_detail_inline'] = $detail['dialplan_detail_inline'];
+								$array[$id]['dialplan_detail_group'] = $detail['dialplan_detail_group'];
+								$array[$id]['dialplan_detail_order'] = $detail['dialplan_detail_order'];
+								$array[$id]['dialplan_detail_enabled'] = $detail['dialplan_detail_enabled'];
+								$id++;
+							}
 						}
 					}
 				}
+				//sort the dataset by group and then by order before returning the values
+				$dialplan_detail_group = array_column($array, 'dialplan_detail_group');
+				$dialplan_detail_order = array_column($array, 'dialplan_detail_order');
+				array_multisort($dialplan_detail_group, SORT_ASC, $dialplan_detail_order, SORT_ASC, $array);
 				$this->dialplan_details = $array;
 			}
 
@@ -670,8 +679,7 @@
 							$sql .= "order by ";
 							$sql .= "dialplan_context asc, ";
 							$sql .= "dialplan_order asc ";
-							$database = new database;
-							$results = $database->select($sql, $parameters ?? null, 'all');
+							$results = $this->database->select($sql, $parameters ?? null, 'all');
 							if (!empty($results)) {
 								foreach ($results as $row) {
 									$dialplans[$row["dialplan_uuid"]] = $row["dialplan_xml"];
@@ -687,8 +695,7 @@
 						//get the domains
 							if (!isset($domains)) {
 								$sql = "select * from v_domains ";
-								$database = new database;
-								$result = $database->select($sql, null, 'all');
+								$result = $this->database->select($sql, null, 'all');
 								if (!empty($result)) {
 									foreach($result as $row) {
 										$domains[$row['domain_uuid']] = $row['domain_name'];
@@ -735,8 +742,7 @@
 								$sql .= "when 'anti-action' then 3 \n";
 								$sql .= "else 100 end, \n";
 								$sql .= "s.dialplan_detail_order asc \n";
-								$database = new database;
-								$this->dialplan_details = $database->select($sql, $parameters ?? null, 'all');
+								$this->dialplan_details = $this->database->select($sql, $parameters ?? null, 'all');
 								unset($sql, $parameters);
 
 								//return if no records were found to update
@@ -825,8 +831,8 @@
 													$xml .= "</extension>\n";
 												}
 
-												//add to the dialplanss
-												$dialplans[$previous_dialplan_uuid] = $xml;
+												//add to the dialplans
+												$dialplans[$previous_dialplan_uuid] = $xml ?? '';
 												$xml = '';
 
 												$dialplan_tag_status = "closed";
@@ -1038,7 +1044,7 @@
 
 						//set the xml array and then concatenate the array to a string
 							//$xml .= "		</context>\n";
-							///$xml .= "	</section>\n";
+							//$xml .= "	</section>\n";
 							//$xml .= "</document>\n";
 
 					} //end if source = details
@@ -1063,10 +1069,9 @@
 									$p->add('dialplan_edit', 'temp');
 
 									//execute update
-									$database = new database;
-									$database->app_name = 'dialplans';
-									$database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
-									$database->save($array);
+									$this->database->app_name = 'dialplans';
+									$this->database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
+									$this->database->save($array);
 									unset($array);
 
 									//revoke temporary permissions
@@ -1082,7 +1087,7 @@
 
 				//get the array of xml files and then process thm
 					$xml_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/resources/switch/conf/dialplan/*.xml");
-					foreach ($xml_list as &$xml_file) {
+					foreach ($xml_list as $xml_file) {
 						//get and parse the xml
 							$xml_string = file_get_contents($xml_file);
 						//get the order number prefix from the file name
@@ -1103,9 +1108,8 @@
 					$sql[] = "update v_dialplans set dialplan_order = '870' where dialplan_order = '980' and dialplan_name = 'cidlookup' ";
 					$sql[] = "update v_dialplans set dialplan_order = '880' where dialplan_order = '990' and dialplan_name = 'call_screen' ";
 					$sql[] = "update v_dialplans set dialplan_order = '890' where dialplan_order = '999' and dialplan_name = 'local_extension' ";
-					$database = new database;
 					foreach ($sql as $query) {
-						$database->execute($query);
+						$this->database->execute($query);
 					}
 					unset($sql, $query);
 
@@ -1174,8 +1178,7 @@
 											$sql = "select dialplan_context from v_dialplans ";
 											$sql .= "where dialplan_uuid = :dialplan_uuid ";
 											$parameters['dialplan_uuid'] = $record['uuid'];
-											$database = new database;
-											$dialplan_contexts[] = $database->select($sql, $parameters ?? null, 'column');
+											$dialplan_contexts[] = $this->database->select($sql, $parameters ?? null, 'column');
 											unset($sql, $parameters);
 
 									}
@@ -1190,10 +1193,9 @@
 										$p->add('dialplan_detail_delete', 'temp');
 
 									//execute delete
-										$database = new database;
-										$database->app_name = $this->app_name;
-										$database->app_uuid = $this->app_uuid;
-										$database->delete($array);
+										$this->database->app_name = $this->app_name;
+										$this->database->app_uuid = $this->app_uuid;
+										$this->database->delete($array);
 
 									//revoke temporary permissions
 										$p->delete('dialplan_delete', 'temp');
@@ -1278,8 +1280,7 @@
 											$sql = "select dialplan_context from v_dialplans ";
 											$sql .= "where dialplan_uuid = :dialplan_uuid ";
 											$parameters['dialplan_uuid'] = $this->dialplan_uuid;
-											$database = new database;
-											$dialplan_contexts[] = $database->select($sql, $parameters ?? null, 'column');
+											$dialplan_contexts[] = $this->database->select($sql, $parameters ?? null, 'column');
 											unset($sql, $parameters);
 
 									}
@@ -1293,10 +1294,9 @@
 										$p->add('dialplan_detail_delete', 'temp');
 
 									//execute delete
-										$database = new database;
-										$database->app_name = $this->app_name;
-										$database->app_uuid = $this->app_uuid;
-										$database->delete($array);
+										$this->database->app_name = $this->app_name;
+										$this->database->app_uuid = $this->app_uuid;
+										$this->database->delete($array);
 
 									//revoke temporary permissions
 										$p->delete('dialplan_detail_delete', 'temp');
@@ -1373,8 +1373,7 @@
 										$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
 										$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 									}
-									$database = new database;
-									$rows = $database->select($sql, $parameters ?? null, 'all');
+									$rows = $this->database->select($sql, $parameters ?? null, 'all');
 									if (!empty($rows)) {
 										foreach ($rows as $row) {
 											$states[$row['uuid']] = $row['toggle'];
@@ -1400,10 +1399,9 @@
 										$p->add('dialplan_edit', 'temp');
 
 									//save the array
-										$database = new database;
-										$database->app_name = $this->app_name;
-										$database->app_uuid = $this->app_uuid;
-										$database->save($array);
+										$this->database->app_name = $this->app_name;
+										$this->database->app_uuid = $this->app_uuid;
+										$this->database->save($array);
 										unset($array);
 
 									//revoke temporary permissions
@@ -1488,8 +1486,7 @@
 									//primary table
 										$sql = "select * from v_".$this->table." ";
 										$sql .= "where ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
-										$database = new database;
-										$rows = $database->select($sql, $parameters ?? null, 'all');
+										$rows = $this->database->select($sql, $parameters ?? null, 'all');
 										if (!empty($rows)) {
 											$y = 0;
 											foreach ($rows as $x => $row) {
@@ -1520,8 +1517,7 @@
 												//details sub table
 													$sql_2 = "select * from v_dialplan_details where dialplan_uuid = :dialplan_uuid";
 													$parameters_2['dialplan_uuid'] = $row['dialplan_uuid'];
-													$database = new database;
-													$rows_2 = $database->select($sql_2, $parameters_2 ?? null, 'all');
+													$rows_2 = $this->database->select($sql_2, $parameters_2 ?? null, 'all');
 													if (!empty($rows_2)) {
 														foreach ($rows_2 as $row_2) {
 
@@ -1554,11 +1550,10 @@
 										$p->add('dialplan_detail_add', 'temp');
 
 									//save the array
-										$database = new database;
-										$database->app_name = $this->app_name;
-										$database->app_uuid = $this->app_uuid;
-										$database->save($array);
-										//view_array($database->message);
+										$this->database->app_name = $this->app_name;
+										$this->database->app_uuid = $this->app_uuid;
+										$this->database->save($array);
+										//view_array($this->database->message);
 										unset($array);
 
 									//revoke temporary permissions

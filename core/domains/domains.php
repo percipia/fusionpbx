@@ -29,6 +29,9 @@
 	require_once "resources/check_auth.php";
 	require_once "resources/paging.php";
 
+//connect to the database
+	$database = new database;
+
 //redirect admin to app instead
 	if (file_exists($_SERVER["PROJECT_ROOT"]."/app/domains/app_config.php") && !permission_exists('domain_all') && !is_cli()) {
 		header("Location: ".PROJECT_PATH."/app/domains/domains.php");
@@ -47,7 +50,6 @@
 			//get the domain details
 				$sql = "select * from v_domains ";
 				$sql .= "order by domain_name asc ";
-				$database = new database;
 				$domains = $database->select($sql, null, 'all');
 				if (!empty($domains)) {
 					foreach($domains as $row) {
@@ -153,7 +155,6 @@
 	if (!empty($sql_search)) {
 		$sql .= "where ".$sql_search;
 	}
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //prepare to page the results
@@ -172,7 +173,6 @@
 	}
 	$sql .= order_by($order_by, $order, 'domain_name', 'asc');
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$domains = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -186,7 +186,7 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-domains']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-domains']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	if (permission_exists('domain_add')) {
 		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'id'=>'btn_add','link'=>'domain_edit.php']);
@@ -223,6 +223,7 @@
 	echo "<input type='hidden' id='action' name='action' value=''>\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('domain_edit') || permission_exists('domain_delete')) {
@@ -297,6 +298,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";

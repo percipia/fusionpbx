@@ -5,13 +5,16 @@
 	$apps[$x]['menu'][$y]['title']['en-gb'] = "Time Conditions";
 	$apps[$x]['menu'][$y]['title']['ar-eg'] = "الظروف الزمنية";
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Zeitschaltung";
+	$apps[$x]['menu'][$y]['title']['de-ch'] = "Zeitschaltung";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Zeitschaltung";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Συνθήκες χρόνου";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Condic. de Tiempo";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Condiciones del tiempo";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Heures";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Conditions Temporelles";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "תנאי זמן";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Condizioni Temporali";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "დროის პირობები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Tijdcondities";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Warunki czasowe";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Condições temporarias";
@@ -20,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Условия по времени";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Tidsstyrning";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Часові умови";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Zaman Koşulları";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "时间条件";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "時間条件";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "시간 조건";

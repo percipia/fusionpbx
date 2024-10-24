@@ -219,7 +219,12 @@
 		$sql .= "where true ";
 	}
 	else {
-		$sql .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
+		$sql .= "where (";
+		$sql .= "	domain_uuid = :domain_uuid ";
+		if (permission_exists('dialplan_global')) {
+			$sql .= "	or domain_uuid is null ";
+		}
+		$sql .= ") ";
 		$parameters['domain_uuid'] = $domain_uuid;
 	}
 	if (!is_uuid($app_uuid)) {
@@ -244,12 +249,12 @@
 	}
 	if (!empty($search)) {
 		$sql .= "and (";
-		$sql .= " 	lower(dialplan_context) like :search ";
-		$sql .= " 	or lower(dialplan_name) like :search ";
-		$sql .= " 	or lower(dialplan_number) like :search ";
-		$sql .= " 	or lower(dialplan_continue) like :search ";
-		$sql .= " 	or lower(dialplan_enabled) like :search ";
-		$sql .= " 	or lower(dialplan_description) like :search ";
+		$sql .= "	lower(dialplan_context) like :search ";
+		$sql .= "	or lower(dialplan_name) like :search ";
+		$sql .= "	or lower(dialplan_number) like :search ";
+		$sql .= "	or lower(dialplan_continue) like :search ";
+		$sql .= "	or lower(dialplan_enabled) like :search ";
+		$sql .= "	or lower(dialplan_description) like :search ";
 		if (is_numeric($search)) {
 			$sql .= " 	or dialplan_order = :search_numeric ";
 			$parameters['search_numeric'] = $search;
@@ -354,7 +359,7 @@
 		case "4b821450-926b-175a-af93-a03c441818b1": echo $text['header-time_conditions']; break;
 		default: echo $text['header-dialplan_manager'];
 	}
-	echo " (".$num_rows.")</b>";
+	echo "</b><div class='count'>".number_format($num_rows)."</div>";
 	echo 	"</div>\n";
 	echo "	<div class='actions'>\n";
 	if ($app_uuid == "c03b422e-13a8-bd1b-e42b-b6b9b4d27ce4" && permission_exists('inbound_route_add')) { $button_add_url = PROJECT_PATH."/app/dialplan_inbound/dialplan_inbound_add.php"; }
@@ -489,9 +494,10 @@
 		case "8c914ec3-9fc0-8ab5-4cda-6c9288bdc9a3": echo $text['description-outbound_routes']; break;
 		case "16589224-c876-aeb3-f59f-523a1c0801f7": echo $text['description-queues']; break;
 		case "4b821450-926b-175a-af93-a03c441818b1": echo $text['description-time_conditions']; break;
-		default: echo $text['description-dialplan_manager'.(if_group("superadmin") ? '-superadmin' : null)];
+		default: echo $text['description-dialplan_manager'.(permission_exists('dialplan_edit') ? '-superadmin' : '')];
 	}
 	echo "\n<br /><br />\n";
+
 
 	echo "<form id='form_list' method='post'>\n";
 	echo "<input type='hidden' id='app_uuid' name='app_uuid' value='".escape($app_uuid)."'>\n";
@@ -501,6 +507,7 @@
 	echo "<input type='hidden' name='order_by' value=\"".escape($order_by)."\">\n";
 	echo "<input type='hidden' name='order' value=\"".escape($order)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (
@@ -629,6 +636,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 

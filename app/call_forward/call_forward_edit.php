@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2022
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -164,11 +164,6 @@
 				require_once "resources/footer.php";
 				return;
 			}
-
-		//include the classes
-			include "resources/classes/call_forward.php";
-			include "resources/classes/follow_me.php";
-			include "resources/classes/do_not_disturb.php";
 
 		//call forward config
 			if (permission_exists('call_forward')) {
@@ -399,9 +394,7 @@
 					$cmd .= "answer-state: confirmed\n";
 
 					//send the event
-					$fp = event_socket_create();
-					$switch_result = event_socket_request($fp, $cmd);
-					unset($fp);
+					$switch_result = event_socket::command($cmd);
 				}
 				else {
 					$presence = new presence;
@@ -421,9 +414,7 @@
 						$cmd .= "answer-state: terminated\n";
 
 						//send the event
-						$fp = event_socket_create();
-						$switch_result = event_socket_request($fp, $cmd);
-						unset($fp);
+						$switch_result = event_socket::command($cmd);
 					}
 				}
 			}
@@ -477,7 +468,7 @@
 			$result = $database->select($sql, $parameters, 'all');
 
 			unset($destinations);
-			foreach ($result as $x => &$row) {
+			foreach ($result as $x => $row) {
 				$destinations[$x]['uuid'] = $row["follow_me_destination_uuid"];
 				$destinations[$x]['destination'] = $row["follow_me_destination"];
 				$destinations[$x]['delay'] = $row["follow_me_delay"];
@@ -519,7 +510,7 @@
 		echo "<script type=\"text/javascript\">\n";
 		echo "\$(function() {\n";
 		echo "	var extensions = [\n";
-		foreach ($extensions as &$row) {
+		foreach ($extensions as $row) {
 			if (empty($number_alias)) {
 				echo "		\"".escape($row["extension"])."\",\n";
 			}
@@ -548,7 +539,7 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-call_forward']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>'call_forward.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','onclick'=>'history.back();']);
 	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
@@ -557,6 +548,7 @@
 	echo $text['description']." <strong>".escape($extension)."</strong>\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -748,6 +740,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br /><br />";
 
 	if (!empty($action) && $action == "update") {

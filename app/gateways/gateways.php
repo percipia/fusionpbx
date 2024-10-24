@@ -70,15 +70,15 @@
 					$obj->delete($gateways);
 				}
 			case 'start':
-				$fp = event_socket_create();
-				if ($fp && permission_exists('gateway_edit')) {
+				$esl = event_socket::create();
+				if ($esl && permission_exists('gateway_edit')) {
 					$obj = new gateways;
 					$obj->start($gateways);
 				}
 				break;
 			case 'stop':
-				$fp = event_socket_create();
-				if ($fp && permission_exists('gateway_edit')) {
+				$esl = event_socket::create();
+				if ($esl && permission_exists('gateway_edit')) {
 					$obj = new gateways;
 					$obj->stop($gateways);
 				}
@@ -90,19 +90,19 @@
 	}
 
 //connect to event socket
-	$fp = event_socket_create();
+	$esl = event_socket::create();
 
 //gateway status function
 	if (!function_exists('switch_gateway_status')) {
 		function switch_gateway_status($gateway_uuid, $result_type = 'xml') {
-			global $fp;
-			if ($fp) {
-				$fp = event_socket_create();
-				$cmd = 'api sofia xmlstatus gateway '.$gateway_uuid;
-				$response = trim(event_socket_request($fp, $cmd));
+			global $esl;
+			if ($esl->is_connected()) {
+				$esl = event_socket::create();
+				$cmd = 'sofia xmlstatus gateway '.$gateway_uuid;
+				$response = trim(event_socket::api($cmd));
 				if ($response == "Invalid Gateway!") {
-					$cmd = 'api sofia xmlstatus gateway '.strtoupper($gateway_uuid);
-					$response = trim(event_socket_request($fp, $cmd));
+					$cmd = 'sofia xmlstatus gateway '.strtoupper($gateway_uuid);
+					$response = trim(event_socket::api($cmd));
 				}
 				return $response;
 			}
@@ -193,7 +193,7 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-gateways']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-gateways']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	if (permission_exists('gateway_edit') && $gateways) {
 		echo button::create(['type'=>'button','label'=>$text['button-stop'],'icon'=>$_SESSION['theme']['button_icon_stop'],'onclick'=>"modal_open('modal-stop','btn_stop');"]);
@@ -253,6 +253,7 @@
 	echo "<input type='hidden' id='action' name='action' value=''>\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('gateway_add') || permission_exists('gateway_edit') || permission_exists('gateway_delete')) {
@@ -267,7 +268,7 @@
 	echo "<th class='hide-sm-dn'>".$text['label-proxy']."</th>\n";
 	echo th_order_by('context', $text['label-context'], $order_by, $order);
 	echo th_order_by('register', $text['label-register'], $order_by, $order);
-	if ($fp) {
+	if ($esl->is_connected()) {
 		echo "<th class='hide-sm-dn'>".$text['label-status']."</th>\n";
 		if (permission_exists('gateway_edit')) {
 			echo "<th class='center'>".$text['label-action']."</th>\n";
@@ -316,7 +317,7 @@
 			echo "	<td>".escape($row["proxy"])."</td>\n";
 			echo "	<td>".escape($row["context"])."</td>\n";
 			echo "	<td>".ucwords(escape($row["register"]))."</td>\n";
-			if ($fp) {
+			if ($esl->is_connected()) {
 				if ($row["enabled"] == "true") {
 					$response = switch_gateway_status($row["gateway_uuid"]);
 					if ($response == "Invalid Gateway!") {
@@ -378,7 +379,8 @@
 	unset($gateways);
 
 	echo "</table>\n";
-	echo "<br />\n";
+	echo "</div>\n";
+	echo "<br /><br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";

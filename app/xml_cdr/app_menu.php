@@ -5,13 +5,16 @@
 	$apps[$x]['menu'][$y]['title']['en-gb'] = "Call Detail Records";
 	$apps[$x]['menu'][$y]['title']['ar-eg'] = "سجلات تفاصيل المكالمات";
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Meine Gespräche";
+	$apps[$x]['menu'][$y]['title']['de-ch'] = "Meine Gespräche";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Meine Gespräche";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Αρχεία λεπτομερειών κλήσεων";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Registro de detalle de llamada";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Call Detail Records";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Call Detail Records";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Historiques Appels";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "קרא רשומות מפורטות";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Dettaglio Chiamate";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ზარის დეტალები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Gespreks data (CDR)";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Wykaz rozmów";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Detalhes das gravações de voz";
@@ -20,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Детализация вызовов";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Detaljerad Samtalsinformation";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Деталізація дзвінків";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Çağrı Detay Kayıtları";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "通话详情记录";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "通話詳細記録";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "통화 내역 기록";
@@ -44,6 +48,7 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Statistiques CDR";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "CDR סטטיסטיקות";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Statistiche Chiamate";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "CDR სტატისტიკა";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Gespreks statistiek";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Statystyki wykazu rozmów";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Estatisticas do CDR";
@@ -75,6 +80,7 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Résumé de l'Extension";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "סיכום שלוחות";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Riassunto Interni";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "გაფართოების მიმოხილვა";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Toestel samenvatting";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Podsumowanie numerów wewnętrznych";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Extensão do sumário";

@@ -26,6 +26,16 @@
 
 if ($domains_processed == 1) {
 
+	//add the domain_name as the context
+		$sql = "UPDATE v_call_center_queues as c ";
+		$sql .= "SET queue_context = ( ";
+		$sql .= "	SELECT domain_name FROM v_domains as d ";
+		$sql .= "	WHERE d.domain_uuid = c.domain_uuid ";
+		$sql .= ") ";
+		$sql .= "WHERE queue_context is null; ";
+		$database->execute($sql);
+		unset($sql);
+
 	//list the missing call center queue and agent uuids
 		$sql = "select t.call_center_tier_uuid, t.call_center_queue_uuid, t.call_center_agent_uuid, t.queue_name, t.agent_name, d.domain_name, ";
 		$sql .= "(select call_center_queue_uuid from v_call_center_queues where replace(queue_name, ' ', '-') = t.queue_name and domain_uuid = t.domain_uuid) as queue_uuid, ";
@@ -33,10 +43,9 @@ if ($domains_processed == 1) {
 		$sql .= "from v_call_center_tiers as t, v_domains as d ";
 		$sql .= "where t.domain_uuid = d.domain_uuid ";
 		$sql .= "and (t.call_center_queue_uuid is null or t.call_center_agent_uuid is null) ";
-		$database = new database;
 		$tiers = $database->select($sql, null, 'all');
 		if (!empty($tiers)) {
-			foreach ($tiers as $index => &$row) {
+			foreach ($tiers as $index => $row) {
 				if ($row['call_center_queue_uuid'] == null && $row['queue_uuid'] != null) {
 					$array['call_center_tiers'][$index]['call_center_queue_uuid'] = $row['queue_uuid'];
 				}
@@ -52,7 +61,6 @@ if ($domains_processed == 1) {
 				$p = new permissions;
 				$p->add('call_center_tier_edit', 'temp');
 
-				$database = new database;
 				$database->app_name = 'call_centers';
 				$database->app_uuid = '95788e50-9500-079e-2807-fd530b0ea370';
 				$database->save($array, false);
@@ -72,7 +80,6 @@ if ($domains_processed == 1) {
 		$sql .= "from v_call_center_queues as q, v_dialplans as dp, v_domains as d ";
 		$sql .= "where q.domain_uuid = d.domain_uuid ";
 		$sql .= "and (q.dialplan_uuid = dp.dialplan_uuid or q.dialplan_uuid is null) ";
-		$database = new database;
 		$call_center_queues = $database->select($sql, null, 'all');
 		$id = 0;
 		if (!empty($call_center_queues)) {
@@ -166,7 +173,6 @@ if ($domains_processed == 1) {
 				$p->add("dialplan_edit", "temp");
 
 			//save to the data
-				$database = new database;
 				$database->app_name = 'call_centers';
 				$database->app_uuid = '95788e50-9500-079e-2807-fd530b0ea370';
 				$database->save($array, false);

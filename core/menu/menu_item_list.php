@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -36,6 +36,9 @@
 		echo "access denied";
 		exit;
 	}
+
+//initialize the database
+	$database = new database;
 
 //get the http post data
 	if (!empty($_POST['menu_items'])) {
@@ -76,9 +79,9 @@
 	$tmp_menu_item_order = 0;
 
 //add the build db child menu list
-	function build_db_child_menu_list ($db, $menu_item_level, $menu_item_uuid) {
+	function build_db_child_menu_list ($database, $menu_item_level, $menu_item_uuid) {
 		global $menu_uuid, $list_row_edit_button, $tmp_menu_item_order, $v_link_label_edit, $v_link_label_delete, $page, $text, $x;
-	
+
 		//check for sub menus
 		$menu_item_level = $menu_item_level+1;
 		$sql = "select * from v_menu_items ";
@@ -87,7 +90,6 @@
 		$sql .= "order by menu_item_title, menu_item_order asc ";
 		$parameters['menu_uuid'] = $menu_uuid;
 		$parameters['menu_item_parent_uuid'] = $menu_item_uuid;
-		$database = new database;
 		$result2 = $database->select($sql, $parameters, 'all');
 		unset($sql, $parameters);
 		if (!empty($result2) && sizeof($result2) != 0) {
@@ -101,6 +103,7 @@
 				$menu_item_order = $row2['menu_item_order'];
 				$menu_item_title = $row2['menu_item_title'];
 				$menu_item_link = $row2['menu_item_link'];
+				$menu_item_icon = $row2['menu_item_icon'];
 
 				//get the groups that have been assigned to the menu
 				$sql = "select ";
@@ -117,13 +120,12 @@
 				$sql .= "	g.group_name asc ";
 				$parameters['menu_uuid'] = $menu_uuid;
 				$parameters['menu_item_uuid'] = $menu_item_uuid;
-				$database = new database;
 				$sub_result = $database->select($sql, $parameters, 'all');
 				unset($sql, $parameters, $group_array);
 
 				$group_list = '';
 				if (!empty($sub_result) && sizeof($sub_result) != 0) {
-					foreach ($sub_result as &$sub_row) {
+					foreach ($sub_result as $sub_row) {
 						$group_array[] = $sub_row["group_name"].((!empty($sub_row['group_domain_uuid'])) ? "@".$_SESSION['domains'][$sub_row['group_domain_uuid']]['domain_name'] : null);
 					}
 					$group_list = !empty($group_array) ? implode(', ', $group_array) : '';
@@ -146,6 +148,9 @@
 						break;
 				}
 
+				//format icon
+				$menu_item_icon = !empty($menu_item_icon) ? "<i class='".$menu_item_icon."' style='margin-left: 7px; margin-top: 2px; opacity: 0.4;'></i>" : null;
+
 				//display the content of the list
 				if (permission_exists('menu_item_edit')) {
 					$list_row_url = 'menu_item_edit.php?id='.urlencode($menu_uuid)."&menu_item_uuid=".urlencode($menu_item_uuid)."&menu_item_parent_uuid=".urlencode($row2['menu_item_parent_uuid']);
@@ -159,10 +164,10 @@
 				}
 				echo "<td class='no-wrap".($menu_item_category != 'internal' ? "no-link" : null)."' style='padding-left: ".($menu_item_level * 25)."px;'>\n";
 				if (permission_exists('menu_item_edit')) {
-					echo "	<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($menu_item_title)."</a>\n";
+					echo "	<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($menu_item_title)."</a>".$menu_item_icon."\n";
 				}
 				else {
-					echo "	".escape($menu_item_title);
+					echo "	".escape($menu_item_title).$menu_item_icon;
 				}
 				echo "</td>\n";
 				echo "<td class='no-wrap overflow no-link hide-sm-dn'>".$menu_item_link."&nbsp;</td>\n";
@@ -200,7 +205,6 @@
 					$array['menu_items'][0]['menu_uuid'] = $menu_uuid;
 					$array['menu_items'][0]['menu_item_title'] = $row2['menu_item_title'];
 					$array['menu_items'][0]['menu_item_order'] = $tmp_menu_item_order;
-					$database = new database;
 					$database->app_name = 'menu';
 					$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 					$database->save($array);
@@ -210,7 +214,7 @@
 
 				//check for additional sub menus
 				if (!empty($menu_item_uuid)) {
-					build_db_child_menu_list($db, $menu_item_level, $menu_item_uuid);
+					build_db_child_menu_list($database, $menu_item_level, $menu_item_uuid);
 				}
 			}
 			unset($result2, $row2);
@@ -223,7 +227,6 @@
 	$sql .= "and menu_item_parent_uuid is null ";
 	$sql .= order_by($order_by, $order, 'menu_item_order', 'asc');
 	$parameters['menu_uuid'] = $menu_uuid;
-	$database = new database;
 	$result = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -260,6 +263,7 @@
 		echo modal::create(['id'=>'modal-delete','type'=>'delete','actions'=>button::create(['type'=>'button','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','onclick'=>"modal_close(); list_action_set('delete'); list_form_submit('form_list');"])]);
 	}
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "	<tr class='list-header'>";
 	if (permission_exists('menu_item_edit') || permission_exists('menu_item_delete')) {
@@ -286,6 +290,7 @@
 				$menu_item_category = $row['menu_item_category'];
 				$menu_item_title = $row['menu_item_title'];
 				$menu_item_link = $row['menu_item_link'];
+				$menu_item_icon = $row['menu_item_icon'];
 				$menu_item_protected = $row['menu_item_protected'];
 
 			//get the groups that have been assigned to the menu
@@ -303,12 +308,11 @@
 				$sql .= "	g.group_name asc ";
 				$parameters['menu_uuid'] = $menu_uuid;
 				$parameters['menu_item_uuid'] = $menu_item_uuid;
-				$database = new database;
 				$sub_result = $database->select($sql, $parameters, 'all');
 				unset($sql, $group_list);
 
 				if (!empty($sub_result) && sizeof($sub_result) != 0) {
-					foreach ($sub_result as &$sub_row) {
+					foreach ($sub_result as $sub_row) {
 						$group_list[] = $sub_row["group_name"].((!empty($sub_row['group_domain_uuid'])) ? "@".$_SESSION['domains'][$sub_row['group_domain_uuid']]['domain_name'] : null);
 					}
 					$group_list = implode(', ', $group_list);
@@ -331,6 +335,9 @@
 						break;
 				}
 
+			//format icon
+				$menu_item_icon = !empty($menu_item_icon) ? "<i class='".$menu_item_icon."' style='margin-left: 7px; margin-top: 2px; opacity: 0.4;'></i>" : null;
+
 			//display the content of the list
 				if (permission_exists('menu_item_edit')) {
 					$list_row_url = 'menu_item_edit.php?id='.urlencode($menu_uuid)."&menu_item_uuid=".urlencode($menu_item_uuid)."&menu_uuid=".urlencode($menu_uuid);
@@ -344,10 +351,10 @@
 				}
 				echo "<td>\n";
 				if (permission_exists('menu_item_edit')) {
-					echo "	<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($menu_item_title)."</a>\n";
+					echo "	<a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($menu_item_title)."</a>".$menu_item_icon."\n";
 				}
 				else {
-					echo "	".escape($menu_item_title);
+					echo "	".escape($menu_item_title).$menu_item_icon;
 				}
 				echo "</td>\n";
 				echo "<td class='no-wrap overflow no-link hide-sm-dn'>".$menu_item_link."&nbsp;</td>\n";
@@ -385,7 +392,6 @@
 					$array['menu_items'][0]['menu_uuid'] = $menu_uuid;
 					$array['menu_items'][0]['menu_item_title'] = $row['menu_item_title'];
 					$array['menu_items'][0]['menu_item_order'] = $tmp_menu_item_order;
-					//$database = new database;
 					//$database->app_name = 'menu';
 					//$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 					//$database->save($array);
@@ -396,7 +402,7 @@
 			//check for sub menus
 				$menu_item_level = 0;
 				if (is_uuid($menu_item_uuid)) {
-					build_db_child_menu_list($db, $menu_item_level, $menu_item_uuid);
+					build_db_child_menu_list($database, $menu_item_level, $menu_item_uuid);
 				}
 
 		}
@@ -405,6 +411,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
@@ -426,7 +433,7 @@
 	echo "	}\n";
 
 //update number of menu items
-	echo "	document.getElementById('num_rows').innerHTML = '".(!empty($x) ?: 0)."';\n";
+	echo "	document.getElementById('num_rows').innerHTML = '".(!empty($x) ? $x : 0)."';\n";
 
 	echo "</script>\n";
 

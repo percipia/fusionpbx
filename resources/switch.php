@@ -29,29 +29,39 @@
 //includes files
 require_once __DIR__ . "/require.php";
 
+/**
+ * Returns an fp connector from an event socket.
+ * This has been replaced with event_socket::create() method and using the
+ * socket directly is preferred.
+ * @param string $host
+ * @param string $port
+ * @param string $password
+ * @return true Returns true if successful connection and false if there is a failure
+ * @deprecated since version 5.1.11
+ */
 function event_socket_create($host = null, $port = null, $password = null) {
-	$esl = new event_socket;
-	if ($esl->connect($host, $port, $password)) {
-		return $esl->reset_fp();
-	}
-	return false;
+	$esl = event_socket::create($host = null, $port = null, $password = null);
+	return ($esl !== false);
 }
 
+/**
+ * Makes a request on the event socket
+ * @param null $fp No longer used
+ * @param string $cmd Command to use
+ * @return string|false Response of the server or false if failed
+ */
 function event_socket_request($fp, $cmd) {
-	$esl = new event_socket($fp);
-	$result = $esl->request($cmd);
-	$esl->reset_fp();
-	return $result;
+	return event_socket::command($cmd);
 }
 
+/**
+ * Makes a request on the event socket
+ * @param type $fp
+ * @param type $cmd
+ * @return type
+ */
 function event_socket_request_cmd($cmd) {
-	$esl = new event_socket;
-	if (!$esl->connect()) {
-		return false;
-	}
-	$response = $esl->request($cmd);
-	$esl->close();
-	return $response;
+	return event_socket::command($cmd);
 }
 
 function remove_config_from_cache($name) {
@@ -132,7 +142,7 @@ function save_gateway_xml() {
 		$database = new database;
 		$result = $database->select($sql, $parameters, 'all');
 		if (!empty($result)) {
-			foreach ($result as &$row) {
+			foreach ($result as $row) {
 				if ($row['enabled'] != "false") {
 						//set the default profile as external
 							$profile = $row['profile'];
@@ -245,7 +255,7 @@ function save_gateway_xml() {
 }
 
 function save_var_xml() {
-	if (is_array($_SESSION['switch']['conf'])) {
+	if (!empty($_SESSION['switch']['conf']) && is_array($_SESSION['switch']['conf'])) {
 		global $config, $domain_uuid;
 
 		//skip this function if the conf directory is empty
@@ -274,7 +284,7 @@ function save_var_xml() {
 		$prev_var_category = '';
 		$xml = '';
 		if (!empty($variables)) {
-			foreach ($variables as &$row) {
+			foreach ($variables as $row) {
 				if ($row['var_category'] != 'Provision') {
 					if ($prev_var_category != $row['var_category']) {
 						$xml .= "\n<!-- ".$row['var_category']." -->\n";
@@ -349,7 +359,7 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 	$result = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 	if (!empty($result)) {
-		foreach ($result as &$row) {
+		foreach ($result as $row) {
 			$dialplan_uuid = $row["dialplan_uuid"];
 			$dialplan_detail_uuid = $row["dialplan_detail_uuid"];
 			$outbound_routes[$dialplan_uuid][$dialplan_detail_uuid]["dialplan_detail_tag"] = $row["dialplan_detail_tag"];
@@ -361,9 +371,9 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 	
 	if (!empty($outbound_routes)) {
 		$x = 0;
-		foreach ($outbound_routes as &$dialplan) {
+		foreach ($outbound_routes as $dialplan) {
 			$condition_match = [];
-			foreach ($dialplan as &$dialplan_details) {
+			foreach ($dialplan as $dialplan_details) {
 				if (!empty($dialplan_details['dialplan_detail_tag']) && $dialplan_details['dialplan_detail_tag'] == "condition") {
 					if ($dialplan_details['dialplan_detail_type'] == "destination_number") {
 							$pattern = '/'.$dialplan_details['dialplan_detail_data'].'/';
@@ -394,7 +404,7 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 			}
 
 			if (!in_array('false', $condition_match)) {
-				foreach ($dialplan as &$dialplan_details) {
+				foreach ($dialplan as $dialplan_details) {
 					$dialplan_detail_data = $dialplan_details['dialplan_detail_data'] ?? '';
 					if (
 						!empty($dialplan_details['dialplan_detail_tag']) &&
@@ -423,7 +433,7 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 }
 //$destination_number = '1231234';
 //$bridge_array = outbound_route_to_bridge ($domain_uuid, $destination_number);
-//foreach ($bridge_array as &$bridge) {
+//foreach ($bridge_array as $bridge) {
 //	echo "bridge: ".$bridge."<br />";
 //}
 
@@ -551,7 +561,7 @@ if (!function_exists('save_call_center_xml')) {
 
 				//prepare Queue XML string
 					$x=0;
-					foreach ($call_center_queues as &$row) {
+					foreach ($call_center_queues as $row) {
 						$queue_name = $row["queue_name"];
 						$queue_extension = $row["queue_extension"];
 						$queue_strategy = $row["queue_strategy"];
@@ -621,7 +631,7 @@ if (!function_exists('save_call_center_xml')) {
 
 					$x=0;
 					if (!empty($result)) {
-						foreach ($result as &$row) {
+						foreach ($result as $row) {
 							//get the values from the db and set as php variables
 								$agent_name = $row["agent_name"];
 								$agent_type = $row["agent_type"];
@@ -711,7 +721,7 @@ if (!function_exists('save_call_center_xml')) {
 
 					$x=0;
 					if (!empty($result)) {
-						foreach ($result as &$row) {
+						foreach ($result as $row) {
 							$agent_name = $row["agent_name"];
 							$queue_name = $row["queue_name"];
 							$tier_level = $row["tier_level"];
@@ -903,7 +913,7 @@ if (!function_exists('save_sip_profile_xml')) {
 						$result_2 = $database->select($sql, $parameters, 'all');
 						if (!empty($result_2)) {
 							$sip_profile_settings = '';
-							foreach ($result_2 as &$row_2) {
+							foreach ($result_2 as $row_2) {
 								$sip_profile_settings .= "		<param name=\"".$row_2["sip_profile_setting_name"]."\" value=\"".$row_2["sip_profile_setting_value"]."\"/>\n";
 							}
 						}
@@ -981,7 +991,7 @@ if(!function_exists('path_join')) {
 		}
 
 		$prefix = null;
-		foreach($paths as &$path) {
+		foreach ($paths as $path) {
 			if($prefix === null && !empty($path)) {
 				if(substr($path, 0, 1) == '/') $prefix = '/';
 				else $prefix = '';
@@ -1069,6 +1079,58 @@ if(!function_exists('win_find_php')) {
 		$php_bin = win_find_php_by_phprc($bin_name);
 		if($php_bin) return $php_bin;
 		return false;
+	}
+}
+
+/**
+ * Forces a port to close using the debugger tool.
+ * Linux OSes do not have an easy mechanism for closing a port already in use. This uses a debugger tool
+ * to connect to the running freeswitch process and close the port internally using debug symbols. This
+ * function requires freeswitch to be compiled with the --enable-debug flag.
+ * @param string $port
+ * @return void
+ */
+function force_close_port(string $port): void {
+	//ensure we can execute cli tools needed
+	if (PHP_OS !== 'Linux' || PHP_OS !== 'FreeBSD') {
+		return;
+	}
+
+	//get the pid of freeswitch
+	$pid = exec('pidof freeswitch');
+
+	//ensure it is numeric before proceeding
+	if (!is_numeric($pid)) {
+		return;
+	}
+
+	//get a list of the current connections owned by freeswitch
+	$connections = "";
+	exec("lsof -np {$pid} | grep TCP", $connections);
+	exec("lsof -np {$pid} | grep UDP", $connections);
+
+	//iterate over all the current ports
+	foreach ($connections as $conn) {
+		//seperate in to fields removing empty ones
+		$fields = array_values(array_filter(explode(" ", $conn), function ($value) {
+			if (!empty($value)) return true;
+			else return false;
+		}));
+		//remove letter from id
+		$id = substr($fields[3], 0, strlen($fields[3]) - 1);
+		//get the address and port parts
+		$elements = explode(":", $fields[8]);
+		//get the port from last element as IPv6 can have more than one ':'
+		$p = array_pop($elements);
+		//check for lsof renaming port 5060 to sip
+		if (!is_numeric($p) && $p == "sip") {
+			$p = "5060";
+		}
+		//check for matching port
+		if ($p == $port) {
+			//execute debugger to close the open connection
+			exec("gdb -p {$pid} -batch 'call close({$id})' -batch 'quit'");
+		}
 	}
 }
 

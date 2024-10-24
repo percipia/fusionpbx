@@ -14,6 +14,7 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Ruisseaux";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "זרמים";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Flussi";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ნაკადები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Stromen";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Strumienie";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Fluxos";
@@ -22,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Поток";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Strömmar";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Потоки";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Canlı Yayınlar";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "溪流";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "ストリーム";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "스트림";

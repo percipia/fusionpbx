@@ -1,5 +1,6 @@
+--
 --	Part of FusionPBX
---	Copyright (C) 2013 - 2020 Mark J Crane <markjcrane@fusionpbx.com>
+--	Copyright (C) 2013 - 2024 Mark J Crane <markjcrane@fusionpbx.com>
 --	All rights reserved.
 --
 --	Redistribution and use in source and binary forms, with or without
@@ -30,9 +31,8 @@
 
 --define a function to send email
 	function send_email(id, uuid)
-		local db = dbh or Database.new('system')
-		local settings = Settings.new(db, domain_name, domain_uuid)
-		local transcribe_enabled = settings:get('voicemail', 'transcribe_enabled', 'boolean');
+		local db = dbh or Database.new('system');
+		local settings = Settings.new(db, domain_name, domain_uuid);
 		local http_protocol = settings:get('domain', 'http_protocol', 'text') or "https";
 		local email_queue_enabled = "true";
 
@@ -52,15 +52,19 @@
 				voicemail_transcription_enabled = row["voicemail_transcription_enabled"];
 				voicemail_file = row["voicemail_file"];
 				voicemail_local_after_email = row["voicemail_local_after_email"];
+				voicemail_local_after_forward = row["voicemail_local_after_forward"];
 				voicemail_description = row["voicemail_description"];
 			end);
 
 		--set default values
+			if (voicemail_file == nil) then
+				voicemail_file = "listen";
+			end
 			if (voicemail_local_after_email == nil) then
 				voicemail_local_after_email = "true";
 			end
-			if (voicemail_file == nil) then
-				voicemail_file = "listen";
+			if (voicemail_local_after_forward == nil) then
+				voicemail_local_after_forward = "true";
 			end
 
 		--require the email address to send the email
@@ -120,7 +124,7 @@
 					end
 
 				--get voicemail message details
-					local sql = [[SELECT to_char(timezone(:time_zone, to_timestamp(created_epoch)), 'Day DD Mon YYYY HH:MI:SS PM') as message_date, * 
+					local sql = [[SELECT to_char(timezone(:time_zone, to_timestamp(created_epoch)), 'Day DD Mon YYYY HH:MI:SS PM') as message_date, *
 						FROM v_voicemail_messages
 						WHERE domain_uuid = :domain_uuid
 						AND voicemail_message_uuid = :uuid]]
@@ -140,16 +144,25 @@
 							--message_priority = row["message_priority"];
 						--get the recordings from the database
 							if (storage_type == "base64") then
-								--set the voicemail message path
+								--set the voicemail intro and message paths
 									message_location = voicemail_dir.."/"..id.."/msg_"..uuid.."."..vm_message_ext;
+									intro_location = voicemail_dir.."/"..id.."/intro_"..uuid.."."..vm_message_ext;
 
-								--save the recording to the file system
+								--save the recordings to the file system
 									if (string.len(row["message_base64"]) > 32) then
+										--save the value to a variable
+											voicemail_base64 = row["message_base64"];
+
 										--include the file io
 											local file = require "resources.functions.file"
 
-										--write decoded string to file
+										--write decoded message string to file
 											file.write_base64(message_location, row["message_base64"]);
+
+										--write decoded intro string to file, if any
+											if (string.len(row["message_intro_base64"]) > 32) then
+												file.write_base64(intro_location, row["message_intro_base64"]);
+											end
 									end
 							end
 					end);
@@ -175,7 +188,7 @@
 					sql = sql .. "WHERE (domain_uuid = :domain_uuid or domain_uuid is null) ";
 					sql = sql .. "AND template_language = :template_language ";
 					sql = sql .. "AND template_category = 'voicemail' "
-					if (transcribe_enabled == 'true' and voicemail_transcription_enabled == 'true') then
+					if (voicemail_transcription_enabled == 'true') then
 						sql = sql .. "AND template_subcategory = 'transcription' "
 					else
 						sql = sql .. "AND template_subcategory = 'default' "
@@ -194,13 +207,21 @@
 				--get the link_address
 					link_address = http_protocol.."://"..domain_name..project_path;
 
+				--set proper delete status
+					local local_after_email = '';
+					if (voicemail_local_after_email == "false" or voicemail_local_after_forward == "false") then
+						local_after_email = "false";
+					else
+						local_after_email = "true";
+					end
+
 				--prepare the headers
 					local headers = {
 						["X-FusionPBX-Domain-UUID"] = domain_uuid;
 						["X-FusionPBX-Domain-Name"] = domain_name;
-						["X-FusionPBX-Call-UUID"]   = uuid;
-						["X-FusionPBX-Email-Type"]  = 'voicemail';
-						["X-FusionPBX-local_after_email"]  = voicemail_local_after_email;
+						["X-FusionPBX-Call-UUID"] = uuid;
+						["X-FusionPBX-Email-Type"] = 'voicemail';
+						["X-FusionPBX-local_after_email"] = local_after_email;
 					}
 
 				--prepare the voicemail_name_formatted
@@ -216,6 +237,13 @@
 
 				--prepare file
 					file = voicemail_dir.."/"..id.."/msg_"..uuid.."."..vm_message_ext;
+
+				--combine intro, if exists, with message for emailing (only)
+					intro = voicemail_dir.."/"..id.."/intro_"..uuid.."."..vm_message_ext;
+					combined = voicemail_dir.."/"..id.."/intro_msg_"..uuid.."."..vm_message_ext;
+					if (file_exists(intro) and file_exists(file)) then
+						os.execute("sox "..intro.." "..file.." "..combined);
+					end
 
 				--prepare the subject
 					if (subject ~= nil) then
@@ -260,7 +288,7 @@
 						elseif (voicemail_file == "link") then
 							body = body:gsub("${message}", "<a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=download&id="..id.."&voicemail_uuid="..db_voicemail_uuid.."&uuid="..uuid.."&t=bin'>"..text['label-download'].."</a>");
 						else
-							body = body:gsub("${message}", "<a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=autoplay&id="..db_voicemail_uuid.."&uuid="..uuid.."'>"..text['label-listen'].."</a>");
+							body = body:gsub("${message}", "<a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=autoplay&id="..db_voicemail_uuid.."&uuid="..uuid.."&vm="..id.."'>"..text['label-listen'].."</a>");
 						end
 						--body = body:gsub(" ", "&nbsp;");
 						--body = body:gsub("%s+", "");
@@ -278,23 +306,45 @@
 						elseif (voicemail_file == "link") then
 							body = body .. "<br><a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=download&id="..id.."&voicemail_uuid="..db_voicemail_uuid.."&uuid="..uuid.."&t=bin'>"..text['label-download'].."</a>";
 						else
-							body = body .. "<br><a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=autoplay&id="..db_voicemail_uuid.."&uuid="..uuid.."'>"..text['label-listen'].."</a>";
+							body = body .. "<br><a href='"..link_address.."/app/voicemails/voicemail_messages.php?action=autoplay&id="..db_voicemail_uuid.."&uuid="..uuid.."&vm="..id.."'>"..text['label-listen'].."</a>";
 						end
 						body = body .. '</body></html>';
 					end
 
+				--get the smtp from address and name
+					smtp_from = settings:get('voicemail', 'smtp_from', 'text');
+					smtp_from_name = settings:get('voicemail', 'smtp_from_name', 'text');
+					if (smtp_from == nil or smtp_from == '') then
+						smtp_from = settings:get('email', 'smtp_from', 'text');
+					end
+					if (smtp_from_name == nil or smtp_from_name == '') then
+						smtp_from_name = settings:get('email', 'smtp_from_name', 'text');
+					end
+					if (smtp_from_name and string.len(smtp_from_name) > 0 and smtp_from and string.len(smtp_from) > 2) then
+						smtp_from = smtp_from_name.."<"..smtp_from..">";
+					end
+
+				--send the email with, or without, including the intro
+					if (file_exists(combined)) then
+						voicemail_path = combined
+					else
+						voicemail_path = file
+					end
+
 				--send the email
 					send_mail(headers,
-						nil,
+						smtp_from,
 						voicemail_mail_to,
 						{subject, body},
-						(voicemail_file == "attach") and file
+						(voicemail_file == "attach") and voicemail_path,
+						voicemail_base64
 					);
+
 			end
 
 		--whether to keep the voicemail message and details local after email
 			if (string.len(voicemail_mail_to) > 2 and email_queue_enabled == 'false') then
-				if (voicemail_local_after_email == "false") then
+				if (voicemail_local_after_email == "false" and voicemail_local_after_forward == "false") then
 					--delete the voicemail message details
 						local sql = [[DELETE FROM v_voicemail_messages
 							WHERE domain_uuid = :domain_uuid
@@ -306,18 +356,30 @@
 							freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 						end
 						dbh:query(sql, params);
-					--delete voicemail recording file
+					--delete voicemail recording files
 						if (file_exists(file)) then
 							os.remove(file);
+						end
+						if (file_exists(intro)) then
+							os.remove(intro);
+						end
+						if (file_exists(combined)) then
+							os.remove(combined);
 						end
 					--set message waiting indicator
 						message_waiting(id, domain_uuid);
 					--clear the variable
 						db_voicemail_uuid = '';
 				elseif (storage_type == "base64") then
-					--delete voicemail recording file
+					--delete voicemail recording files
 						if (file_exists(file)) then
 							os.remove(file);
+						end
+						if (file_exists(intro)) then
+							os.remove(intro);
+						end
+						if (file_exists(combined)) then
+							os.remove(combined);
 						end
 				end
 

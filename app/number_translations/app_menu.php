@@ -7,12 +7,14 @@
 	$apps[$x]['menu'][$y]['title']['de-at'] = "Nummer Übersetzung";
 	$apps[$x]['menu'][$y]['title']['de-ch'] = "Nummer Übersetzung";
 	$apps[$x]['menu'][$y]['title']['de-de'] = "Nummer Übersetzung";
+	$apps[$x]['menu'][$y]['title']['el-gr'] = "Μεταφράσεις Αριθμών";
 	$apps[$x]['menu'][$y]['title']['es-cl'] = "Traducción de números";
 	$apps[$x]['menu'][$y]['title']['es-mx'] = "Traducción de números";
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Traductions de nombres";
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Traductions de nombres";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "תרגום מספר";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Traduzione numero";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ნომრების გარდაქმნა";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Nummer Vertaling";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Tłumaczenie liczbowe";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Tradução numérica";
@@ -21,6 +23,7 @@
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Преобразование номера";
 	$apps[$x]['menu'][$y]['title']['sv-se'] = "Antal översättning";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "кількість перекладів";
+	$apps[$x]['menu'][$y]['title']['tr-tr'] = "Numara Çevirileri";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "数字翻译";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "数の翻訳";
 	$apps[$x]['menu'][$y]['title']['ko-kr'] = "숫자 번역";

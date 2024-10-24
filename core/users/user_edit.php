@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -32,6 +32,11 @@
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
+
+//create a single database object
+	$database = new database;
+	$database->app_name = 'users';
+	$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 
 //get user uuid
 	if (!empty($_REQUEST["id"]) && ((is_uuid($_REQUEST["id"]) && permission_exists('user_edit')) || (is_uuid($_REQUEST["id"]) && $_REQUEST["id"] == $_SESSION['user_uuid']))) {
@@ -54,7 +59,6 @@
 		$sql .= "from v_users ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-		$database = new database;
 		$num_rows = $database->select($sql, $parameters, 'column');
 		unset($sql, $parameters);
 
@@ -87,9 +91,6 @@
 			$p = new permissions;
 			$p->add('user_group_delete', 'temp');
 
-			$database = new database;
-			$database->app_name = 'users';
-			$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 			$database->delete($array);
 			unset($array);
 
@@ -102,11 +103,13 @@
 	}
 
 //retrieve password requirements
-	$required['length'] = $_SESSION['users']['password_length']['numeric'];
-	$required['number'] = ($_SESSION['users']['password_number']['boolean'] == 'true') ? true : false;
-	$required['lowercase'] = ($_SESSION['users']['password_lowercase']['boolean'] == 'true') ? true : false;
-	$required['uppercase'] = ($_SESSION['users']['password_uppercase']['boolean'] == 'true') ? true : false;
-	$required['special'] = ($_SESSION['users']['password_special']['boolean'] == 'true') ? true : false;
+	if (permission_exists('user_password')) {
+		$required['length'] = $_SESSION['users']['password_length']['numeric'];
+		$required['number'] = ($_SESSION['users']['password_number']['boolean'] == 'true') ? true : false;
+		$required['lowercase'] = ($_SESSION['users']['password_lowercase']['boolean'] == 'true') ? true : false;
+		$required['uppercase'] = ($_SESSION['users']['password_uppercase']['boolean'] == 'true') ? true : false;
+		$required['special'] = ($_SESSION['users']['password_special']['boolean'] == 'true') ? true : false;
+	}
 
 //prepare the data
 	if (!empty($_POST)) {
@@ -154,6 +157,22 @@
 				exit;
 			}
 
+		//validate the user status
+			switch ($user_status) {
+				case "Available" :
+					break;
+				case "Available (On Demand)" :
+					break;
+				case "On Break" :
+					break;
+				case "Do Not Disturb" :
+					break;
+				case "Logged Out" :
+					break;
+				default :
+					$user_status = '';
+			}
+
 		//check required values
 			if (empty($username)) {
 				$invalid[] = $text['label-username'];
@@ -183,7 +202,6 @@
 					$parameters['domain_uuid'] = $domain_uuid;
 				}
 				$parameters['username'] = $username;
-				$database = new database;
 				$num_rows = $database->select($sql, $parameters, 'column');
 				if ($num_rows > 0) {
 					message::add($text['message-username_exists'], 'negative', 7500);
@@ -197,7 +215,7 @@
 			}
 
 			//require passwords not allowed to be empty
-			if (permission_exists('user_add') && $action == 'add') {
+			if (permission_exists('user_password') && permission_exists('user_add') && $action == 'add') {
 				if (empty($password)) {
 					message::add($text['message-password_blank'], 'negative', 7500);
 				}
@@ -212,7 +230,7 @@
 			}
 
 			//require passwords with the defined required attributes: length, number, lower case, upper case, and special characters
-			if (!empty($password)) {
+			if (permission_exists('user_password') && !empty($password)) {
 				if (!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) {
 					if (strlen($password) < $required['length']) {
 						$invalid[] = $text['label-characters'];
@@ -260,7 +278,6 @@
 			$sql .= "and user_setting_subcategory = 'language' ";
 			$sql .= "and user_uuid = :user_uuid ";
 			$parameters['user_uuid'] = $user_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (!empty($user_language) && (empty($row) || (!empty($row['user_setting_uuid']) && !is_uuid($row['user_setting_uuid'])))) {
 				//add user setting to array for insert
@@ -283,9 +300,6 @@
 					$p = new permissions;
 					$p->add('user_setting_delete', 'temp');
 
-					$database = new database;
-					$database->app_name = 'users';
-					$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 					$database->delete($array_delete);
 					unset($array_delete);
 
@@ -312,7 +326,6 @@
 			$sql .= "and user_setting_subcategory = 'time_zone' ";
 			$sql .= "and user_uuid = :user_uuid ";
 			$parameters['user_uuid'] = $user_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (!empty($user_time_zone) && (empty($row) || (!empty($row['user_setting_uuid']) && !is_uuid($row['user_setting_uuid'])))) {
 				//add user setting to array for insert
@@ -335,9 +348,6 @@
 					$p = new permissions;
 					$p->add('user_setting_delete', 'temp');
 
-					$database = new database;
-					$database->app_name = 'users';
-					$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 					$database->delete($array_delete);
 					unset($array_delete);
 
@@ -365,7 +375,6 @@
 				$sql .= "and user_setting_subcategory = 'key' ";
 				$sql .= "and user_uuid = :user_uuid ";
 				$parameters['user_uuid'] = $user_uuid;
-				$database = new database;
 				$row = $database->select($sql, $parameters, 'row');
 				if (!empty($message_key) && (empty($row) || (!empty($row['user_setting_uuid']) && !is_uuid($row['user_setting_uuid'])))) {
 					//add user setting to array for insert
@@ -388,9 +397,6 @@
 						$p = new permissions;
 						$p->add('user_setting_delete', 'temp');
 
-						$database = new database;
-						$database->app_name = 'users';
-						$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 						$database->delete($array_delete);
 						unset($array_delete);
 
@@ -424,7 +430,6 @@
 				$sql .= "and group_uuid = :group_uuid ";
 				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 				$parameters['group_uuid'] = $group_uuid;
-				$database = new database;
 				$row = $database->select($sql, $parameters, 'row');
 				if ($row['group_level'] <= $_SESSION['user']['group_level']) {
 					$array['user_groups'][$n]['user_group_uuid'] = uuid();
@@ -443,7 +448,6 @@
 					$sql = "select user_group_uuid from v_user_groups ";
 					$sql .= "where user_uuid = :user_uuid ";
 					$parameters['user_uuid'] = $user_uuid;
-					$database = new database;
 					$result = $database->select($sql, $parameters, 'all');
 					if (is_array($result)) {
 						foreach ($result as $row) {
@@ -458,7 +462,6 @@
 					$sql = "select user_setting_uuid from v_user_settings ";
 					$sql .= "where user_uuid = :user_uuid ";
 					$parameters['user_uuid'] = $user_uuid;
-					$database = new database;
 					$result = $database->select($sql, $parameters);
 					if (is_array($result)) {
 						foreach ($result as $row) {
@@ -478,7 +481,6 @@
 					$sql .= ") ";
 					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['user_uuid'] = $user_uuid;
-					$database = new database;
 					$database->execute($sql, $parameters);
 					unset($sql, $parameters);
 			}
@@ -514,7 +516,7 @@
 			if (!empty($username) && (empty($username_old) || $username != $username_old)) {
 				$array['users'][$x]['username'] = $username;
 			}
-			if (!empty($password) && $password == $password_confirm) {
+			if (permission_exists('user_password') && !empty($password) && $password == $password_confirm) {
 				$array['users'][$x]['password'] = password_hash($password, PASSWORD_DEFAULT, $options);
 				$array['users'][$x]['salt'] = null;
 			}
@@ -547,9 +549,6 @@
 			$p->add('user_group_add', 'temp');
 
 		//save the data
-			$database = new database;
-			$database->app_name = 'users';
-			$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 			$database->save($array);
 			//$message = $database->message;
 
@@ -567,22 +566,21 @@
 					$sql .= "and user_uuid = :user_uuid ";
 					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['user_uuid'] = $user_uuid;
-					$database = new database;
 					$call_center_agent_uuid = $database->select($sql, $parameters, 'column');
 					unset($sql, $parameters);
 
 				//update the user_status
 					if (isset($call_center_agent_uuid) && is_uuid($call_center_agent_uuid) && !empty($user_status)) {
-						$fp = event_socket_create();
+						$esl = event_socket::create();
 						$switch_cmd = "callcenter_config agent set status ".$call_center_agent_uuid." '".$user_status."'";
-						$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
+						$switch_result = event_socket::api($switch_cmd);
 					}
 
 				//update the user state
 					if (isset($call_center_agent_uuid) && is_uuid($call_center_agent_uuid)) {
-						$fp = event_socket_create();
-						$cmd = "api callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
-						$response = event_socket_request($fp, $cmd);
+						$esl = event_socket::create();
+						$cmd = "callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
+						$response = event_socket::api($cmd);
 					}
 			}
 
@@ -616,7 +614,6 @@
 					$parameters['domain_uuid'] = $domain_uuid;
 				}
 				$parameters['user_uuid'] = $user_uuid;
-				$database = new database;
 				$row = $database->select($sql, $parameters, 'row');
 				if (is_array($row) && sizeof($row) > 0) {
 					$domain_uuid = $row["domain_uuid"];
@@ -644,7 +641,6 @@
 				$sql .= "where user_uuid = :user_uuid ";
 				$sql .= "and user_setting_enabled = 'true' ";
 				$parameters['user_uuid'] = $user_uuid;
-				$database = new database;
 				$result = $database->select($sql, $parameters, 'all');
 				if (is_array($result)) {
 					foreach($result as $row) {
@@ -677,36 +673,37 @@
 	$document['title'] = $text['title-user_edit'];
 
 //show the content
-	echo "<script>\n";
-	echo "	function compare_passwords() {\n";
-	echo "		if (document.getElementById('password') === document.activeElement || document.getElementById('password_confirm') === document.activeElement) {\n";
-	echo "			if ($('#password').val() != '' || $('#password_confirm').val() != '') {\n";
-	echo "				if ($('#password').val() != $('#password_confirm').val()) {\n";
-	echo "					$('#password').removeClass('formfld_highlight_good');\n";
-	echo "					$('#password_confirm').removeClass('formfld_highlight_good');\n";
-	echo "					$('#password').addClass('formfld_highlight_bad');\n";
-	echo "					$('#password_confirm').addClass('formfld_highlight_bad');\n";
-	echo "				}\n";
-	echo "				else {\n";
-	echo "					$('#password').removeClass('formfld_highlight_bad');\n";
-	echo "					$('#password_confirm').removeClass('formfld_highlight_bad');\n";
-	echo "					$('#password').addClass('formfld_highlight_good');\n";
-	echo "					$('#password_confirm').addClass('formfld_highlight_good');\n";
-	echo "				}\n";
-	echo "			}\n";
-	echo "		}\n";
-	echo "		else {\n";
-	echo "			$('#password').removeClass('formfld_highlight_bad');\n";
-	echo "			$('#password_confirm').removeClass('formfld_highlight_bad');\n";
-	echo "			$('#password').removeClass('formfld_highlight_good');\n";
-	echo "			$('#password_confirm').removeClass('formfld_highlight_good');\n";
-	echo "		}\n";
-	echo "	}\n";
-
-	echo "	function show_strength_meter() {\n";
-	echo "		$('#pwstrength_progress').slideDown();\n";
-	echo "	}\n";
-	echo "</script>\n";
+	if (permission_exists('user_password')) {
+		echo "<script>\n";
+		echo "	function compare_passwords() {\n";
+		echo "		if (document.getElementById('password') === document.activeElement || document.getElementById('password_confirm') === document.activeElement) {\n";
+		echo "			if ($('#password').val() != '' || $('#password_confirm').val() != '') {\n";
+		echo "				if ($('#password').val() != $('#password_confirm').val()) {\n";
+		echo "					$('#password').removeClass('formfld_highlight_good');\n";
+		echo "					$('#password_confirm').removeClass('formfld_highlight_good');\n";
+		echo "					$('#password').addClass('formfld_highlight_bad');\n";
+		echo "					$('#password_confirm').addClass('formfld_highlight_bad');\n";
+		echo "				}\n";
+		echo "				else {\n";
+		echo "					$('#password').removeClass('formfld_highlight_bad');\n";
+		echo "					$('#password_confirm').removeClass('formfld_highlight_bad');\n";
+		echo "					$('#password').addClass('formfld_highlight_good');\n";
+		echo "					$('#password_confirm').addClass('formfld_highlight_good');\n";
+		echo "				}\n";
+		echo "			}\n";
+		echo "		}\n";
+		echo "		else {\n";
+		echo "			$('#password').removeClass('formfld_highlight_bad');\n";
+		echo "			$('#password_confirm').removeClass('formfld_highlight_bad');\n";
+		echo "			$('#password').removeClass('formfld_highlight_good');\n";
+		echo "			$('#password_confirm').removeClass('formfld_highlight_good');\n";
+		echo "		}\n";
+		echo "	}\n";
+		echo "	function show_strength_meter() {\n";
+		echo "		$('#pwstrength_progress').slideDown();\n";
+		echo "	}\n";
+		echo "</script>\n";
+	}
 
 	echo "<form name='frm' id='frm' method='post'>\n";
 
@@ -728,6 +725,9 @@
 		echo button::create(['type'=>'button','label'=>$text['button-permissions'],'icon'=>'key','style'=>$button_margin,'link'=>PROJECT_PATH.'/app/user_permissions/user_permissions.php?id='.urlencode($user_uuid)]);
 		unset($button_margin);
 	}
+	if (permission_exists('user_setting_view')) {
+		echo button::create(['type'=>'button','label'=>$text['button-settings'],'icon'=>$_SESSION['theme']['button_icon_settings'],'id'=>'btn_settings','style'=>'','link'=>PROJECT_PATH.'/core/user_settings/user_settings.php?id='.urlencode($user_uuid)]);
+	}
 	echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;','onclick'=>'submit_form();']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
@@ -736,6 +736,7 @@
 	echo $text['description-user_edit']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table cellpadding='0' cellspacing='0' border='0' width='100%'>";
 
 	echo "	<tr>";
@@ -752,49 +753,51 @@
 	echo "		</td>";
 	echo "	</tr>";
 
-	echo "	<tr>";
-	echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-password']."</td>";
-	echo "		<td class='vtable'>";
-	echo "			<input type='password' style='display: none;' disabled='disabled'>"; //help defeat browser auto-fill
-	echo "			<input type='password' autocomplete='new-password' class='formfld' name='password' id='password' value=\"".escape($password ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onkeypress='show_strength_meter();' onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'>";
-	echo "			<div id='pwstrength_progress' class='pwstrength_progress'></div><br />\n";
-	if ((!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) || $required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
-		echo $text['label-required'].': ';
-		if (is_numeric($required['length']) && $required['length'] != 0) {
-			echo $required['length']." ".$text['label-characters'];
-			if ($required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
-				echo " (";
-			}
-		}
-		if ($required['number']) {
-			$required_temp[] = $text['label-number'];
-		}
-		if ($required['lowercase']) {
-			$required_temp[] = $text['label-lowercase'];
-		}
-		if ($required['uppercase']) {
-			$required_temp[] = $text['label-uppercase'];
-		}
-		if ($required['special']) {
-			$required_temp[] = $text['label-special'];
-		}
-		if (!empty($required_temp)) {
-			echo implode(', ',$required_temp);
+	if (permission_exists('user_password')) {
+		echo "	<tr>";
+		echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-password']."</td>";
+		echo "		<td class='vtable'>";
+		echo "			<input type='password' style='display: none;' disabled='disabled'>"; //help defeat browser auto-fill
+		echo "			<input type='password' autocomplete='new-password' class='formfld' name='password' id='password' value=\"".escape($password ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onkeypress='show_strength_meter();' onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'>";
+		echo "			<div id='pwstrength_progress' class='pwstrength_progress'></div><br />\n";
+		if ((!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) || $required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
+			echo $text['label-required'].': ';
 			if (is_numeric($required['length']) && $required['length'] != 0) {
-				echo ")";
+				echo $required['length']." ".$text['label-characters'];
+				if ($required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
+					echo " (";
+				}
 			}
+			if ($required['number']) {
+				$required_temp[] = $text['label-number'];
+			}
+			if ($required['lowercase']) {
+				$required_temp[] = $text['label-lowercase'];
+			}
+			if ($required['uppercase']) {
+				$required_temp[] = $text['label-uppercase'];
+			}
+			if ($required['special']) {
+				$required_temp[] = $text['label-special'];
+			}
+			if (!empty($required_temp)) {
+				echo implode(', ',$required_temp);
+				if (is_numeric($required['length']) && $required['length'] != 0) {
+					echo ")";
+				}
+			}
+			unset($required_temp);
 		}
-		unset($required_temp);
+		echo "		</td>";
+		echo "	</tr>";
+		echo "	<tr>";
+		echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-confirm_password']."</td>";
+		echo "		<td class='vtable'>";
+		echo "			<input type='password' autocomplete='new-password' class='formfld' name='password_confirm' id='password_confirm' value=\"".escape($password_confirm ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'><br />\n";
+		echo "			".$text['message-green_border_passwords_match']."\n";
+		echo "		</td>";
+		echo "	</tr>";
 	}
-	echo "		</td>";
-	echo "	</tr>";
-	echo "	<tr>";
-	echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-confirm_password']."</td>";
-	echo "		<td class='vtable'>";
-	echo "			<input type='password' autocomplete='new-password' class='formfld' name='password_confirm' id='password_confirm' value=\"".escape($password_confirm ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'><br />\n";
-	echo "			".$text['message-green_border_passwords_match']."\n";
-	echo "		</td>";
-	echo "	</tr>";
 
 	echo "	<tr>";
 	echo "		<td class='vncellreq'>".$text['label-email']."</td>";
@@ -810,7 +813,6 @@
 	echo "		<option value=''></option>\n";
 	//get all language codes from database
 	$sql = "select * from v_languages order by language asc ";
-	$database = new database;
 	$languages = $database->select($sql, null, 'all');
 	if (!empty($languages) && is_array($languages) && sizeof($languages) != 0) {
 		foreach ($languages as $row) {
@@ -861,14 +863,13 @@
 	echo "	</td>\n";
 	echo "	</tr>\n";
 
-	if (isset($_SESSION['user_status_display']) && $_SESSION['user_status_display'] != "false") {
+	if (permission_exists("user_status")) {
 		echo "	<tr>\n";
 		echo "	<td width='20%' class=\"vncell\" valign='top'>\n";
 		echo "		".$text['label-status']."\n";
 		echo "	</td>\n";
 		echo "	<td class=\"vtable\">\n";
-		$cmd = "'".PROJECT_PATH."/app/calls_active/v_calls_exec.php?cmd=callcenter_config+agent+set+status+".escape($username)."@".$_SESSION['domains'][$domain_uuid]['domain_name']."+'+this.value";
-		echo "		<select id='user_status' name='user_status' class='formfld' style='' onchange=\"send_cmd($cmd);\">\n";
+		echo "		<select id='user_status' name='user_status' class='formfld' style=''>\n";
 		echo "			<option value=''></option>\n";
 		echo "			<option value='Available' ".(($user_status == "Available") ? "selected='selected'" : null).">".$text['option-available']."</option>\n";
 		echo "			<option value='Available (On Demand)' ".(($user_status == "Available (On Demand)") ? "selected='selected'" : null).">".$text['option-available_on_demand']."</option>\n";
@@ -915,7 +916,6 @@
 		$sql .= "lower(c.contact_name_given) asc, ";
 		$sql .= "lower(c.contact_nickname) asc ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-		$database = new database;
 		$contacts = $database->select($sql, $parameters, 'all');
 		unset($parameters);
 		echo "<select name=\"contact_uuid\" id=\"contact_uuid\" class=\"formfld\">\n";
@@ -976,7 +976,6 @@
 		$sql .= "	g.group_name asc ";
 		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['user_uuid'] = $user_uuid;
-		$database = new database;
 		$user_groups = $database->select($sql, $parameters, 'all');
 		if (is_array($user_groups)) {
 			echo "<table cellpadding='0' cellspacing='0' border='0'>\n";
@@ -1008,7 +1007,6 @@
 		}
 		$sql .= "order by domain_uuid desc, group_name asc ";
 		$parameters['domain_uuid'] = $domain_uuid;
-		$database = new database;
 		$groups = $database->select($sql, $parameters, 'all');
 		if (is_array($groups)) {
 			if (isset($assigned_groups)) { echo "<br />\n"; }
@@ -1079,6 +1077,7 @@
 			echo button::create(['type'=>'button',
 				'label'=>$text['button-generate'],
 				'icon'=>'key',
+				'style'=>'margin-top: 1px; margin-bottom: 1px;',
 				'onclick'=>"document.getElementById('api_key').value = '".generate_password(32,3)."';
 					document.getElementById('frm').submit();"]);
 		}
@@ -1088,11 +1087,12 @@
 				'label'=>$text['button-view'],
 				'id'=>'button-api_key_view',
 				'icon'=>'key',
+				'style'=>'margin-top: 1px; margin-bottom: 1px;',
 				'onclick'=>"document.getElementById ('button-api_key_view').style.display = 'none';
 					document.getElementById('api_key').style.display = 'inline';
 					document.getElementById('button-api_key_hide').style.display = 'inline';
 					document.getElementById('button-api_key_view').style.display = 'none';"]);
-				
+
 			echo button::create(['type'=>'button',
 				'label'=>$text['button-hide'],
 				'id'=>'button-api_key_hide',
@@ -1213,6 +1213,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br /><br />";
 
 	if ($action == 'edit') {
@@ -1225,14 +1226,8 @@
 
 	echo "</form>";
 
-	if (permission_exists("user_edit") && permission_exists('user_setting_view') && $action == 'edit') {
-		require $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/core/user_settings/user_settings.php";
-		echo "<br><br>";
-	}
-
-	echo "<script>\n";
-
 //hide password fields before submit
+	echo "<script>\n";
 	echo "	function submit_form() {\n";
 	echo "		hide_password_fields();\n";
 	echo "		$('form#frm').submit();\n";

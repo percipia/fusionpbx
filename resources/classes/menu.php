@@ -50,13 +50,26 @@ if (!class_exists('menu')) {
 		public $text;
 
 		/**
+		 * Set in the constructor. Must be a database object and cannot be null.
+		 * @var database Database Object
+		 */
+		private $database;
+
+		/**
 		 * called when the object is created
 		 */
-		public function __construct() {
+		public function __construct($setting_array = []) {
 			//assign the variables
-				$this->app_name = 'menus';
-				$this->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
-				$this->location = 'menus.php';
+			$this->app_name = 'menus';
+			$this->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
+			$this->location = 'menus.php';
+
+			//open a database connection
+			if (empty($setting_array['database'])) {
+				$this->database = database::new();
+			} else {
+				$this->database = $setting_array['database'];
+			}
 		}
 
 		/**
@@ -113,10 +126,9 @@ if (!class_exists('menu')) {
 									$p->add('menu_language_delete', 'temp');
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->app_name = $this->app_name;
+									$this->database->app_uuid = $this->app_uuid;
+									$this->database->delete($array);
 									unset($array);
 
 								//revoke temporary permissions
@@ -174,8 +186,7 @@ if (!class_exists('menu')) {
 							if (!empty($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select menu_item_uuid as uuid from v_".$this->table." ";
 								$sql .= "where menu_item_parent_uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, null, 'all');
+								$rows = $this->database->select($sql, null, 'all');
 								if (!empty($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										//remove menu languages
@@ -199,10 +210,9 @@ if (!class_exists('menu')) {
 									$p->add('menu_item_group_delete', 'temp');
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->app_name = $this->app_name;
+									$this->database->app_uuid = $this->app_uuid;
+									$this->database->delete($array);
 									unset($array);
 
 								//revoke temporary permissions
@@ -252,9 +262,8 @@ if (!class_exists('menu')) {
 							if (!empty($uuids) && is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select ".$this->name."_uuid as uuid, ".$this->toggle_field." as toggle from v_".$this->table." ";
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
 								$parameters = null;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$states[$row['uuid']] = $row['toggle'] == '' ? $this->toggle_values[1] : $row['toggle'];
@@ -279,10 +288,9 @@ if (!class_exists('menu')) {
 						//save the changes
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+									$this->database->app_name = $this->app_name;
+									$this->database->app_uuid = $this->app_uuid;
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -310,8 +318,7 @@ if (!class_exists('menu')) {
 				$sql .= "	) ";
 				$sql .= ") ";
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$database->execute($sql, $parameters);
+				$this->database->execute($sql, $parameters);
 				unset($sql, $parameters);
 
 			//remove existing unprotected menu item groups
@@ -327,8 +334,7 @@ if (!class_exists('menu')) {
 				$sql .= "	) ";
 				$sql .= ") ";
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$database->execute($sql, $parameters);
+				$this->database->execute($sql, $parameters);
 				unset($sql, $parameters);
 
 			//remove existing unprotected menu items
@@ -339,8 +345,7 @@ if (!class_exists('menu')) {
 				$sql .= "	or menu_item_protected is null ";
 				$sql .= ") ";
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$database->execute($sql, $parameters);
+				$this->database->execute($sql, $parameters);
 				unset($sql, $parameters);
 		}
 
@@ -388,8 +393,7 @@ if (!class_exists('menu')) {
 				$sql = "select * from v_menu_items ";
 				$sql .= "where menu_uuid = :menu_uuid ";
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$menu_items = $database->select($sql, $parameters, 'all');
+				$menu_items = $this->database->select($sql, $parameters, 'all');
 
 			//use the app array to restore the default menu
 				if (is_array($apps)) {
@@ -493,10 +497,9 @@ if (!class_exists('menu')) {
 							$p->add('menu_item_add', 'temp');
 							$p->add('menu_language_add', 'temp');
 						//execute insert
-							$database = new database;
-							$database->app_name = 'menu';
-							$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
-							$database->save($array);
+							$this->database->app_name = 'menu';
+							$this->database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
+							$this->database->save($array);
 							unset($array);
 						//revoke temporary permissions
 							$p->delete('menu_item_add', 'temp');
@@ -511,8 +514,7 @@ if (!class_exists('menu')) {
 			//get default global group_uuids
 				$sql = "select group_uuid, group_name from v_groups ";
 				$sql .= "where domain_uuid is null ";
-				$database = new database;
-				$result = $database->select($sql, null, 'all');
+				$result = $this->database->select($sql, null, 'all');
 				if (is_array($result) && @sizeof($result) != 0) {
 					foreach ($result as $row) {
 						$group_uuids[$row['group_name']] = $row['group_uuid'];
@@ -537,8 +539,7 @@ if (!class_exists('menu')) {
 										$parameters['menu_uuid'] = $this->menu_uuid;
 										$parameters['group_name'] = $group;
 										$parameters['group_uuid'] = $group_uuids[$group] ?? null;
-										$database = new database;
-										$num_rows = $database->select($sql, $parameters, 'column');
+										$num_rows = $this->database->select($sql, $parameters, 'column');
 										if ($num_rows == 0) {
 											//no menu item groups found, build insert array for defaults
 												$array['menu_item_groups'][$x]['menu_item_group_uuid'] = uuid();
@@ -560,10 +561,9 @@ if (!class_exists('menu')) {
 							$p = new permissions;
 							$p->add('menu_item_group_add', 'temp');
 						//execute insert
-							$database = new database;
-							$database->app_name = 'menu';
-							$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
-							$database->save($array);
+							$this->database->app_name = 'menu';
+							$this->database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
+							$this->database->save($array);
 							unset($array);
 						//revoke temporary permissions
 							$p->delete('menu_item_group_add', 'temp');
@@ -756,10 +756,9 @@ if (!class_exists('menu')) {
 				$sql .= "and menu_item_uuid is not null ";
 				$sql .= ") ";
 				$sql .= "order by i.menu_item_order asc ";
-				$parameters['menu_language'] = $_SESSION['domain']['language']['code'];
+				$parameters['menu_language'] = $_SESSION['domain']['language']['code'] ?? null;
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$result = $database->select($sql, $parameters, 'all');
+				$result = $this->database->select($sql, $parameters, 'all');
 				unset($sql, $parameters);
 
 			//save the menu into an array
@@ -828,8 +827,7 @@ if (!class_exists('menu')) {
 				$parameters['menu_language'] = $_SESSION['domain']['language']['code'];
 				$parameters['menu_uuid'] = $this->menu_uuid;
 				$parameters['menu_item_parent_uuid'] = $menu_item_uuid;
-				$database = new database;
-				$sub_result = $database->select($sql, $parameters, 'all');
+				$sub_result = $this->database->select($sql, $parameters, 'all');
 				unset($sql, $parameters);
 
 			//save the child menu into an array
@@ -880,8 +878,7 @@ if (!class_exists('menu')) {
 				$sql = "select count(*) as count from v_menus ";
 				$sql .= "where menu_uuid = :menu_uuid ";
 				$parameters['menu_uuid'] = $this->menu_uuid;
-				$database = new database;
-				$num_rows = $database->select($sql, $parameters, 'column');
+				$num_rows = $this->database->select($sql, $parameters, 'column');
 				if ($num_rows == 0) {
 					//built insert array
 						$array['menus'][0]['menu_uuid'] = $this->menu_uuid;
@@ -894,10 +891,9 @@ if (!class_exists('menu')) {
 						$p->add('menu_add', 'temp');
 
 					//execute insert
-						$database = new database;
-						$database->app_name = 'menu';
-						$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
-						$database->save($array);
+						$this->database->app_name = 'menu';
+						$this->database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
+						$this->database->save($array);
 						unset($array);
 
 					//revoke temporary permissions
@@ -913,6 +909,10 @@ if (!class_exists('menu')) {
 		 * build the fixed, static or inline horizontal menu html
 		 */
 		public function menu_horizontal($menu_array) {
+
+			//add multi-lingual support
+				$language = new text;
+				$text = $language->get();
 
 			//determine menu behavior
 				$menu_style = !empty($_SESSION['theme']['menu_style']['text']) ? $_SESSION['theme']['menu_style']['text'] : 'fixed';
@@ -978,8 +978,8 @@ if (!class_exists('menu')) {
 
 				$html .= "		</div>\n";
 
-				$html .= "		<button type='button' class='navbar-toggler' data-toggle='collapse' data-target='#main_navbar' aria-expanded='false' aria-controls='main_navbar' aria-label='Toggle Menu'>\n";
-				$html .= "			<span class='fas fa-bars'></span>\n";
+				$html .= "		<button type='button' class='navbar-toggler' data-toggle='collapse' data-target='#main_navbar' aria-expanded='false' aria-controls='main_navbar' aria-label='Toggle Menu' onclick=\"$('#body_header_user_menu').fadeOut(200);\">\n";
+				$html .= "			<span class='fa-solid fa-bars'></span>\n";
 				$html .= "		</button>\n";
 
 				$html .= "		<div class='collapse navbar-collapse' id='main_navbar'>\n";
@@ -998,8 +998,8 @@ if (!class_exists('menu')) {
 						$mod_a_2 = (!empty($menu_parent['menu_item_link']) && !$submenu) ? $menu_parent['menu_item_link'] : '#';
 						$mod_a_3 = ($menu_parent['menu_item_category'] == 'external') ? "target='_blank' " : null;
 						if (isset($_SESSION['theme']['menu_main_icons']['boolean']) && $_SESSION['theme']['menu_main_icons']['boolean'] == 'true') {
-							if (!empty($menu_parent['menu_item_icon']) && substr_count($menu_parent['menu_item_icon'], 'fa-') > 0) {
-								$menu_main_icon = "<span class='fas ".$menu_parent['menu_item_icon']."' title=\"".escape($menu_parent['menu_language_title'])."\"></span>";
+							if (!empty($menu_parent['menu_item_icon']) && substr($menu_parent['menu_item_icon'], 0, 3) == 'fa-') { // font awesome icon
+								$menu_main_icon = "<span class='".escape($menu_parent['menu_item_icon'])."' title=\"".escape($menu_parent['menu_language_title'])."\"></span>";
 							}
 							else {
 								$menu_main_icon = null;
@@ -1031,14 +1031,14 @@ if (!class_exists('menu')) {
 								$mod_a_3 = ($menu_sub['menu_item_category'] == 'external') ? "target='_blank' " : null;
 								$menu_sub_icon = null;
 								if ($_SESSION['theme']['menu_sub_icons']['boolean'] != 'false') {
-									if (!empty($menu_sub['menu_item_icon']) && substr_count($menu_sub['menu_item_icon'], 'fa-') > 0) {
-										$menu_sub_icon = "<span class='fas ".escape($menu_sub['menu_item_icon'])."'></span>";
+									if (!empty($menu_sub['menu_item_icon']) && substr($menu_sub['menu_item_icon'], 0, 3) == 'fa-') { // font awesome icon
+										$menu_sub_icon = "<span class='".escape($menu_sub['menu_item_icon'])."'></span>";
 									}
 									else {
 										$menu_sub_icon = null;
 									}
 								}
-								$html .= "						<li class='nav-item'><a class='nav-link' href='".$mod_a_2."' ".$mod_a_3.">".($_SESSION['theme']['menu_sub_icons']['boolean'] != 'false' ? "<span class='fas fa-bar d-inline-block d-sm-none float-left' style='margin: 4px 10px 0 25px;'></span>" : null).escape($menu_sub['menu_language_title']).$menu_sub_icon."</a></li>\n";
+								$html .= "						<li class='nav-item'><a class='nav-link' href='".$mod_a_2."' ".$mod_a_3.">".($_SESSION['theme']['menu_sub_icons']['boolean'] != 'false' ? "<span class='fa-solid fa-minus d-inline-block d-sm-none float-left' style='margin: 4px 10px 0 25px;'></span>" : null).escape($menu_sub['menu_language_title']).$menu_sub_icon."</a></li>\n";
 								if ($columns > 1 && $column_current == 1 && ($index_sub+1) > (ceil(@sizeof($menu_parent['menu_items'])/2)-1)) {
 									$html .= "								</ul>\n";
 									$html .= "							</div>\n";
@@ -1061,23 +1061,40 @@ if (!class_exists('menu')) {
 				$html .= "			</ul>\n";
 
 				$html .= "			<ul class='navbar-nav ml-auto'>\n";
-				//current user
-					if (isset($_SESSION['theme']['user_visible']['text']) && $_SESSION['theme']['user_visible']['text'] == 'true') {
+				//current user (latter condition for backward compatibility)
+					if (
+						!empty($_SESSION['username']) &&
+						(
+							isset($_SESSION['theme']['header_user_visible']['text']) &&
+							$_SESSION['theme']['header_user_visible']['text'] == 'true'
+						) || (
+							isset($_SESSION['theme']['user_visible']['text']) &&
+							$_SESSION['theme']['user_visible']['text'] == 'true'
+						)) {
+
+						//set (default) user graphic size and icon
+						$user_graphic = "<i class='".(!empty($_SESSION['theme']['body_header_icon_user']['text']) ? $_SESSION['theme']['body_header_icon_user']['text'] : 'fa-solid fa-user-circle')."'></i>";
+						//overwrite user graphic with image from session, if exists
+						if ($_SESSION['theme']['body_header_user_image']['boolean'] == true && !empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image'])) {
+							$user_graphic = "<span style=\"display: inline-block; vertical-align: middle; width: 15px; height: 15px; border-radius: 50%; margin-top: -2px; background-image: url('".PROJECT_PATH."/app/contacts/contact_attachment.php?id=".$_SESSION['user']['contact_image']."&action=download&sid=".session_id()."'); background-repeat: no-repeat; background-size: cover; background-position: center;\"></span>";
+						}
 						$html .= "		<li class='nav-item'>\n";
-						$html .= "			<a class='header_user' href='".PROJECT_PATH."/core/users/user_edit.php?id=user' title=\"".$this->text['theme-label-user']."\"><i class='fas fa-".(!empty($_SESSION['theme']['body_header_icon_user']['text']) ? $_SESSION['theme']['body_header_icon_user']['text'] : 'user-circle')." fa-lg fa-fw' style='margin-top: 6px; margin-right: 5px;'></i>".$_SESSION['username']."</a>";
+						$html .= "			<a class='nav-link header_user d-block d-sm-none' href='show:usermenu' title=\"".$_SESSION['username']."\" style='border-top: 1px solid ".($_SESSION['theme']['menu_sub_background_color']['text'] ?? 'rgba(0,0,0,0.90)')."' data-toggle='collapse' data-target='#main_navbar' onclick=\"event.preventDefault(); $('#body_header_user_menu').toggleFadeSlide();\">".($user_graphic ?? null)."<span style='margin-left: 7px;'>".escape($_SESSION['username'])."</span></a>";
+						$html .= "			<a class='nav-link header_user d-none d-sm-block' href='show:usermenu' title=\"".$_SESSION['username']."\" onclick=\"event.preventDefault(); $('#body_header_user_menu').toggleFadeSlide();\">".($user_graphic ?? null)."<span class='d-none d-md-inline' style='margin-left: 7px;'>".escape($_SESSION['username'])."</span></a>";
 						$html .= "		</li>\n";
 					}
 				//domain name/selector
 					if (!empty($_SESSION['username']) && permission_exists('domain_select') && count($_SESSION['domains']) > 1 && $_SESSION['theme']['domain_visible']['text'] == 'true') {
 						$html .= "		<li class='nav-item'>\n";
-						$html .= "			<a class='header_domain' href='#' id='header_domain_selector_domain' title='".$this->text['theme-label-open_selector']."'><i class='fas fa-".(!empty($_SESSION['theme']['body_header_icon_domain']['text']) ? $_SESSION['theme']['body_header_icon_domain']['text'] : 'globe-americas')." fa-lg fa-fw' style='margin-top: 6px; margin-right: 5px;'></i>".escape($_SESSION['domain_name'])."</a>";
+						$html .= "			<a class='nav-link header_domain header_domain_selector_domain d-block d-sm-none' href='select:domain' onclick='event.preventDefault();' data-toggle='collapse' data-target='#main_navbar' title='".$this->text['theme-label-open_selector']."'><span class='".(!empty($_SESSION['theme']['body_header_icon_domain']['text']) ? $_SESSION['theme']['body_header_icon_domain']['text'] : 'fa-solid fa-earth-americas')."'></span><span style='margin-left: 7px;'>".escape($_SESSION['domain_name'])."</span></a>";
+						$html .= "			<a class='nav-link header_domain header_domain_selector_domain d-none d-sm-block' href='select:domain' onclick='event.preventDefault();' title='".$this->text['theme-label-open_selector']."'><span class='".(!empty($_SESSION['theme']['body_header_icon_domain']['text']) ? $_SESSION['theme']['body_header_icon_domain']['text'] : 'fa-solid fa-earth-americas')."'></span><span class='d-none d-md-inline' style='margin-left: 7px;'>".escape($_SESSION['domain_name'])."</span></a>";
 						$html .= "		</li>\n";
 					}
 				//logout icon
 					if (!empty($_SESSION['username']) && isset($_SESSION['theme']['logout_icon_visible']) && $_SESSION['theme']['logout_icon_visible']['text'] == "true") {
 						$username_full = $_SESSION['username'].((count($_SESSION['domains']) > 1) ? "@".$_SESSION["user_context"] : null);
 						$html .= "		<li class='nav-item'>\n";
-						$html .= "			<a class='logout_icon' href='#' title=\"".$this->text['theme-label-logout']."\" onclick=\"modal_open('modal-logout','btn_logout');\"><span class='fas fa-sign-out-alt'></span></a>";
+						$html .= "			<a class='logout_icon' href='#' title=\"".$this->text['theme-label-logout']."\" onclick=\"modal_open('modal-logout','btn_logout');\"><span class='fa-solid fa-right-from-bracket'></span></a>";
 						$html .= "		</li>\n";
 						unset($username_full);
 					}
@@ -1087,9 +1104,45 @@ if (!class_exists('menu')) {
 				$html .= "	</div>\n";
 				$html .= "</nav>\n";
 
+				//user menu on menu bar
+					//styles below are defined here to prevent caching (following a permission change, etc)
+					$html .= "<style>\n";
+					$html .= "div#body_header_user_menu {\n";
+					$html .= "	right: ".(permission_exists('domain_select') ? '170px' : '30px')." !important;\n";
+					$html .= "	}\n";
+					$html .= "@media (max-width: 575.98px) {\n";
+					$html .= "	div#body_header_user_menu {\n";
+					$html .= "		right: 10px !important;;\n";
+					$html .= "		}\n";
+					$html .= "	}\n";
+					$html .= "</style>\n";
+
+					$html .= "<div id='body_header_user_menu'>\n";
+					$html .= "	<div class='row m-0'>\n";
+					if (!empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image'])) {
+						$html .= "	<div class='col-5 col-sm-6 p-0' style=\"min-width: 130px; background-image: url('".PROJECT_PATH."/app/contacts/contact_attachment.php?id=".$_SESSION['user']['contact_image']."&action=download&sid=".session_id()."'); background-repeat: no-repeat; background-size: cover; background-position: center;\"></div>\n";
+					}
+					$html .= "		<div class='".(!empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image']) ? 'col-7 col-sm-6 pr-0' : 'col-12 p-0')." ' style='min-width: 130px; text-align: left;'>\n";
+					if (!empty($_SESSION['user']['contact_name'])) {
+						$html .= "		<div style='line-height: 95%;'><strong>".$_SESSION['user']['contact_name']."</strong></div>\n";
+					}
+					if (!empty($_SESSION['user']['contact_organization'])) {
+						$html .= "		<div class='mt-2' style='font-size: 85%; line-height: 95%;'>".$_SESSION['user']['contact_organization']."</div>\n";
+					}
+					if (!empty($_SESSION['user']['extension'][0]['destination'])) {
+						$html .= "		<div class='mt-2' style='font-size: 90%;'><i class='fa-solid fa-phone' style='margin-right: 5px; color: #00b043;'></i><strong>".$_SESSION['user']['extension'][0]['destination']."</strong></div>\n";
+					}
+					$html .= "			<div class='pt-2 mt-3' style='border-top: 1px solid ".color_adjust($_SESSION['theme']['body_header_shadow_color']['text'], 0.05).";'>\n";
+					$html .= "				<a href='".PROJECT_PATH."/core/users/user_edit.php?id=user'>".$text['title-account_settings']."</a><br>\n";
+					$html .= "				<a href='".PROJECT_PATH."/logout.php'>".$text['title-logout']."</a>\n";
+					$html .= "			</div>";
+					$html .= "		</div>";
+					$html .= "	</div>";
+					$html .= "</div>";
+
 				//modal for logout icon (above)
 					if (!empty($_SESSION['username']) && isset($_SESSION['theme']['logout_icon_visible']) && $_SESSION['theme']['logout_icon_visible']['text'] == "true") {
-						$html .= modal::create(['id'=>'modal-logout','type'=>'general','message'=>$this->text['theme-confirm-logout'],'actions'=>button::create(['type'=>'button','label'=>$this->text['theme-label-logout'],'icon'=>'sign-out-alt','id'=>'btn_logout','style'=>'float: right; margin-left: 15px;','collapse'=>'never','link'=>PROJECT_PATH.'/logout.php','onclick'=>"modal_close();"])]);
+						$html .= modal::create(['id'=>'modal-logout','type'=>'general','message'=>$this->text['theme-confirm-logout'],'actions'=>button::create(['type'=>'button','label'=>$this->text['theme-label-logout'],'icon'=>'fa-solid fa-right-from-bracket','id'=>'btn_logout','style'=>'float: right; margin-left: 15px;','collapse'=>'never','link'=>PROJECT_PATH.'/logout.php','onclick'=>"modal_close();"])]);
 					}
 
 				return $html;
@@ -1102,35 +1155,44 @@ if (!class_exists('menu')) {
 		 */
 		public function menu_vertical($menu_array) {
 
+			//add multi-lingual support
+				$language = new text;
+				$text = $language->get();
+
 			//menu brand image and/or text
 				$html .= "	<div id='menu_side_control_container'>\n";
 				$html .= "		<div class='menu_side_control_state' style='float: right; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? 'display: none' : null)."'>\n";
 				if ($_SESSION['theme']['menu_brand_type']['text'] != 'none') {
-					$html .= "		<a class='menu_side_item_main menu_side_contract' onclick='menu_side_contract();' style='padding: 8px 15px !important; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)."'><i class='fas fa-bars fa-fw'></i></a>\n";
-				}
-				if ($_SESSION['theme']['menu_side_pin']['boolean'] == 'true') {
-					$html .= "		<a class='menu_side_item_main' id='menu_side_state_set_expanded' onclick=\"menu_side_state_set('expanded');\" oncontextmenu=\"menu_side_state_set('delete'); return false;\" style='padding: 8px 14px 8px 16px !important; ".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? 'display: none' : null)."' title=\"".$this->text['theme-label-pin_menu']."\"><i class='fas fa-toggle-off fa-sm fa-fw'></i></a>\n";
-					$html .= "		<a class='menu_side_item_main' id='menu_side_state_set_contracted' onclick=\"menu_side_state_set('contracted');\" oncontextmenu=\"menu_side_state_set('delete'); return false;\" style='padding: 8px 14px 8px 16px !important; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? 'display: none' : null)."' title=\"".$this->text['theme-label-unpin_menu']."\"><i class='fas fa-toggle-on fa-sm fa-fw'></i></a>\n";
+					$html .= "		<a class='menu_side_item_main menu_side_contract' onclick='menu_side_contract();' style='height: 60px; padding: 19px 16px 8px 16px !important; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)."'><i class='fa-solid fa-bars fa-fw'></i></a>";
 				}
 				$html .= "		</div>\n";
-				if ($_SESSION['theme']['menu_brand_type']['text'] == 'none') {
-					$html .= "		<a class='menu_side_item_main menu_side_contract' onclick='menu_side_contract();' style='".($_SESSION['theme']['menu_side_pin']['boolean'] == 'true' ? "max-width: calc(100% - 50px);" : null)." ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)."' title=\"".$this->text['theme-label-contract_menu']."\"><i class='fas fa-bars fa-fw' style='z-index: 99800; padding-left: 1px;'></i></a>";
-				}
 				$menu_brand_text = !empty($_SESSION['theme']['menu_brand_text']['text']) ? escape($_SESSION['theme']['menu_brand_text']['text']) : "FusionPBX";
-				if ($_SESSION['theme']['menu_brand_type']['text'] == 'text') {
-					$html .= "		<a class='menu_brand_text' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null)." href='".PROJECT_PATH."/'>".$menu_brand_text."</a>\n";
+				switch ($_SESSION['theme']['menu_brand_type']['text']) {
+					case 'none':
+						$html .= "<a class='menu_side_item_main menu_side_contract' onclick='menu_side_contract();' style='".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)." height: 60px; min-width: ".($_SESSION['theme']['menu_side_width_contracted']['text'] ?? 60)."px;' title=\"".$this->text['theme-label-contract_menu']."\"><i class='fa-solid fa-bars fa-fw' style='z-index: 99800; padding-left: 1px; padding-top: 11px;'></i></a>";
+						$html .= "<a class='menu_side_item_main menu_side_expand' onclick='menu_side_expand();' style='".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' || $_SESSION['theme']['menu_side_state']['text'] == 'hidden' ? "display: none;" : null)." height: 60px;' title=\"".$text['theme-label-expand_menu']."\"><i class='fa-solid fa-bars fa-fw' style='z-index: 99800; padding-left: 1px; padding-top: 11px;'></i></a>";
+						break;
+					case 'text':
+						$html .= "<a class='menu_brand_text' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null)." href='".PROJECT_PATH."/'>".escape($menu_brand_text)."</a>\n";
+						$html .= "<a class='menu_side_item_main menu_side_expand' style='height: 60px; padding-top: 19px; ".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? "display: none" : null)."' onclick='menu_side_expand();' title=\"".$this->text['theme-label-expand_menu']."\"><i class='fa-solid fa-bars fa-fw' style='z-index: 99800; padding-left: 1px;'></i></a>";
+						break;
+					case 'image_text':
+						$menu_brand_image_contracted = !empty($_SESSION['theme']['menu_side_brand_image_contracted']['text']) ? $_SESSION['theme']['menu_side_brand_image_contracted']['text'] : PROJECT_PATH."/themes/default/images/logo_side_contracted.png";
+						$html .= "<a class='menu_brand_image' href='".PROJECT_PATH."/'>";
+						$html .= 	"<img id='menu_brand_image_contracted' style='".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? "display: none;" : null)."' src='".escape($menu_brand_image_contracted)."' title=\"".escape($menu_brand_text)."\">";
+						$html .= 	"<span id='menu_brand_image_expanded' class='menu_brand_text' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null).">".escape($menu_brand_text)."</span>";
+						$html .= "</a>\n";
+						break;
+					case 'image':
+					default:
+						$menu_brand_image_contracted = !empty($_SESSION['theme']['menu_side_brand_image_contracted']['text']) ? $_SESSION['theme']['menu_side_brand_image_contracted']['text'] : PROJECT_PATH."/themes/default/images/logo_side_contracted.png";
+						$menu_brand_image_expanded = !empty($_SESSION['theme']['menu_side_brand_image_expanded']['text']) ? $_SESSION['theme']['menu_side_brand_image_expanded']['text'] : PROJECT_PATH."/themes/default/images/logo_side_expanded.png";
+						$html .= "<a class='menu_brand_image' href='".PROJECT_PATH."/'>";
+						$html .= 	"<img id='menu_brand_image_contracted' style='".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? "display: none;" : null)."' src='".escape($menu_brand_image_contracted)."' title=\"".escape($menu_brand_text)."\">";
+						$html .= 	"<img id='menu_brand_image_expanded' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null)." src='".escape($menu_brand_image_expanded)."' title=\"".escape($menu_brand_text)."\">";
+						$html .= "</a>\n";
+						break;
 				}
-				if ($_SESSION['theme']['menu_brand_type']['text'] == 'image' || $_SESSION['theme']['menu_brand_type']['text'] == 'image_text' || $_SESSION['theme']['menu_brand_type']['text'] == '') {
-					$menu_brand_image_contracted = !empty($_SESSION['theme']['menu_side_brand_image_contracted']['text']) ? $_SESSION['theme']['menu_side_brand_image_contracted']['text'] : PROJECT_PATH."/themes/default/images/logo_side_contracted.png";
-					$menu_brand_image_expanded = !empty($_SESSION['theme']['menu_side_brand_image_expanded']['text']) ? $_SESSION['theme']['menu_side_brand_image_expanded']['text'] : PROJECT_PATH."/themes/default/images/logo_side_expanded.png";
-					$html .= "		<a class='menu_brand_image' href='".PROJECT_PATH."/'>";
-					$html .= 			"<img id='menu_brand_image_contracted' style='".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? "display: none;" : null)."' src='".escape($menu_brand_image_contracted)."' title=\"".escape($menu_brand_text)."\">";
-					$html .= 			"<img id='menu_brand_image_expanded' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null)." src='".escape($menu_brand_image_expanded)."' title=\"".escape($menu_brand_text)."\">";
-					$html .= 		"</a>\n";
-				}
-// 				else {
-// 					$html .= "		<a class='menu_side_item_main menu_side_expand' ".($_SESSION['theme']['menu_side_state']['text'] == 'expanded' ? "style='display: none';" : null)." onclick='menu_side_expand();' title=\"".$this->text['theme-label-expand_menu']."\"><i class='fas fa-bars fa-fw' style='z-index: 99800; padding-left: 1px;'></i></a>";
-// 				}
 				$html .= "	</div>\n";
 			//main menu items
 				if (!empty($menu_array)) {
@@ -1138,10 +1200,10 @@ if (!class_exists('menu')) {
 						$menu_target = ($menu_item_main['menu_item_category'] == 'external') ? '_blank' : '';
 						$html .= "	<a class='menu_side_item_main' ".(!empty($menu_item_main['menu_item_link']) ? "href='".$menu_item_main['menu_item_link']."' target='".$menu_target."'" : "onclick=\"menu_side_expand(); menu_side_item_toggle('".$menu_item_main['menu_item_uuid']."');\"")." title=\"".$menu_item_main['menu_language_title']."\">";
 						if (is_array($menu_item_main['menu_items']) && sizeof($menu_item_main['menu_items']) != 0 && $_SESSION['theme']['menu_side_item_main_sub_icons']['boolean'] == 'true') {
-							$html .= "	<div class='menu_side_item_main_sub_icons' style='float: right; margin-right: -1px; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)."'><i id='sub_arrow_".$menu_item_main['menu_item_uuid']."' class='sub_arrows fas fa-".(!empty($_SESSION['theme']['menu_side_item_main_sub_icon_expand']['text']) ? $_SESSION['theme']['menu_side_item_main_sub_icon_expand']['text'] : 'chevron-down')." fa-xs'></i></div>\n";
+							$html .= "	<div class='menu_side_item_main_sub_icons' style='float: right; margin-right: -1px; ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "display: none;" : null)."'><i id='sub_arrow_".$menu_item_main['menu_item_uuid']."' class='sub_arrows ".(!empty($_SESSION['theme']['menu_side_item_main_sub_icon_expand']['text']) ? $_SESSION['theme']['menu_side_item_main_sub_icon_expand']['text'] : 'fa-solid fa-chevron-down')." fa-xs'></i></div>\n";
 						}
-						if (!empty($menu_item_main['menu_item_icon'])) {
-							$html .= "<i class='menu_side_item_icon fas ".$menu_item_main['menu_item_icon']." fa-fw' style='z-index: 99800; margin-right: 8px;'></i>";
+						if (!empty($menu_item_main['menu_item_icon']) && substr($menu_item_main['menu_item_icon'], 0, 3) == 'fa-') { // font awesome icon
+							$html .= "<i class='menu_side_item_icon ".$menu_item_main['menu_item_icon']." fa-fw' style='z-index: 99800; margin-right: 8px;'></i>";
 						}
 						$html .= "<span class='menu_side_item_title' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null).">".$menu_item_main['menu_language_title']."</span>";
 						$html .= "</a>\n";
@@ -1149,9 +1211,18 @@ if (!class_exists('menu')) {
 							if (is_array($menu_item_main['menu_items']) && sizeof($menu_item_main['menu_items']) != 0) {
 								$html .= "	<div id='sub_".$menu_item_main['menu_item_uuid']."' class='menu_side_sub' style='display: none;'>\n";
 								foreach ($menu_item_main['menu_items'] as $menu_index_sub => $menu_item_sub) {
+									$menu_sub_icon = null;
+									if ($_SESSION['theme']['menu_sub_icons']['boolean'] != 'false') {
+										if (!empty($menu_item_sub['menu_item_icon']) && substr($menu_item_sub['menu_item_icon'], 0, 3) == 'fa-') { // font awesome icon
+											$menu_sub_icon = "<span class='".escape($menu_item_sub['menu_item_icon']).(substr($menu_item_sub['menu_item_icon'], 0, 3) == 'fa-' ? ' fa-fw' : null)."'></span>";
+										}
+										else {
+											$menu_sub_icon = null;
+										}
+									}
 									$html .= "		<a class='menu_side_item_sub' ".($menu_item_sub['menu_item_category'] == 'external' ? "target='_blank'" : null)." href='".$menu_item_sub['menu_item_link']."'>";
 									$html .= 			"<span class='menu_side_item_title' ".($_SESSION['theme']['menu_side_state']['text'] != 'expanded' ? "style='display: none;'" : null).">".$menu_item_sub['menu_language_title']."</span>";
-									$html .= 		"</a>\n";
+									$html .= 		$menu_sub_icon."</a>\n";
 								}
 								$html .= "	</div>\n";
 							}
@@ -1163,10 +1234,48 @@ if (!class_exists('menu')) {
 				$content_container_onclick = "onclick=\"clearTimeout(menu_side_contract_timer); if ($(window).width() >= 576) { menu_side_contract(); }\"";
 			}
 			$html .= "<div id='content_container' ".$content_container_onclick.">\n";
+
+			//user menu on body header when side menu
+				//styles below are defined here to prevent caching (following a permission change, etc)
+				$html .= "<style>\n";
+				$html .= "div#body_header_user_menu {\n";
+				$html .= "	right: ".(permission_exists('domain_select') ? '170px' : '30px')." !important;\n";
+				$html .= "	}\n";
+				$html .= "@media (max-width: 575.98px) {\n";
+				$html .= "	div#body_header_user_menu {\n";
+				$html .= "		right: 10px !important;;\n";
+				$html .= "		}\n";
+				$html .= "	}\n";
+				$html .= "</style>\n";
+
+				$html .= "<div id='body_header_user_menu'>\n";
+				$html .= "	<div class='row m-0'>\n";
+				if (!empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image'])) {
+					$html .= "	<div class='col-5 col-sm-6 p-0' style=\"min-width: 130px; background-image: url('".PROJECT_PATH."/app/contacts/contact_attachment.php?id=".$_SESSION['user']['contact_image']."&action=download&sid=".session_id()."'); background-repeat: no-repeat; background-size: cover; background-position: center;\"></div>\n";
+				}
+				$html .= "		<div class='".(!empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image']) ? 'col-7 col-sm-6 pr-0' : 'col-12 p-0')." ' style='min-width: 130px; text-align: left;'>\n";
+				if (!empty($_SESSION['user']['contact_name'])) {
+					$html .= "		<div style='line-height: 95%;'><strong>".$_SESSION['user']['contact_name']."</strong></div>\n";
+				}
+				if (!empty($_SESSION['user']['contact_organization'])) {
+					$html .= "		<div class='mt-2' style='font-size: 85%; line-height: 95%;'>".$_SESSION['user']['contact_organization']."</div>\n";
+				}
+				if (!empty($_SESSION['user']['extension'][0]['destination'])) {
+					$html .= "		<div class='mt-2' style='font-size: 90%;'><i class='fa-solid fa-phone' style='margin-right: 5px; color: #00b043;'></i><strong>".$_SESSION['user']['extension'][0]['destination']."</strong></div>\n";
+				}
+				$html .= "			<div class='pt-2 mt-3' style='border-top: 1px solid ".color_adjust($_SESSION['theme']['body_header_shadow_color']['text'], 0.05).";'>\n";
+				$html .= "				<a href='".PROJECT_PATH."/core/users/user_edit.php?id=user'>".$text['title-account_settings']."</a><br>\n";
+				$html .= "				<a href='".PROJECT_PATH."/logout.php'>".$text['title-logout']."</a>\n";
+				$html .= "			</div>";
+				$html .= "		</div>";
+				$html .= "	</div>";
+				$html .= "</div>";
+
 			$html .= "	<div id='body_header'>\n";
 			//header: left
 				$html .= "<div class='float-left'>\n";
-				$html .= button::create(['type'=>'button','id'=>'menu_side_state_hidden_button','title'=>$this->text['theme-label-expand_menu'],'icon'=>'bars','class'=>'default '.($_SESSION['theme']['menu_side_state']['text'] != 'hidden' ? 'hide-sm-up ' : null).'float-left','onclick'=>'menu_side_expand();']);
+				// $html .= button::create(['type'=>'button','id'=>'menu_side_state_hidden_button','title'=>$this->text['theme-label-expand_menu'],'icon'=>'bars','class'=>'default '.($_SESSION['theme']['menu_side_state']['text'] != 'hidden' ? 'hide-sm-up ' : null).'float-left','onclick'=>'menu_side_expand();']);
+				$html .= "<a id='menu_side_state_hidden_button' class='".($_SESSION['theme']['menu_side_state']['text'] != 'hidden' ? 'hide-sm-up ' : null)."' href='show:menu' onclick=\"event.preventDefault(); menu_side_expand();\" title=\"".$this->text['theme-label-expand_menu']."\"><i class='fa-solid fa-bars fa-fw' style='margin: 7px 10px 5px 10px;'></i></a>";
 				$body_header_brand_text = !empty($_SESSION['theme']['body_header_brand_text']['text']) ? escape($_SESSION['theme']['body_header_brand_text']['text']) : "FusionPBX";
 				if ($_SESSION['theme']['body_header_brand_type']['text'] == 'image' || $_SESSION['theme']['body_header_brand_type']['text'] == 'image_text') {
 					$body_header_brand_image = !empty($_SESSION['theme']['body_header_brand_image']['text']) ? $_SESSION['theme']['body_header_brand_image']['text'] : PROJECT_PATH."/themes/default/images/logo_side_expanded.png";
@@ -1181,25 +1290,33 @@ if (!class_exists('menu')) {
 			//header: right
 				$html .= "<div class='float-right' style='white-space: nowrap;'>";
 				//current user
+					//set (default) user graphic size and icon
+					$user_graphic_size = 18;
+					$user_graphic = "<i class='".(!empty($_SESSION['theme']['body_header_icon_user']['text']) ? $_SESSION['theme']['body_header_icon_user']['text'] : 'fa-solid fa-user-circle')." fa-lg fa-fw' style='margin-right: 5px;'></i>";
+					//overwrite user graphic with image from session, if exists
+					if ($_SESSION['theme']['body_header_user_image']['boolean'] == true && !empty($_SESSION['user']['contact_image']) && is_uuid($_SESSION['user']['contact_image'])) {
+						$user_graphic_size = str_replace(['px','%'], '', ($_SESSION['theme']['body_header_user_image_size']['numeric'] ?? 18));
+						$user_graphic = "<span style=\"display: inline-block; vertical-align: middle; width: ".$user_graphic_size."px; height: ".$user_graphic_size."px; border-radius: 50%; margin-right: 7px; margin-top: ".($user_graphic_size > 18 ? '-'.(ceil(($user_graphic_size - 18) / 2) - 4) : '-4')."px; background-image: url('".PROJECT_PATH."/app/contacts/contact_attachment.php?id=".$_SESSION['user']['contact_image']."&action=download&sid=".session_id()."'); background-repeat: no-repeat; background-size: cover; background-position: center;\"></span>";
+					}
 					$html .= "<span style='display: inline-block; padding-right: 20px; font-size: 90%;'>\n";
-					$html .= "	<a href='".PROJECT_PATH."/core/users/user_edit.php?id=user' title=\"".$this->text['theme-label-user']."\"><i class='fas fa-".($_SESSION['theme']['body_header_icon_user']['text'] != '' ? $_SESSION['theme']['body_header_icon_user']['text'] : 'user-circle')." fa-lg fa-fw' style='margin-top: 6px; margin-right: 5px;'></i>".$_SESSION['username']."</a>";
+					$html .= "	<a href='show:usermenu' title=\"".$_SESSION['username']."\" onclick=\"event.preventDefault(); $('#body_header_user_menu').toggleFadeSlide();\">".($user_graphic ?? null)."<span class='d-none d-sm-inline'>".escape($_SESSION['username'])."</span></a>";
 					$html .= "</span>\n";
 				//domain name/selector (sm+)
 					if (!empty($_SESSION['username']) && permission_exists('domain_select') && count($_SESSION['domains']) > 1 && $_SESSION['theme']['domain_visible']['text'] == 'true') {
 						$html .= "<span style='display: inline-block; padding-right: 10px; font-size: 90%;'>\n";
-						$html .= "	<a href='#' id='header_domain_selector_domain' title='".$this->text['theme-label-open_selector']."'><i class='fas fa-".($_SESSION['theme']['body_header_icon_domain']['text'] != '' ? $_SESSION['theme']['body_header_icon_domain']['text'] : 'globe-americas')." fa-lg fa-fw' style='margin-top: 6px; margin-right: 5px;'></i>".escape($_SESSION['domain_name'])."</a>";
+						$html .= "	<a href='select:domain' onclick='event.preventDefault();' title='".$this->text['theme-label-open_selector']."' class='header_domain_selector_domain'><i class='".(!empty($_SESSION['theme']['body_header_icon_domain']['text']) ? $_SESSION['theme']['body_header_icon_domain']['text'] : 'fa-solid fa-earth-americas')." fa-fw' style='vertical-align: middle; font-size: ".($user_graphic_size - 1)."px; margin-top: ".($user_graphic_size > 18 ? '-'.(ceil(($user_graphic_size - 18) / 2) - 4) : '-3')."px; margin-right: 3px; line-height: 40%;'></i><span class='d-none d-sm-inline'>".escape($_SESSION['domain_name'])."</span></a>";
 						$html .= "</span>\n";
 					}
 				//logout icon
 					if (!empty($_SESSION['username']) && $_SESSION['theme']['logout_icon_visible']['text'] == "true") {
-						$html .= "<a id='header_logout_icon' href='#' title=\"".$this->text['theme-label-logout']."\" onclick=\"modal_open('modal-logout','btn_logout');\"><span class='fas fa-sign-out-alt'></span></a>";
+						$html .= "<a id='header_logout_icon' href='#' title=\"".$this->text['theme-label-logout']."\" onclick=\"modal_open('modal-logout','btn_logout');\"><span class='fa-solid fa-right-from-bracket'></span></a>";
 					}
 				$html .= "</div>";
 			$html .= "	</div>\n";
 
 			//modal for logout icon (above)
 				if (!empty($_SESSION['username']) && $_SESSION['theme']['logout_icon_visible']['text'] == "true") {
-					$html .= modal::create(['id'=>'modal-logout','type'=>'general','message'=>$this->text['theme-confirm-logout'],'actions'=>button::create(['type'=>'button','label'=>$this->text['theme-label-logout'],'icon'=>'sign-out-alt','id'=>'btn_logout','style'=>'float: right; margin-left: 15px;','collapse'=>'never','link'=>PROJECT_PATH.'/logout.php','onclick'=>"modal_close();"])]);
+					$html .= modal::create(['id'=>'modal-logout','type'=>'general','message'=>$this->text['theme-confirm-logout'],'actions'=>button::create(['type'=>'button','label'=>$this->text['theme-label-logout'],'icon'=>'fa-solid fa-right-from-bracket','id'=>'btn_logout','style'=>'float: right; margin-left: 15px;','collapse'=>'never','link'=>PROJECT_PATH.'/logout.php','onclick'=>"modal_close();"])]);
 				}
 
 			return $html;

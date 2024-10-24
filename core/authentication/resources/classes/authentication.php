@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -35,7 +35,9 @@ class authentication {
 	/**
 	 * Define variables and their scope
 	 */
+	private $database;
 	public $domain_uuid;
+	public $user_uuid;
 	public $domain_name;
 	public $username;
 	public $password;
@@ -44,7 +46,7 @@ class authentication {
 	 * Called when the object is created
 	 */
 	public function __construct() {
-
+		$this->database = database::new();
 	}
 
 	/**
@@ -57,6 +59,9 @@ class authentication {
 			if (!isset($this->domain_name) || !isset($this->domain_uuid)) {
 				$this->get_domain();
 			}
+
+		//create a settings object to pass to plugins
+			$settings = new settings(['database' => $this->database, 'domain_uuid' => $this->domain_uuid]);
 
 		//start the session if its not started
 			if (session_status() === PHP_SESSION_NONE) {
@@ -73,16 +78,19 @@ class authentication {
 				$_SESSION['authentication']['methods'][] = 'database';
 			}
 
+		//check if contacts app exists
+			$contacts_exists = file_exists($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/contacts/') ? true : false;
+
 		//use the authentication plugins
 			foreach ($_SESSION['authentication']['methods'] as $name) {
 				//already processed the plugin move to the next plugin
-				if (!empty($_SESSION['authentication']['plugin']) && !empty($_SESSION['authentication']['plugin'][$name]) && $_SESSION['authentication']['plugin'][$name]['authorized']) {
+				if (!empty($_SESSION['authentication']['plugin'][$name]['authorized']) && $_SESSION['authentication']['plugin'][$name]['authorized']) {
 					continue;
 				}
 
 				//prepare variables
 				$class_name = "plugin_".$name;
-				$base = realpath(dirname(__FILE__)) . "/plugins";
+				$base = __DIR__ . "/plugins";
 				$plugin = $base."/".$name.".php";
 
 				//process the plugin
@@ -99,8 +107,13 @@ class authentication {
 						$object->username = $this->username;
 						$object->password = $this->password;
 					}
-					$array = $object->$name();
-
+					//database plugin requires the authentication object and settings
+					if ($name == 'database') {
+						$array = $object->$name($this, $settings);
+					} else {
+						//get the array from the plugin
+						$array = $object->$name();
+					}
 					//build a result array
 					if (!empty($array) && is_array($array)) {
 						$result['plugin'] = $array["plugin"];
@@ -108,8 +121,20 @@ class authentication {
 						$result['username'] = $array["username"];
 						$result['user_uuid'] = $array["user_uuid"];
 						$result['contact_uuid'] = $array["contact_uuid"];
+						if ($contacts_exists) {
+							$result["contact_organization"] = $array["contact_organization"];
+							$result["contact_name_given"] = $array["contact_name_given"];
+							$result["contact_name_family"] = $array["contact_name_family"];
+							$result["contact_image"] = $array["contact_image"];
+						}
 						$result['domain_uuid'] = $array["domain_uuid"];
 						$result['authorized'] = $array["authorized"];
+
+						//set the domain_uuid
+						$this->domain_uuid = $array["domain_uuid"];
+
+						//set the user_uuid
+						$this->user_uuid = $array["user_uuid"];
 
 						//save the result to the authentication plugin
 						$_SESSION['authentication']['plugin'][$name] = $result;
@@ -169,17 +194,8 @@ class authentication {
 // 			}
 // 			$result["authorized"] = $authorized;
 
-		//add user logs
-			user_logs::add($result);
-
 		//user is authorized - get user settings, check user cidr
 			if ($authorized) {
-
-				//set a session variable to indicate authorized is set to true
-					$_SESSION['authorized'] = true;
-
-				//add the username to the session //username seesion could be set soone when check_auth uses an authorized session variable instead
-					$_SESSION['username'] = $result["username"];
 
 				//get the user settings
 					$sql = "select * from v_user_settings ";
@@ -188,8 +204,7 @@ class authentication {
 					$sql .= "and user_setting_enabled = 'true' ";
 					$parameters['domain_uuid'] = $result["domain_uuid"];
 					$parameters['user_uuid'] = $result["user_uuid"];
-					$database = new database;
-					$user_settings = $database->select($sql, $parameters, 'all');
+					$user_settings = $this->database->select($sql, $parameters, 'all');
 					unset($sql, $parameters);
 
 				//build the user cidr array
@@ -211,6 +226,11 @@ class authentication {
 							}
 						}
 						if (!$found) {
+
+							//log the failed attempt
+							$plugin_classname = substr($class_name, 7);
+							user_logs::add($_SESSION['authentication']['plugin'][$plugin_classname]);
+
 							//destroy session
 							session_unset();
 							session_destroy();
@@ -225,9 +245,19 @@ class authentication {
 
 				//set the session variables
 					$_SESSION["domain_uuid"] = $result["domain_uuid"];
-					//$_SESSION["domain_name"] = $result["domain_name"];
+					$_SESSION["domain_name"] = $result["domain_name"];
 					$_SESSION["user_uuid"] = $result["user_uuid"];
 					$_SESSION["context"] = $result['domain_name'];
+
+				//build the session server array to validate the session
+					global $conf;
+					if (!isset($conf['session.validate'])) { $conf['session.validate'][] = 'HTTP_USER_AGENT'; }
+					foreach($conf['session.validate'] as $name) {
+						$server_array[$name] = $_SERVER[$name];
+					}
+
+				//save the user hash to be used in validate the session
+					$_SESSION["user_hash"] = hash('sha256', implode($server_array));
 
 				//user session array
 					$_SESSION["user"]["domain_uuid"] = $result["domain_uuid"];
@@ -235,14 +265,26 @@ class authentication {
 					$_SESSION["user"]["user_uuid"] = $result["user_uuid"];
 					$_SESSION["user"]["username"] = $result["username"];
 					$_SESSION["user"]["contact_uuid"] = $result["contact_uuid"];
+					if ($contacts_exists) {
+						$_SESSION["user"]["contact_organization"] = $result["contact_organization"] ?? null;
+						$_SESSION["user"]["contact_name"] = trim(($result["contact_name_given"] ?? '').' '.($result["contact_name_family"] ?? ''));
+						$_SESSION["user"]["contact_name_given"] = $result["contact_name_given"] ?? null;
+						$_SESSION["user"]["contact_name_family"] = $result["contact_name_family"] ?? null;
+						$_SESSION["user"]["contact_image"] = !empty($result["contact_image"]) && is_uuid($result["contact_image"]) ? $result["contact_image"] : null;
+					}
 
-				//get the groups assigned to the user 
-					$group = new groups;
-					$group->session($result["domain_uuid"], $result["user_uuid"]);
+				//empty the  permissions
+					if (isset($_SESSION['permissions'])) {
+						unset($_SESSION['permissions']);
+					}
+
+				//get the groups assigned to the user
+					$group = new groups($this->database, $result["domain_uuid"], $result["user_uuid"]);
+					$group->session();
 
 				//get the permissions assigned to the user through the assigned groups
-					$permission = new permissions;
-					$permission->session($result["domain_uuid"], $_SESSION["groups"]);
+					$permission = new permissions($this->database, $result["domain_uuid"], $result["user_uuid"]);
+					$permission->session();
 
 				//get the domains
 					if (file_exists($_SERVER["PROJECT_ROOT"]."/app/domains/app_config.php") && !is_cli()){
@@ -304,8 +346,7 @@ class authentication {
 								$sql .= "e.extension asc ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								$parameters['user_uuid'] = $_SESSION['user_uuid'];
-								$database = new database;
-								$result = $database->select($sql, $parameters, 'all');
+								$result = $this->database->select($sql, $parameters, 'all');
 								if (is_array($result) && @sizeof($result) != 0) {
 									foreach($result as $x => $row) {
 										//set the destination
@@ -344,7 +385,20 @@ class authentication {
 						date_default_timezone_set($_SESSION["time_zone"]["user"]);
 					}
 
+				//regenerate the session on login
+					//session_regenerate_id(true);
+
+				//set a session variable to indicate authorized is set to true
+					$_SESSION['authorized'] = true;
+
+				//add the username to the session - username session could be set so check_auth uses an authorized session variable instead
+					$_SESSION['username'] = $_SESSION['user']["username"];
+
 			} //authorized true
+
+		//log the attempt
+			$plugin_classname = substr($class_name, 7);
+			user_logs::add($_SESSION['authentication']['plugin'][$plugin_classname]);
 
 		//return the result
 			return $result ?? false;
@@ -422,7 +476,7 @@ class authentication {
 			}
 
 		//set the setting arrays
-			$obj = new domains();
+			$obj = new domains(['database' => $this->database]);
 			$obj->set();
 
 		//set the domain settings

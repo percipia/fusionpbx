@@ -37,21 +37,40 @@
 	}
 
 //start the session
-	if (function_exists('session_start')) { 
+	if (function_exists('session_start')) {
 		if (!isset($_SESSION)) {
 			session_start();
 		}
 	}
 
 //regenerate sessions to avoid session id attacks such as session fixation
-	if (array_key_exists('security',$_SESSION) && $_SESSION['security']['session_rotate']['boolean'] == "true") {
+	if (isset($_SESSION['authorized']) && $_SESSION['authorized']) {
+		//set the last activity time
 		$_SESSION['session']['last_activity'] = time();
+
+		//if session created is not set then set the time
 		if (!isset($_SESSION['session']['created'])) {
 			$_SESSION['session']['created'] = time();
-		} else if (time() - $_SESSION['session']['created'] > 28800) {
-			// session started more than 8 hours ago
-			session_regenerate_id(true);    // rotate the session id
-			$_SESSION['session']['created'] = time();  // update creation time
+		} 
+
+		//check the elapsed time if exceeds limit then rotate the session
+		if (time() - $_SESSION['session']['created'] > 900) {
+
+			//build the user log array
+			$log_array['domain_uuid'] = $_SESSION['user']['domain_uuid'];
+			$log_array['domain_name'] = $_SESSION['user']['domain_name'];
+			$log_array['username'] = $_SESSION['user']['username'];
+			$log_array['user_uuid'] = $_SESSION['user']['user_uuid'];
+			$log_array['authorized'] = true;
+
+			//session started more than 15 minutes
+			session_regenerate_id(true);
+
+			// update creation time
+			$_SESSION['session']['created'] = time();
+
+			//add the result to the user logs
+			user_logs::add($log_array);
 		}
 	}
 
@@ -70,8 +89,30 @@
 //define variables
 	if (!isset($_SESSION['template_content'])) { $_SESSION["template_content"] = null; }
 
+//if session authorized is not set then set the default value to false
+	if (!isset($_SESSION['authorized'])) {
+		$_SESSION['authorized'] = false;
+	}
+
+//session validate: use HTTP_USER_AGENT as a default value
+	if (!isset($conf['session.validate'])) {
+		$conf['session.validate'][] = 'HTTP_USER_AGENT';
+	}
+
+//session validate: prepare the server array
+	foreach($conf['session.validate'] as $name) {
+		$server_array[$name] = $_SERVER[$name];
+	}
+	unset($name);
+
+//session validate: check to see if the session is valid
+	if ($_SESSION['authorized'] && $_SESSION["user_hash"] !== hash('sha256', implode($server_array))) {
+		session_destroy();
+		header("Location: ".PROJECT_PATH."/logout.php");
+	}
+
 //if the session is not authorized then verify the identity
-	if (!isset($_SESSION['authorized']) || (isset($_SESSION['authorized']) && !$_SESSION['authorized'])) {
+	if (!$_SESSION['authorized']) {
 
 		//clear the menu
 			unset($_SESSION["menu"]);
