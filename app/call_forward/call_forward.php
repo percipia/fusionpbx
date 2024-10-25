@@ -238,17 +238,6 @@
 		echo "	<div class='heading'><b>" . $text['header-call_forward'] . "</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 		echo "	<div class='actions'>\n";
 
-		if (count($extensions) > 0) {
-			if (permission_exists('call_forward')) {
-				echo button::create(['type' => 'button', 'label' => $text['label-call_forward'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_cfwd', 'onclick' => "list_action_set('toggle_call_forward'); modal_open('modal-toggle','btn_toggle');"]);
-			}
-			if (permission_exists('follow_me')) {
-				echo button::create(['type' => 'button', 'label' => $text['label-follow_me'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_follow', 'onclick' => "list_action_set('toggle_follow_me'); modal_open('modal-toggle','btn_toggle');"]);
-			}
-			if (permission_exists('do_not_disturb')) {
-				echo button::create(['type' => 'button', 'label' => $text['label-dnd'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_dnd', 'onclick' => "list_action_set('toggle_do_not_disturb'); modal_open('modal-toggle','btn_toggle');"]);
-			}
-		}
 		if ($show !== 'all' && permission_exists('call_forward_all')) {
 			echo button::create(['type' => 'button', 'label' => $text['button-show_all'], 'icon' => $_SESSION['theme']['button_icon_all'], 'link' => '?show=all' . $param]);
 		}

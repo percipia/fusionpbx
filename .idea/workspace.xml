@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b1253cb7-17dc-4353-ba77-d2dc8ef7368a" name="Changes" comment="" />
+    <list default="true" id="b1253cb7-17dc-4353-ba77-d2dc8ef7368a" name="Changes" comment="Merged in 5.3 code" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -61,13 +61,15 @@
     <option name="showMembers" value="true" />
     <option name="showVisibilityIcons" value="true" />
     <option name="sortByType" value="true" />
+    <option name="sortKey" value="BY_TYPE" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "percipia__5.3",
+    "settings.editor.selected.configurable": "preferences.keymap"
   }
-}</component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -77,6 +79,15 @@
       <option name="presentableId" value="Default" />
       <updated>1684441724261</updated>
     </task>
+    <task id="LOCAL-00001" summary="Merged in 5.3 code">
+      <option name="closed" value="true" />
+      <created>1729786570223</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1729786570223</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -106,6 +117,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Merged in 5.3 code" />
+    <option name="LAST_COMMIT_MESSAGE" value="Merged in 5.3 code" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
