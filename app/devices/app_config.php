@@ -352,6 +352,8 @@
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = 'device_key_icon';
 		$y++;
+		$apps[$x]['permissions'][$y]['name'] = 'device_config_build';
+		$y++;
 
 	//default settings
 		$y = 0;

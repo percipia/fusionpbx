@@ -765,7 +765,7 @@ if (!class_exists('extension')) {
 										if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/provision')) {
 											$prov = new provision;
 											$prov->domain_uuid = $_SESSION['domain_uuid'];
-											$response = $prov->write();
+											$response = $prov->write(null);
 										}
 									}
 
