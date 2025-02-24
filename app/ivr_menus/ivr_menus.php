@@ -42,6 +42,9 @@
 	$language = new text;
 	$text = $language->get();
 
+//connect to the database
+	$database = database::new();
+
 //define defaults
 	$action = '';
 	$search = '';
@@ -112,7 +115,6 @@
 		$sql .= ")";
 		$parameters['search'] = '%'.$search.'%';
 	}
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? '', 'column');
 
 //prepare to page the results
@@ -147,7 +149,6 @@
 	}
 	$sql .= order_by($order_by, $order, 'ivr_menu_name', 'asc', $sort);
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$ivr_menus = $database->select($sql, $parameters ?? '', 'all');
 	unset($sql, $parameters);
 
@@ -235,8 +236,12 @@
 	if (!empty($ivr_menus)) {
 		$x = 0;
 		foreach($ivr_menus as $row) {
+			$list_row_url = '';
 			if (permission_exists('ivr_menu_edit')) {
 				$list_row_url = "ivr_menu_edit.php?id=".urlencode($row['ivr_menu_uuid']);
+				if ($row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
+					$list_row_url .= '&domain_uuid='.urlencode($row['domain_uuid']).'&domain_change=true';
+				}
 			}
 			echo "<tr class='list-row' href='".$list_row_url."'>\n";
 			if (permission_exists('ivr_menu_add') || permission_exists('ivr_menu_edit') || permission_exists('ivr_menu_delete')) {
@@ -297,3 +302,4 @@
 	require_once "resources/footer.php";
 
 ?>
+

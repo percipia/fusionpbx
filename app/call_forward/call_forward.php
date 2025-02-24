@@ -221,6 +221,9 @@
 	}
 	require_once "resources/header.php";
 
+//set the back button
+	$_SESSION['call_forward_back'] = $_SERVER['PHP_SELF'];
+
 //show the content
 	if ($is_included) {
 		echo "<div class='action_bar sub'>\n";
@@ -239,7 +242,7 @@
 		echo "	<div class='actions'>\n";
 
 		if ($show !== 'all' && permission_exists('call_forward_all')) {
-			echo button::create(['type' => 'button', 'label' => $text['button-show_all'], 'icon' => $_SESSION['theme']['button_icon_all'], 'link' => '?show=all' . $param]);
+			echo button::create(['type' => 'button', 'label' => $text['button-show_all'], 'icon' => $_SESSION['theme']['button_icon_all'], 'link' => '?show=all' . (!empty($params) ? '&'.implode('&', $params) : null)]);
 		}
 		echo "<form id='form_search' class='inline' method='get'>\n";
 		if ($show == 'all' && permission_exists('call_forward_all')) {
@@ -304,6 +307,9 @@
 		$x = 0;
 		foreach ($extensions as $row) {
 			$list_row_url = PROJECT_PATH . "/app/call_forward/call_forward_edit.php?id=" . $row['extension_uuid'] . "&return_url=" . urlencode($_SERVER['REQUEST_URI']);
+			if ($row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
+				$list_row_url .= '&domain_uuid='.urlencode($row['domain_uuid']).'&domain_change=true';
+			}
 			echo "<tr class='list-row' href='" . $list_row_url . "'>\n";
 			if (!$is_included && $extensions) {
 				echo "	<td class='checkbox'>\n";

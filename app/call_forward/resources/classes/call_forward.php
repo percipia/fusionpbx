@@ -37,9 +37,33 @@
 			$this->set($uuids, false);
 		}
 
-		public function enable(array $uuids) {
-			if (!permission_exists('call_forward')) {
-				return;
+			//build extension update array
+			$array['extensions'][0]['extension_uuid'] = $this->extension_uuid;
+			$array['extensions'][0]['forward_all_destination'] = strlen($this->forward_all_destination) != 0 ? $this->forward_all_destination : null;
+			if (empty($this->forward_all_destination) || $this->forward_all_enabled == "false") {
+				$array['extensions'][0]['forward_all_enabled'] = 'false';
+			} else {
+				$array['extensions'][0]['forward_all_enabled'] = 'true';
+			}
+
+			//grant temporary permissions
+			$p = permissions::new();
+			$p->add('extension_add', 'temp');
+
+			//execute update
+			$database->app_name = 'calls';
+			$database->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
+			$database->save($array);
+			unset($array);
+
+			//revoke temporary permissions
+			$p->delete('extension_add', 'temp');
+
+			//delete extension from the cache
+			$cache = new cache;
+			$cache->delete("directory:" . $this->extension . "@" . $this->domain_name);
+			if (!empty($this->number_alias)) {
+				$cache->delete("directory:" . $this->number_alias . "@" . $this->domain_name);
 			}
 			$this->set($uuids, true);
 		}

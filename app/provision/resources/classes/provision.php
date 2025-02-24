@@ -566,7 +566,7 @@
 								$array['devices'][$x]['device_description'] = $_SERVER['HTTP_USER_AGENT'];
 
 								//add the dialplan permission
-								$p = new permissions;
+								$p = permissions::new();
 								$p->add("device_add", "temp");
 								$p->add("device_edit", "temp");
 
@@ -608,13 +608,17 @@
 							if (is_array($row) && sizeof($row) != 0) {
 								if ($row["device_enabled"] == "true") {
 									$device_label = $row["device_label"];
+
+									//if the device vendor match then use the alternate device template
+									if ($device_vendor == $row["device_vendor"]) {
+										$device_template = $row["device_template"];
+									}
+
 									$device_profile_uuid = $row["device_profile_uuid"];
 									$device_firmware_version = $row["device_firmware_version"];
 									$device_user_uuid = $row["device_user_uuid"];
 									$device_location = strtolower($row["device_location"]);
-									//keep the original device_vendor
 									$device_enabled = $row["device_enabled"];
-									//keep the original device_template
 									$device_description = $row["device_description"];
 								}
 							}
@@ -816,20 +820,11 @@
 									//set the variables
 										$line_number = $row['line_number'];
 										$register_expires = $row['register_expires'];
-										$sip_transport = strtolower($row['sip_transport']);
-										$sip_port = $row['sip_port'];
+										$sip_transport = strtolower($row['sip_transport'] ?? 'tcp');
+										$sip_port = $row['sip_port'] ?? '5060';
 
 									//set defaults
 										if (empty($register_expires)) { $register_expires = "120"; }
-										if (empty($sip_transport)) { $sip_transport = "tcp"; }
-										if (!isset($sip_port)) {
-											if ($line_number == "" || $line_number == "1") {
-												$sip_port = "5060";
-											}
-											else {
-												$sip_port = "506".($line_number + 1);
-											}
-										}
 
 									//convert seconds to minutes for grandstream
 										if ($device_vendor == 'grandstream') {

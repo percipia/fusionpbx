@@ -401,7 +401,7 @@
 					$array['dialplans'][0]["app_uuid"] = "a5788e9b-58bc-bd1b-df59-fff5d51253ab";
 
 				//add the dialplan permission
-					$p = new permissions;
+					$p = permissions::new();
 					if ($action == "add") {
 						$p->add("dialplan_add", "temp");
 					}
@@ -873,6 +873,16 @@
 						unset($selected);
 					}
 				}
+				else if ($key == 'phrases') {
+					if (!empty($instance_value) && $instance_value == $row["value"]) {
+						$selected = "selected='selected'";
+						$playable = '';
+						$found = true;
+					}
+					else {
+						unset($selected);
+					}
+				}
 				else {
 					unset($selected);
 				}
@@ -940,6 +950,16 @@
 					if (!empty($instance_value) && $instance_value == $row["value"]) {
 						$selected = "selected='selected'";
 						$playable = '../switch/sounds.php?action=download&filename='.$row["value"];
+						$found = true;
+					}
+					else {
+						unset($selected);
+					}
+				}
+				else if ($key == 'phrases') {
+					if (!empty($instance_value) && $instance_value == $row["value"]) {
+						$selected = "selected='selected'";
+						$playable = '';
 						$found = true;
 					}
 					else {

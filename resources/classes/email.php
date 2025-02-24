@@ -52,6 +52,7 @@ if (!class_exists('email')) {
 		public $read_confirmation;
 		public $error;
 		public $response;
+		private $settings;
 
 		/**
 		 * called when the object is created
@@ -232,7 +233,7 @@ if (!class_exists('email')) {
 
 			//set the send_method if not already set
 			if (!isset($this->method)) {
-				if ($setting->get('email_queue','enabled', true)) {
+				if ($this->settings->get('email_queue','enabled', true)) {
 					$this->method = 'queue';
 				}
 				else {
@@ -334,7 +335,7 @@ if (!class_exists('email')) {
 				}
 
 				//add temporary permissions
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add("email_queue_add", 'temp');
 				$p->add("email_queue_attachment_add", 'temp');
 
