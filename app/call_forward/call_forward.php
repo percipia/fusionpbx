@@ -26,7 +26,7 @@
 	 */
 
 //set default
-    $is_included = false;
+	$is_included = false;
 
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
@@ -52,41 +52,29 @@
 	$extensions = $_POST['extensions'] ?? [];
 
 //process the http post data by action
-	if ($action != '' && is_array($extensions) && @sizeof($extensions) != 0) {
-		//validate the token
-		$token = new token;
-		if (!$token->validate($_SERVER['PHP_SELF'])) {
-			message::add($text['message-invalid_token'],'negative');
-			header('Location: call_forward.php');
-			exit;
-		}
+	if (!empty($action) && count($extensions) > 0) {
 		switch ($action) {
 			case 'toggle_call_forward':
 				if (permission_exists('call_forward')) {
 					$obj = new call_forward;
 					$obj->toggle($extensions);
-					//set message
-					message::add($text['message-toggle']);
 				}
 				break;
 			case 'toggle_follow_me':
 				if (permission_exists('follow_me')) {
 					$obj = new follow_me;
 					$obj->toggle($extensions);
-					//set message
-					message::add($text['message-toggle']);
 				}
 				break;
 			case 'toggle_do_not_disturb':
 				if (permission_exists('do_not_disturb')) {
 					$obj = new do_not_disturb;
 					$obj->toggle($extensions);
-					//set message
-					message::add($text['message-toggle']);
 				}
 				break;
 		}
-		header('Location: call_forward.php'.($search != '' ? '?search='.urlencode($search) : null));
+
+		header('Location: call_forward.php' . ($search != '' ? '?search=' . urlencode($search) : null));
 		exit;
 	}
 
@@ -241,6 +229,17 @@
 		echo "	<div class='heading'><b>" . $text['header-call_forward'] . "</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 		echo "	<div class='actions'>\n";
 
+		if (count($extensions) > 0) {
+			if (permission_exists('call_forward')) {
+				echo button::create(['type' => 'button', 'label' => $text['label-call_forward'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_cfwd', 'onclick' => "list_action_set('toggle_call_forward'); modal_open('modal-toggle','btn_toggle');"]);
+			}
+			if (permission_exists('follow_me')) {
+				echo button::create(['type' => 'button', 'label' => $text['label-follow_me'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_follow', 'onclick' => "list_action_set('toggle_follow_me'); modal_open('modal-toggle','btn_toggle');"]);
+			}
+			if (permission_exists('do_not_disturb')) {
+				echo button::create(['type' => 'button', 'label' => $text['label-dnd'], 'icon' => $_SESSION['theme']['button_icon_toggle'], 'collapse' => false, 'name' => 'btn_toggle_dnd', 'onclick' => "list_action_set('toggle_do_not_disturb'); modal_open('modal-toggle','btn_toggle');"]);
+			}
+		}
 		if ($show !== 'all' && permission_exists('call_forward_all')) {
 			echo button::create(['type' => 'button', 'label' => $text['button-show_all'], 'icon' => $_SESSION['theme']['button_icon_all'], 'link' => '?show=all' . (!empty($params) ? '&'.implode('&', $params) : null)]);
 		}
@@ -313,7 +312,8 @@
 			echo "<tr class='list-row' href='" . $list_row_url . "'>\n";
 			if (!$is_included && $extensions) {
 				echo "	<td class='checkbox'>\n";
-				echo "		<input type='checkbox' name='extensions[]' id='checkbox_{$x}' value='".escape($row['extension_uuid'])."' onclick=\"if (!this.checked) { document.getElementById('checkbox_all').checked = false; }\">\n";
+				echo "		<input type='checkbox' name='extensions[$x][checked]' id='checkbox_" . $x . "' value='true' onclick=\"if (!this.checked) { document.getElementById('checkbox_all').checked = false; }\">\n";
+				echo "		<input type='hidden' name='extensions[$x][uuid]' value='" . escape($row['extension_uuid']) . "' />\n";
 				echo "	</td>\n";
 
 				if ($show == "all" && permission_exists('call_forward_all')) {

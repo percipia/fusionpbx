@@ -26,7 +26,6 @@
 	Salvatore Caruso <salvatore.caruso@nems.it>
 	Riccardo Granchi <riccardo.granchi@nems.it>
 	Errol Samuels <voiptology@gmail.com>
-	Andrew Querol <andrew@querol.me>
 */
 
 //define the follow me class
@@ -263,36 +262,16 @@
 
 
 		/**
-		 * toggle records
-		 * @param array $uuids The uuids to toggle
+		 * declare private variables
 		 */
-		/* Comment out duplicate method to fix call forwards
-		public function toggle(array $uuids) {
-			if (!permission_exists('follow_me')) {
-				return;
-			}
-
-			$this->set($uuids, null);
-		} //function
-		*/
-
-		protected function update(array $extension) : array {
-			//disable other features
-			if ($extension['follow_me_enabled'] == feature_base::enabled) {
-				$extension['do_not_disturb'] = feature_base::disabled; //false
-				$extension['forward_all_enabled'] = feature_base::disabled; //false
-			}
-			// Important to have the parent update last. Otherwise the above information will not be sent for feature key syncing.
-			return parent::update($extension);
-		}
-
-		/**
-		 * @param array $uuids The extension UUIDs to perform this operation on
-		 * @param ?bool $new_state The new state or null to toggle
-		 */
-		private function set(array $uuids, ?bool $new_state) {
-			$extensions = $this->get_existing_state($uuids);
-		}
+		private $app_name;
+		private $app_uuid;
+		private $permission;
+		private $list_page;
+		private $table;
+		private $uuid_prefix;
+		private $toggle_field;
+		private $toggle_values;
 
 		/**
 		 * toggle records
@@ -303,7 +282,7 @@
 				$this->app_name = 'calls';
 				$this->app_uuid = '19806921-e8ed-dcff-b325-dd3e5da4959d';
 				$this->permission = 'follow_me';
-				$this->list_page = 'call_forward.php';
+				$this->list_page = 'calls.php';
 				$this->table = 'extensions';
 				$this->uuid_prefix = 'extension_';
 				$this->toggle_field = 'follow_me_enabled';
