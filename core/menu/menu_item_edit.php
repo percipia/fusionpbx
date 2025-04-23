@@ -51,6 +51,7 @@
 	$menu_item_link = '';
 	$menu_item_category = '';
 	$menu_item_icon = '';
+	$menu_item_icon_color = '';
 	$menu_item_description = '';
 	$menu_item_protected = '';
 	$menu_item_parent_uuid = null;
@@ -102,6 +103,7 @@
 		$menu_item_link = $_POST["menu_item_link"] ?? '';
 		$menu_item_category = $_POST["menu_item_category"] ?? '';
 		$menu_item_icon = $_POST["menu_item_icon"] ?? '';
+		$menu_item_icon_color = $_POST["menu_item_icon_color"] ?? '';
 		$menu_item_description = $_POST["menu_item_description"] ?? '';
 		$menu_item_protected = $_POST["menu_item_protected"] ?? '';
 		$menu_item_parent_uuid = $_POST["menu_item_parent_uuid"] ?? null;
@@ -173,6 +175,7 @@
 					$array['menu_items'][0]['menu_item_link'] = $menu_item_link;
 					$array['menu_items'][0]['menu_item_category'] = $menu_item_category;
 					$array['menu_items'][0]['menu_item_icon'] = $menu_item_icon;
+					$array['menu_items'][0]['menu_item_icon_color'] = $menu_item_icon_color;
 					$array['menu_items'][0]['menu_item_description'] = $menu_item_description;
 					$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
 					$array['menu_items'][0]['menu_item_uuid'] = $menu_item_uuid;
@@ -198,6 +201,7 @@
 					$array['menu_items'][0]['menu_item_link'] = $menu_item_link;
 					$array['menu_items'][0]['menu_item_category'] = $menu_item_category;
 					$array['menu_items'][0]['menu_item_icon'] = $menu_item_icon;
+					$array['menu_items'][0]['menu_item_icon_color'] = $menu_item_icon_color;
 					$array['menu_items'][0]['menu_item_description'] = $menu_item_description;
 					$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
 					$array['menu_items'][0]['menu_item_uuid'] = $menu_item_uuid;
@@ -313,6 +317,7 @@
 			$menu_item_link = $row["menu_item_link"];
 			$menu_item_category = $row["menu_item_category"];
 			$menu_item_icon = $row["menu_item_icon"];
+			$menu_item_icon_color = $row["menu_item_icon_color"];
 			$menu_item_description = $row["menu_item_description"];
 			$menu_item_protected = $row["menu_item_protected"];
 			$menu_item_parent_uuid = $row["menu_item_parent_uuid"];
@@ -390,8 +395,8 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['header-menu_item']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'menu_edit.php?id='.urlencode($menu_uuid)]);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'menu_edit.php?id='.urlencode($menu_uuid)]);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -430,7 +435,7 @@
 		echo "<table cellpadding='0' cellspacing='0' border='0'>\n";
 		echo "	<tr>\n";
 		echo "		<td>\n";
-		echo "			<select class='formfld' name='menu_item_icon' id='selected_icon' onchange=\"$('#icons').slideUp(200); $('#icon_search').fadeOut(200, function() { $('#grid_icon').fadeIn(); });\">\n";
+		echo "			<select class='formfld' name='menu_item_icon' id='selected_icon' onchange=\"if ($(this).val()) { $('#icons').slideUp(200); $('#icon_search').fadeOut(200, function() { $('#grid_icon').fadeIn(); }); $('#icon_color').show(); } else { $('#icon_color').hide(); }\">\n";
 		echo "				<option value=''></option>\n";
 		foreach ($font_awesome_icons as $icon) {
 			$selected = $menu_item_icon == implode(' ', $icon['classes']) ? "selected" : null;
@@ -468,6 +473,11 @@
 		echo "		<input type='text' class='formfld' name='menu_item_icon' value='".escape($menu_item_icon)."'>";
 	}
 	echo "		</td>";
+	echo "	</tr>";
+
+	echo "	<tr id='icon_color' ".(empty($menu_item_icon) ? "style='display: none;'" : null).">";
+	echo "		<td class='vncell'>".$text['label-icon_color']."</td>";
+	echo "		<td class='vtable'><input type='text' class='formfld colorpicker' name='menu_item_icon_color' value=\"".escape($menu_item_icon_color)."\"></td>";
 	echo "	</tr>";
 
 	echo "	<tr>";
@@ -520,7 +530,7 @@
 			}
 		}
 		echo "</select>";
-		echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'collapse'=>'never']);
+		echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add'),'collapse'=>'never']);
 	}
 	echo "		</td>";
 	echo "	</tr>";

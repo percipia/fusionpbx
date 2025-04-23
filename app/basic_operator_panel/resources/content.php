@@ -207,7 +207,7 @@ if (!empty($groups)) {
 echo "				<td valign='top' nowrap='nowrap'>\n";
 echo "					<input type='text' class='txt list-search' id='search' placeholder=\"".$text['label-filter']."\" value=\"".escape($_REQUEST['filter'] ?? '')."\" onfocus='refresh_stop();' onkeyup='refresh_start();' onblur='refresh_start();'>\n";
 if (!empty($_REQUEST['filter'])) {
-	echo button::create(['label'=>$text['button-reset'],'icon'=>$_SESSION['theme']['button_icon_reset'],'type'=>'button','id'=>'btn_reset','style'=>(empty($_REQUEST['filter']) ? 'display: none;' : null),'onclick'=>"document.getElementById('search').value = '';",'onmouseover'=>'refresh_stop();','onmouseout'=>'refresh_start();']);
+	echo button::create(['label'=>$text['button-reset'],'icon'=>$settings->get('theme', 'button_icon_reset'),'type'=>'button','id'=>'btn_reset','style'=>(empty($_REQUEST['filter']) ? 'display: none;' : null),'onclick'=>"document.getElementById('search').value = '';",'onmouseover'=>'refresh_stop();','onmouseout'=>'refresh_start();']);
 }
 echo "				</td>\n";
 echo "				</tr>\n";
@@ -353,7 +353,7 @@ if (is_array($activity)) {
 		}
 		else {
 			//unregistered extension
-			if (!empty($_SESSION['operator_panel']['show_unregistered']['boolean']) && $_SESSION['operator_panel']['show_unregistered']['boolean'] == 'true') {
+			if (filter_var($_SESSION['operator_panel']['show_unregistered']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
 				$css_class = "ur_ext";
 			}
 			else {
@@ -551,7 +551,7 @@ if (is_array($activity)) {
 
 		if (in_array($extension, $_SESSION['user']['extensions'])) {
 			$user_extensions[] = $block;
-		} elseif (!empty($ext['call_group']) && filter_var($_SESSION['operator_panel']['group_extensions']['boolean'], FILTER_VALIDATE_BOOLEAN)) {
+		} elseif (!empty($ext['call_group']) && filter_var($_SESSION['operator_panel']['group_extensions']['boolean'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
 			$grouped_extensions[$ext['call_group']][] = $block;
 		} else {
 			$other_extensions[] = $block;

@@ -52,20 +52,6 @@
 		$users = $_POST['users'] ?? '';
 	}
 
-//check to see if contact details are in the view
-	$sql = "select * from view_users ";
-	$sql .= "where domain_uuid = :domain_uuid ";
-	$parameters = null;
-	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$row = $database->select($sql, $parameters, 'row');
-	if (isset($row['contact_organization'])) {
-		$show_contact_fields = true;
-	}
-	else {
-		$show_contact_fields = false;
-	}
-	unset($parameters);
-
 //process the http post data by action
 	if (!empty($action) && is_array($users) && @sizeof($users) != 0) {
 		switch ($action) {
@@ -103,7 +89,7 @@
 	$show = !empty($_GET["show"]) ? $_GET["show"] : '';
 
 //set from session variables
-	$list_row_edit_button = !empty($_SESSION['theme']['list_row_edit_button']['boolean']) ? $_SESSION['theme']['list_row_edit_button']['boolean'] : 'false';
+	$list_row_edit_button = $settings->get('theme', 'list_row_edit_button', false);
 
 //add the search string
 	if (!empty($search)) {
@@ -113,7 +99,7 @@
 		$sql_search .= "	or lower(group_names) like :search ";
 		$sql_search .= "	or lower(contact_organization) like :search ";
 		$sql_search .= "	or lower(contact_name) like :search ";
-		//$sql_search .= "	or lower(user_status) like :search ";
+		$sql_search .= "	or lower(contact_note) like :search ";
 		$sql_search .= ") ";
 		$parameters['search'] = '%'.$search.'%';
 	}
@@ -143,7 +129,7 @@
 	$num_rows = $database->select($sql, $parameters, 'column');
 
 //prepare to page the results
-	$rows_per_page = ($_SESSION['domain']['paging']['numeric'] != '') ? $_SESSION['domain']['paging']['numeric'] : 50;
+	$rows_per_page = $settings->get('domain', 'paging', 50);
 	$param = $search ? "&search=".$search : null;
 	$param .= ($show == 'all' && permission_exists('user_all')) ? "&show=all" : null;
 	$page = !empty($_GET['page']) ? $_GET['page'] : 0;
@@ -153,9 +139,7 @@
 
 //get the list
 	$sql = "select domain_name, domain_uuid, user_uuid, username, group_names, ";
-	if ($show_contact_fields) {
-		$sql .= "contact_organization,contact_name, ";
-	}
+	$sql .= "contact_organization,contact_name,contact_note, ";
 	$sql .= "cast(user_enabled as text) ";
 	$sql .= "from view_users ";
 	if ($show == "all" && permission_exists('user_all')) {
@@ -197,18 +181,18 @@
 	echo "	<div class='actions'>\n";
 	if (permission_exists('user_add')) {
 		if (!isset($id)) {
-			echo button::create(['type'=>'button','label'=>$text['button-import'],'icon'=>$_SESSION['theme']['button_icon_import'],'style'=>'margin-right: 15px;','link'=>'user_imports.php']);
+			echo button::create(['type'=>'button','label'=>$text['button-import'],'icon'=>$settings->get('theme', 'button_icon_import'),'style'=>'margin-right: 15px;','link'=>'user_imports.php']);
 		}
-		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'id'=>'btn_add','link'=>'user_edit.php']);
+		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add'),'id'=>'btn_add','link'=>'user_edit.php']);
 	}
 	if (permission_exists('user_add') && $users) {
-		echo button::create(['type'=>'button','label'=>$text['button-copy'],'icon'=>$_SESSION['theme']['button_icon_copy'],'id'=>'btn_copy','name'=>'btn_copy','style'=>'display: none;','onclick'=>"modal_open('modal-copy','btn_copy');"]);
+		echo button::create(['type'=>'button','label'=>$text['button-copy'],'icon'=>$settings->get('theme', 'button_icon_copy'),'id'=>'btn_copy','name'=>'btn_copy','style'=>'display: none;','onclick'=>"modal_open('modal-copy','btn_copy');"]);
 	}
 	if (permission_exists('user_edit') && $users) {
-		echo button::create(['type'=>'button','label'=>$text['button-toggle'],'icon'=>$_SESSION['theme']['button_icon_toggle'],'id'=>'btn_toggle','name'=>'btn_toggle','style'=>'display: none;','onclick'=>"modal_open('modal-toggle','btn_toggle');"]);
+		echo button::create(['type'=>'button','label'=>$text['button-toggle'],'icon'=>$settings->get('theme', 'button_icon_toggle'),'id'=>'btn_toggle','name'=>'btn_toggle','style'=>'display: none;','onclick'=>"modal_open('modal-toggle','btn_toggle');"]);
 	}
 	if (permission_exists('user_delete') && $users) {
-		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'id'=>'btn_delete','name'=>'btn_delete','style'=>'display: none;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
+		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'id'=>'btn_delete','name'=>'btn_delete','style'=>'display: none;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 	}
 	echo 		"<form id='form_search' class='inline' method='get'>\n";
 	if (permission_exists('user_all')) {
@@ -216,12 +200,12 @@
 			echo "		<input type='hidden' name='show' value='all'>\n";
 		}
 		else {
-			echo button::create(['type'=>'button','label'=>$text['button-show_all'],'icon'=>$_SESSION['theme']['button_icon_all'],'link'=>'?show=all']);
+			echo button::create(['type'=>'button','label'=>$text['button-show_all'],'icon'=>$settings->get('theme', 'button_icon_all'),'link'=>'?show=all']);
 		}
 	}
 	echo 		"<input type='text' class='txt list-search' name='search' id='search' value=\"".escape($search)."\" placeholder=\"".$text['label-search']."\" onkeydown=''>";
-	echo button::create(['label'=>$text['button-search'],'icon'=>$_SESSION['theme']['button_icon_search'],'type'=>'submit','id'=>'btn_search']);
-	//echo button::create(['label'=>$text['button-reset'],'icon'=>$_SESSION['theme']['button_icon_reset'],'type'=>'button','id'=>'btn_reset','link'=>'users.php','style'=>($search == '' ? 'display: none;' : null)]);
+	echo button::create(['label'=>$text['button-search'],'icon'=>$settings->get('theme', 'button_icon_search'),'type'=>'submit','id'=>'btn_search']);
+	//echo button::create(['label'=>$text['button-reset'],'icon'=>$settings->get('theme', 'button_icon_reset'),'type'=>'button','id'=>'btn_reset','link'=>'users.php','style'=>($search == '' ? 'display: none;' : null)]);
 	if ($paging_controls_mini != '') {
 		echo 	"<span style='margin-left: 15px;'>".$paging_controls_mini."</span>\n";
 	}
@@ -260,19 +244,17 @@
 	}
 	echo th_order_by('username', $text['label-username'], $order_by, $order, null, null, $param);
 	echo th_order_by('group_names', $text['label-groups'], $order_by, $order, null, null, $param);
-	if ($show_contact_fields) {
-		echo th_order_by('contact_organization', $text['label-organization'], $order_by, $order, null, null, $param);
-		echo th_order_by('contact_name', $text['label-name'], $order_by, $order, null, null, $param);
-	}
+	echo th_order_by('contact_organization', $text['label-organization'], $order_by, $order, null, null, $param);
+	echo th_order_by('contact_name', $text['label-name'], $order_by, $order, null, null, $param);
 	//echo th_order_by('contact_name_family', $text['label-contact_name_family'], $order_by, $order);
 	//echo th_order_by('user_status', $text['label-user_status'], $order_by, $order);
 	//echo th_order_by('add_date', $text['label-add_date'], $order_by, $order);
+	echo th_order_by('contact_note', $text['label-contact_note'], $order_by, $order, null, "class='center'", $param);
 	echo th_order_by('user_enabled', $text['label-user_enabled'], $order_by, $order, null, "class='center'", $param);
-	if (permission_exists('user_edit') && $list_row_edit_button == 'true') {
+	if (permission_exists('user_edit') && $list_row_edit_button) {
 		echo "	<td class='action-button'>&nbsp;</td>\n";
 	}
 	echo "</tr>\n";
-
 	if (is_array($users) && @sizeof($users) != 0) {
 		$x = 0;
 		foreach ($users as $row) {
@@ -302,14 +284,13 @@
 			}
 			echo "	</td>\n";
 			echo "	<td>".escape($row['group_names'])."</td>\n";
-			if ($show_contact_fields) {
-				echo "	<td>".escape($row['contact_organization'])."</td>\n";
-				echo "	<td>".escape($row['contact_name'])."</td>\n";
-			}
+			echo "	<td>".escape($row['contact_organization'])."</td>\n";
+			echo "	<td>".escape($row['contact_name'])."</td>\n";
 			//echo "	<td>".escape($row['contact_name_given'])."</td>\n";
 			//echo "	<td>".escape($row['contact_name_family'])."</td>\n";
 			//echo "	<td>".escape($row['user_status'])."</td>\n";
 			//echo "	<td>".escape($row['add_date'])."</td>\n";
+			echo "	<td>".escape($row['contact_note'])."</td>\n";
 			if (permission_exists('user_edit')) {
 				echo "	<td class='no-link center'>\n";
 				echo button::create(['type'=>'submit','class'=>'link','label'=>$text['label-'.$row['user_enabled']],'title'=>$text['button-toggle'],'onclick'=>"list_self_check('checkbox_".$x."'); list_action_set('toggle'); list_form_submit('form_list')"]);
@@ -319,9 +300,9 @@
 				echo $text['label-'.$row['user_enabled']];
 			}
 			echo "	</td>\n";
-			if (permission_exists('user_edit') && $list_row_edit_button == 'true') {
+			if (permission_exists('user_edit') && $list_row_edit_button) {
 				echo "	<td class='action-button'>\n";
-				echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$_SESSION['theme']['button_icon_edit'],'link'=>$list_row_url]);
+				echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$settings->get('theme', 'button_icon_edit'),'link'=>$list_row_url]);
 				echo "	</td>\n";
 			}
 			echo "</tr>\n";
@@ -341,4 +322,3 @@
 	require_once "resources/footer.php";
 
 ?>
-

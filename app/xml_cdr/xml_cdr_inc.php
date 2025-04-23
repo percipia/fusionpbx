@@ -285,7 +285,7 @@
 	//$rows_per_page = $_SESSION['domain']['paging']['numeric'];
 
 //prepare to page the results
-	//$rows_per_page = ($_SESSION['domain']['paging']['numeric'] != '') ? $_SESSION['domain']['paging']['numeric'] : 50; //set on the page that includes this page
+	//$rows_per_page = $settings->get('domain', 'paging', 50); //set on the page that includes this page
 	if (empty($_GET['page']) || (!empty($_GET['page']) && !is_numeric($_GET['page']))) {
 		$_GET['page'] = 0;
 	}
@@ -633,7 +633,7 @@
 		}
 	}
 	$sql = str_replace("  ", " ", $sql);
-	if ($archive_request && $_SESSION['cdr']['archive_database']['boolean'] == 'true') {
+	if ($archive_request && filter_var($_SESSION['cdr']['archive_database']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
 		$database->driver = $_SESSION['cdr']['archive_database_driver']['text'];
 		$database->host = $_SESSION['cdr']['archive_database_host']['text'];
 		$database->type = $_SESSION['cdr']['archive_database_type']['text'];

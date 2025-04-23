@@ -341,7 +341,7 @@
 		*/
 
 		//send feature event notify to the phone
-			if (!empty($_SESSION['device']['feature_sync']['boolean']) && $_SESSION['device']['feature_sync']['boolean'] == "true") {
+			if (filter_var($_SESSION['device']['feature_sync']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
 				$ring_count = ceil($call_timeout / 6);
 				$feature_event_notify = new feature_event_notify;
 				$feature_event_notify->domain_name = $_SESSION['domain_name'];
@@ -358,7 +358,7 @@
 				else {
 					$feature_event_notify->forward_all_destination = $forward_all_destination;
 				}
-				
+
 				if ($forward_busy_destination == "") {
 					$feature_event_notify->forward_busy_destination = "0";
 				}
@@ -421,7 +421,6 @@
 
 		//synchronize configuration
 			if (!empty($_SESSION['switch']['extensions']['dir']) && is_readable($_SESSION['switch']['extensions']['dir'])) {
-				require_once "app/extensions/resources/classes/extension.php";
 				$ext = new extension;
 				$ext->xml();
 				unset($ext);
@@ -504,7 +503,7 @@
 	}
 
 //prepare the autocomplete
-	if(!empty($_SESSION['follow_me']['follow_me_autocomplete']['boolean']) && $_SESSION['follow_me']['follow_me_autocomplete']['boolean'] == 'true') {
+	if(filter_var($_SESSION['follow_me']['follow_me_autocomplete']['boolean'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
 		echo "<link rel=\"stylesheet\" href=\"".PROJECT_PATH."/resources/jquery/jquery-ui.min.css\" />\n";
 		echo "<script src=\"".PROJECT_PATH."/resources/jquery/jquery-ui.min.js\"></script>\n";
 		echo "<script type=\"text/javascript\">\n";
@@ -542,8 +541,8 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-call_forward']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','onclick'=>$back_destination]);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','onclick'=>$back_destination]);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";

@@ -39,7 +39,7 @@
 	}
 
 //set from session variables
-	$list_row_edit_button = !empty($_SESSION['theme']['list_row_edit_button']['boolean']) ? $_SESSION['theme']['list_row_edit_button']['boolean'] : 'false';
+	$list_row_edit_button = $settings->get('theme', 'list_row_edit_button', false);
 
 //get the list
 	$sql = "select * from v_contact_settings ";
@@ -78,7 +78,7 @@
 			echo "<th>".$text['label-contact_setting_value']."</th>";
 			echo "<th class='center'>".$text['label-enabled']."</th>";
 			echo "<th class='hide-md-dn'>".$text['label-description']."</th>";
-			if (permission_exists('contact_setting_edit') && $list_row_edit_button == 'true') {
+			if (permission_exists('contact_setting_edit') && $list_row_edit_button) {
 				echo "	<td class='action-button'>&nbsp;</td>\n";
 			}
 			echo "</tr>\n";
@@ -119,9 +119,9 @@
 					echo "	</td>\n";
 					echo "	<td class='center'>".$text['label-'.escape($row['contact_setting_enabled'])]."&nbsp;</td>\n";
 					echo "	<td class='description overflow hide-md-dn'>".$row['contact_setting_description']."&nbsp;</td>\n";
-					if (permission_exists('contact_setting_edit') && $list_row_edit_button == 'true') {
+					if (permission_exists('contact_setting_edit') && $list_row_edit_button) {
 						echo "	<td class='action-button'>\n";
-						echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$_SESSION['theme']['button_icon_edit'],'link'=>$list_row_url]);
+						echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$settings->get('theme', 'button_icon_edit'),'link'=>$list_row_url]);
 						echo "	</td>\n";
 					}
 					echo "</tr>\n";

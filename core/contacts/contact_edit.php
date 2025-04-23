@@ -92,7 +92,7 @@
 
 		//$contact_users = $_POST["contact_users"];
 		//$contact_groups = $_POST["contact_groups"];
-		$contact_user_uuid = ($_SESSION['contact']['permissions']['boolean'] == "true") ? ($_POST["contact_user_uuid"] ?? $_SESSION["user_uuid"]) : ($contact_user_uuid = $_POST["contact_user_uuid"] ?? null);
+		$contact_user_uuid = filter_var($_SESSION['contact']['permissions']['boolean'] ?? false, FILTER_VALIDATE_BOOLEAN) ? ($_POST["contact_user_uuid"] ?? $_SESSION["user_uuid"]) : ($contact_user_uuid = $_POST["contact_user_uuid"] ?? null);
 		$contact_group_uuid = $_POST["contact_group_uuid"] ?? null;
 
 		$contact_phones = $_POST["contact_phones"];
@@ -1106,13 +1106,13 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-contact-edit']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','collapse'=>'hide-xs','style'=>'margin-right: 15px;','link'=>'contact_view.php?id='.$contact_uuid]);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','collapse'=>'hide-xs','style'=>'margin-right: 15px;','link'=>'contact_view.php?id='.$contact_uuid]);
 	if ($action == 'update') {
 		if (permission_exists('contact_phone_add')) {
-			echo button::create(['type'=>'button','label'=>$text['button-copy'],'icon'=>$_SESSION['theme']['button_icon_copy'],'id'=>'btn_copy','name'=>'btn_copy','style'=>'display: none;','onclick'=>"modal_open('modal-copy','btn_copy');"]);
+			echo button::create(['type'=>'button','label'=>$text['button-copy'],'icon'=>$settings->get('theme', 'button_icon_copy'),'id'=>'btn_copy','name'=>'btn_copy','style'=>'display: none;','onclick'=>"modal_open('modal-copy','btn_copy');"]);
 		}
 		if (permission_exists('contact_phone_delete')) {
-			echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'id'=>'btn_delete','name'=>'btn_delete','style'=>'display: none; margin-right: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
+			echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'id'=>'btn_delete','name'=>'btn_delete','style'=>'display: none; margin-right: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 		}
 	}
 
@@ -1189,9 +1189,9 @@
 		permission_exists('contact_setting_delete') ||
 		permission_exists('contact_attachment_delete')
 		)) {
-		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'name'=>'btn_delete','collapse'=>'hide-sm-dn','onclick'=>"modal_open('modal-delete','btn_delete');"]);
+		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'name'=>'btn_delete','collapse'=>'hide-sm-dn','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'style'=>'margin-left: 15px;','id'=>'btn_save','collapse'=>'hide-xs']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'style'=>'margin-left: 15px;','id'=>'btn_save','collapse'=>'hide-xs']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -1204,7 +1204,7 @@
 			echo modal::create(['id'=>'modal-copy','type'=>'copy','actions'=>button::create(['type'=>'submit','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_copy','style'=>'float: right; margin-left: 15px;','collapse'=>'never','name'=>'action','value'=>'copy','onclick'=>"modal_close();"])]);
 		}
 		if (permission_exists('contact_delete')) {
-			echo modal::create(['id'=>'modal-delete','type'=>'delete','actions'=>button::create(['type'=>'submit','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','name'=>'action','value'=>'delete','onclick'=>"modal_close();"])]);
+			echo modal::create(['id'=>'modal-delete','type'=>'delete','actions'=>button::create(['type'=>'submit','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','name'=>'action','value'=>'delete','onclick'=>"modal_close();"])]);
 		}
 	}
 
@@ -1529,7 +1529,7 @@ echo "		</div>\n";
 echo "	</div>\n";
 unset($contact_note);
 
-if ($_SESSION['contact']['permissions']['boolean'] == "true") {
+if (filter_var($_SESSION['contact']['permissions']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
 	if (permission_exists('contact_user_view') || permission_exists('contact_group_view')) {
 		echo "	<div class='form_set card'>\n";
 		echo "		<div class='heading'>\n";
@@ -1574,7 +1574,7 @@ if ($_SESSION['contact']['permissions']['boolean'] == "true") {
 			}
 			if (permission_exists('contact_user_add')) {
 				echo "		<div class='vtable' style='border-bottom: none;'>\n";
-				echo "			<select name='contact_user_uuid' class='formfld' style='width: auto;'>\n";
+				echo "			<select name='contact_user_uuid' class='formfld' style='width: 112px;'>\n";
 				echo "				<option value=''></option>\n";
 				foreach ($users as $field) {
 					if (!empty($contact_users_assigned) && in_array($field['user_uuid'], array_column($contact_users_assigned, 'user_uuid'))) { continue; } //skip users already assigned
@@ -1582,7 +1582,7 @@ if ($_SESSION['contact']['permissions']['boolean'] == "true") {
 				}
 				echo "			</select>\n";
 				if ($action == "update") {
-					echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add']]);
+					echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add')]);
 				}
 				unset($users);
 				echo "		</div>\n";
@@ -1632,7 +1632,7 @@ if ($_SESSION['contact']['permissions']['boolean'] == "true") {
 			if (permission_exists('contact_group_add')) {
 				if (!empty($contact_groups_available)) {
 					echo "	<div class='vtable' style='border-bottom: none;'>\n";
-					echo "		<select name='contact_group_uuid' class='formfld' style='width: auto; margin-right: 3px;'>\n";
+					echo "		<select name='contact_group_uuid' class='formfld' style='width: 112px;'>\n";
 					echo "			<option value=''></option>\n";
 					foreach ($contact_groups_available as $field) {
 						if ($field['group_name'] == "superadmin" && !if_group("superadmin")) { continue; }	//only show superadmin group to superadmins
@@ -1641,7 +1641,7 @@ if ($_SESSION['contact']['permissions']['boolean'] == "true") {
 					}
 					echo "		</select>";
 					if ($action == "update") {
-						echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add']]);
+						echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add')]);
 					}
 					echo "	</div>\n";
 				}
@@ -1688,7 +1688,7 @@ if (permission_exists('contact_phone_view')) {
 			echo "			</div>\n";
 		}
 		echo "			<div class='button no-link' style='float: left; margin-top: 1px; margin-left: 8px;'>\n";
-		echo "				<a href='../xml_cdr/xml_cdr.php?caller_id_number=".urlencode($row['phone_number'] ?? '')."'>\n";
+		echo "				<a href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?caller_id_number=".urlencode($row['phone_number'] ?? '')."'>\n";
 		echo "					<i class='fas fa-search fa-fw' style='color: ".$body_text_color."; float: left; margin-top: 7px; margin-left: 3px; margin-right: 3px;' title=\"".$text['button-cdr']."\"></i>\n";
 		echo "				</a>\n";
 
@@ -1788,10 +1788,10 @@ if (permission_exists('contact_phone_view')) {
 		echo "		<div class='label'>\n";
 		echo "			".$text['label-phone_type']."\n";
 		echo "		</div>\n";
-		echo "		<div class='field no-wrap'>\n";
-		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_voice]' id='phone_type_voice' value='1' ".(($row['phone_type_voice']) ? "checked='checked'" : null)."> ".$text['label-voice']."</label>&nbsp;\n";
-		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_fax]' id='phone_type_fax' value='1' ".(($row['phone_type_fax']) ? "checked='checked'" : null)."> ".$text['label-fax']."</label>&nbsp;\n";
-		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_video]' id='phone_type_video' value='1' ".(($row['phone_type_video']) ? "checked='checked'" : null)."> ".$text['label-video']."</label>&nbsp;\n";
+		echo "		<div class='field no-wrap' style='display: flex; flex-wrap: wrap; gap: 3px;'>\n";
+		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_voice]' id='phone_type_voice' value='1' ".(($row['phone_type_voice']) ? "checked='checked'" : null)."> ".$text['label-voice']."</label>\n";
+		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_fax]' id='phone_type_fax' value='1' ".(($row['phone_type_fax']) ? "checked='checked'" : null)."> ".$text['label-fax']."</label>\n";
+		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_video]' id='phone_type_video' value='1' ".(($row['phone_type_video']) ? "checked='checked'" : null)."> ".$text['label-video']."</label>\n";
 		echo "			<label style='padding-top: 2px; margin: 0;'><input type='checkbox' name='contact_phones[$x][phone_type_text]' id='phone_type_text' value='1' ".(($row['phone_type_text']) ? "checked='checked'" : null)."> ".$text['label-text']."</label>\n";
 		echo "			<br />\n";
 		//echo 			$text['description-phone_type']."\n";
@@ -2719,8 +2719,9 @@ if (permission_exists('contact_note_view')) {
 	$x = 0;
 	foreach($contact_notes as $row) {
 		$contact_note = $row['contact_note'];
-		$contact_note = escape($contact_note);
-		$contact_note = str_replace("\n","<br />",$contact_note);
+		if (!empty($contact_note)) {
+			$contact_note = htmlspecialcars($contact_note, ENT_QUOTES, 'UTF-8');
+		}
 		if (permission_exists('contact_note_add')) {
 			$list_row_url = "contact_note_edit.php?contact_uuid=".escape($row['contact_uuid'])."&id=".escape($row['contact_note_uuid']);
 		}
