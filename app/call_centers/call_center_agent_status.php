@@ -188,15 +188,11 @@
 						//validate the agent status
 							$agent_status = $row['agent_status'];
 							switch ($agent_status) {
-								case "Available" :
-									break;
-								case "Available (On Demand)" :
-									break;
-								case "On Break" :
-									break;
-								case "Do Not Disturb" :
-									break;
-								case "Logged Out" :
+								case "Available":
+								case "Available (On Demand)":
+								case "On Break":
+								case "Do Not Disturb":
+								case "Logged Out":
 									break;
 								default :
 									$agent_status = null;
