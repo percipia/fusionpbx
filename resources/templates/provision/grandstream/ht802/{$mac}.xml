@@ -87,6 +87,9 @@
     <!-- # Firmware Upgrade and Privisioning. 0 - TFTP Upgrade, 1 - HTTP Upgrade, 2 - HTTPS Upgrade, 3 - FTP Upgrade, 4 - FTPS Upgrade. -->
     <!-- # Number: 0, 1, 2, 3, 4 -->
     <!-- # Mandatory -->
+    {if isset($grandstream_firmware_upgrade_protocol) }
+    <P212>{$grandstream_firmware_upgrade_protocol}</P212>
+    {else}
     <P212>2</P212>
 
     <!-- Firmware Server Path -->
@@ -2448,7 +2451,7 @@
     <!-- # IP Address. 0 - DHCP, 2 - PPPoE, 1 - Static IP -->
     <!-- # Number: 0, 1, 2 -->
     <!-- # Mandatory -->
-    <P8>0</P8>
+    {if isset($grandstream_ip_mode)}<P8>{$grandstream_ip_mode}</P8>{else}<P8>0</P8>{/if}</P8>
 
     <!-- ################################################################################# -->
     <!-- # DHCP -->
