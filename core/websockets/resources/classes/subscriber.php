@@ -467,7 +467,7 @@ class subscriber {
 
 		// Check for required fields
 		if (empty($request_token)) {
-			$date = date('Y/m/d H:i:s', time());
+			//$date = date('Y/m/d H:i:s', time());
 			//self::$logger->warn("Empty token given for $this->id");
 			return false;
 		}
@@ -500,19 +500,6 @@ class subscriber {
 				$valid = $valid && (time() - $token_time < $token_limit * 60);  // token_time_limit * 60 seconds = 15 minutes
 			}
 
-			// Debug information
-			if (true) {
-				//self::$logger->debug("------------------ Authenticate Token Compare ------------------");
-				//self::$logger->debug(" Subscriber token name: ".$request_token['name']);
-				//self::$logger->debug(" Subscriber token hash: ".$request_token['hash']);
-				//self::$logger->debug("     Server token name: $token_name");
-				//self::$logger->debug("     Server token hash: $token_hash");
-				//self::$logger->debug("     Server token time: $token_time");
-				//self::$logger->debug("    Server token limit: $token_limit");
-				//self::$logger->debug("Valid: " . ($valid ? 'yes' : 'no'));
-				//self::$logger->debug("----------------------------------------------------------------");
-			}
-
 			// When token is valid
 			if ($valid) {
 
@@ -527,6 +514,12 @@ class subscriber {
 				$this->domain_name = $array['domain']['name'] ?? '';
 				$this->domain_uuid = $array['domain']['uuid'] ?? '';
 
+				// Store the permissions
+				$this->permissions = $array['user']['permissions'] ?? [];
+
+				// Remove the permissions from the user array because this class handles them seperately
+				unset($array['user']['permissions']);
+
 				// Add the user information when available
 				$this->user = $array['user'] ?? [];
 
@@ -535,9 +528,6 @@ class subscriber {
 				foreach ($services as $service) {
 					$this->subscribe($service);
 				}
-
-				// Store the permissions
-				$this->permissions = $array['permissions'] ?? [];
 
 				// Check for service
 				if (isset($array['service'])) {
@@ -805,12 +795,6 @@ class subscriber {
 	public static function save_token(array $token, array $services, int $time_limit_in_minutes = 0) {
 
 		//
-		// Put the domain_name, permissions, and token in local storage so we can use all the information
-		// to authenticate an incoming connection from the websocket service.
-		//
-		$array['permissions'] = $_SESSION['permissions'] ?? '';
-
-		//
 		// Store the currently logged in user when available
 		//
 		$array['user'] = $_SESSION['user'] ?? [];
@@ -858,16 +842,10 @@ class subscriber {
 	 * @return bool True if the token has expired. False if the token is still valid
 	 */
 	public function token_time_exceeded(): bool {
-		if (!$this->enable_token_time_limit)
+		if (!$this->enable_token_time_limit) {
 			return false;
+		}
 
-		//self::$logger->debug("------------- TOKEN TIME LIMIT -------------");
-		//self::$logger->debug("    Token Limit: $this->token_limit");
-		//self::$logger->debug("     Token Time: $this->token_time");
-		//self::$logger->debug("   Current Time: " . time());
-		//self::$logger->debug("time-token_time: " . (time() - $this->token_time));
-		//self::$logger->debug("  Time Exceeded: " . ((time() - $this->token_time) > $this->token_limit ? 'Yes' : 'No'));
-		//self::$logger->debug("--------------------------------------------");
 		//test the time on the token to ensure it is valid
 		return (time() - $this->token_time) > $this->token_limit;
 	}
