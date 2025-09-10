@@ -358,7 +358,7 @@
 		$apps[$x]['default_settings'][$y]['default_setting_category'] = "cdr";
 		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "http_enabled";
 		$apps[$x]['default_settings'][$y]['default_setting_name'] = "boolean";
-		$apps[$x]['default_settings'][$y]['default_setting_value'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Used to import call detail records with HTTP POST";
 		$y++;
@@ -446,7 +446,7 @@
 		$apps[$x]['default_settings'][$y]['default_setting_category'] = "cdr";
 		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "call_log_enabled";
 		$apps[$x]['default_settings'][$y]['default_setting_name'] = "boolean";
-		$apps[$x]['default_settings'][$y]['default_setting_value'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Enable or disable adding call logs to the database.";
 		$y++;
