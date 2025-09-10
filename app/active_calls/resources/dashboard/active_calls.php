@@ -46,7 +46,7 @@ if (!isset($database)) {
 }
 
 //set the dashboard icon to a solid color phone
-$dashboard_icon = 'fa-solid fa-phone';
+$widget_icon = 'fa-solid fa-phone';
 
 //add multi-lingual support
 $text = (new text)->get($_SESSION['domain']['language']['code'], 'app/active_calls');
@@ -68,23 +68,24 @@ $row_style["0"] = "row_style0";
 $row_style["1"] = "row_style1";
 
 //icon and count
-echo "<div class='hud_content' ".($dashboard_details_state == "disabled" ?: "onclick=\"$('#hud_active_calls_details').slideToggle('fast'); toggle_grid_row_end('".$dashboard_name."')\"").">\n";
+echo "<div class='hud_content' ".($widget_details_state == "disabled" ?: "onclick=\"$('#hud_active_calls_details').slideToggle('fast');\"").">\n";
 	echo "<span class='hud_title'><a onclick=\"document.location.href='".PROJECT_PATH."/app/active_calls/active_calls.php'\">".$text['title']."</a></span>\n";
 	echo "<div style='position: relative; display: inline-block;'>\n";
-		echo "<span class='hud_stat'><i class=\"fas ".$dashboard_icon." \"></i></span>\n";
-		echo "<span id='calls_active_count' name='calls_active_count' style=\"background-color: ".(!empty($dashboard_number_background_color) ? $dashboard_number_background_color : '#03c04a')."; color: ".(!empty($dashboard_number_text_color) ? $dashboard_number_text_color : '#ffffff')."; font-size: 12px; font-weight: bold; text-align: center; position: absolute; top: 23px; left: 24.5px; padding: 2px 7px 1px 7px; border-radius: 10px; white-space: nowrap;\">0</span>\n";
+		echo "<span class='hud_stat'><i class=\"fas ".$widget_icon." \"></i></span>\n";
+		echo "<span id='calls_active_count' name='calls_active_count' style=\"background-color: ".(!empty($widget_number_background_color) ? $widget_number_background_color : '#03c04a')."; color: ".(!empty($widget_number_text_color) ? $widget_number_text_color : '#ffffff')."; font-size: 12px; font-weight: bold; text-align: center; position: absolute; top: 23px; left: 24.5px; padding: 2px 7px 1px 7px; border-radius: 10px; white-space: nowrap;\">0</span>\n";
 	echo "</div>\n";
 echo "</div>\n";
 
 //active call details
 echo "<div class='hud_details hud_box' id='hud_active_calls_details'>\n";
-if ($dashboard_details_state != 'disabled') {
+if ($widget_details_state != 'disabled') {
 	echo "<table id='active_calls' name='active_calls' class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
 		echo "<thead id='head_active_calls' name='head_active_calls'>\n";
 			echo "<tr>\n";
-				echo "<th class='hud_heading' width='50%'>".$text['label-cid-number']."</th>\n";
-				echo "<th class='hud_heading' width='50%'>".$text['label-destination']."</th>\n";
-				echo "<th class='hud_heading' width='50%'>".$text['label-status']."</th>\n";
+				echo "<th class='hud_heading' width='25%'>".$text['label-cid-number']."</th>\n";
+				echo "<th class='hud_heading' width='25%'>".$text['label-destination']."</th>\n";
+				echo "<th class='hud_heading' width='25%'>".$text['label-status']."</th>\n";
+				echo "<th class='hud_heading' width='25%'>".$text['label-duration']."</th>\n";
 			echo "</tr>\n";
 		echo "</thead>\n";
 		echo "<tbody id='active_calls_body' name='active_calls_body'>\n";
@@ -243,6 +244,9 @@ if (!empty($_SESSION['user']['extension'])) {
 		const other_leg_unique_id = call.other_leg_unique_id ?? '';
 		switch (state) {
 			case 'ringing':
+				//calls that are already in progress should be answered status
+				if (call.caller_channel_created_time > Date.now()) call.answer_state = 'answered';
+				//update the data
 				update_call(call);
 				replace_arrow_color(uuid, colors.RINGING);
 				//enforce a local arrow for eavesdrop
@@ -378,6 +382,7 @@ if (!empty($_SESSION['user']['extension'])) {
 echo '<td id="caller_id_number_${uuid}">${call.caller_caller_id_number}</td>' . PHP_EOL;
 echo '<td id="destination_${uuid}">${call.caller_destination_number}</td>' . PHP_EOL;
 echo '<td id="answer_state_${uuid}">${call.answer_state}</td>' . PHP_EOL;
+echo '<td id="duration_${uuid}"></td>'.PHP_EOL;
 ?>`;
 //end string block
 			row.style.display = 'table-row';
@@ -390,6 +395,11 @@ echo '<td id="answer_state_${uuid}">${call.answer_state}</td>' . PHP_EOL;
 			// add the uuid to the map
 			callsMap.set(call.unique_id, row);
 
+			// start the timer
+			start_duration_timer(call.unique_id, call.caller_channel_created_time);
+
+			// add the uuid to the map
+			callsMap.set(call.unique_id, row);
 		}
 		updateCount();
 	}
@@ -443,6 +453,42 @@ echo '<td id="answer_state_${uuid}">${call.answer_state}</td>' . PHP_EOL;
 		calls_active_count.textContent = `${visibleCount}`;
 	}
 
+	function start_duration_timer(uuid, start_time) {
+		const td = document.getElementById(`duration_${uuid}`)
+
+		// Render function closes over startMs
+		function render() {
+			//calculate already elapsed time
+			const start = new Date(start_time / 1000);
+			const now = new Date();
+			const elapsed = Math.floor(now.getTime() - start.getTime());
+
+			//format time
+			const hh = Math.floor(elapsed / (1000 * 3600)).toString();
+			const mm = Math.floor((elapsed % (1000 * 3600)) / (1000 * 60)).toString().padStart(2, "0");
+			const ss = Math.floor((elapsed % (1000 * 60)) / 1000).toString().padStart(2, "0"); // Convert remaining milliseconds to seconds
+
+			td.textContent = `${hh}:${mm}:${ss}`;
+		}
+
+		render();
+		const timerId = setInterval(render, 1000);
+
+		timers[uuid] = timerId
+
+		// Return stop function
+		return () => clearInterval(timerId);
+	}
+
+	function stop_duration_timer(uuid) {
+		//clear the timer on the row
+		const timer_id = timers[uuid]
+		if (timer_id) {
+			clearInterval(timer_id)
+			delete timers[uuid]
+		}
+	}
+
 	function hangup_call(call) {
 		const row = callsMap.get(call.unique_id);
 		if (row) {
@@ -458,6 +504,7 @@ echo '<td id="answer_state_${uuid}">${call.answer_state}</td>' . PHP_EOL;
 
 			const totalCount = callsMap.size;
 			calls_active_count.textContent = `${visibleCount}`;
+			stop_duration_timer(uuid);
 			row.remove();
 		}
 	}

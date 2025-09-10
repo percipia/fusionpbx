@@ -47,6 +47,11 @@
 	$language = new text;
 	$text = $language->get();
 
+//get order and order by, page
+	$order_by = preg_replace('#[^a-zA-Z0-9_\-]#', '', ($_REQUEST["order_by"] ?? 'extension'));
+	$order = $_REQUEST["order"] ?? 'asc';
+	$page = isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $_REQUEST['page'] : 0;
+
 //return the first item if data type = array, returns value if data type = text
 	function get_first_item($value) {
 		return is_array($value) ? $value[0] : $value;
@@ -96,7 +101,6 @@
 	if (!empty($_REQUEST["id"]) && is_uuid($_REQUEST["id"])) {
 		$action = "update";
 		$extension_uuid = $_REQUEST["id"];
-		$page = $_REQUEST['page'] ?? null;
 	}
 	else {
 		$action = "add";
@@ -114,7 +118,7 @@
 
 			if ($total_extensions >= $limit_extensions) {
 				message::add($text['message-maximum_extensions'].' '.$limit_extensions, 'negative');
-				header('Location: extensions.php'.(isset($page) && is_numeric($page) ? '?page='.$page : null));
+				header('Location: extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
 				exit;
 			}
 		}
@@ -320,7 +324,7 @@
 			$p->delete('extension_user_delete', 'temp');
 
 		//redirect
-			header("Location: extension_edit.php?id=".$extension_uuid);
+			header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
 			exit;
 	}
 
@@ -347,7 +351,7 @@
 				$p->delete('device_line_delete', 'temp');
 
 			//redirect
-				header("Location: extension_edit.php?id=".$extension_uuid);
+				header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
 				exit;
 		}
 	}
@@ -714,7 +718,7 @@
 												}
 												else {
 													//send a message to the user the device is not unique
-													$message = $text['message-duplicate'].(if_group("superadmin") && $_SESSION["domain_name"] != $device_domain_name ? ": ".$device_domain_name : null);
+													$message = $text['message-duplicate'].(if_group("superadmin") && $domain_name != $device_domain_name ? ": ".$device_domain_name : null);
 													message::add($message,'negative');
 												}
 
@@ -892,10 +896,10 @@
 						message::add($text['message-update']);
 					}
 					if ($range > 1) {
-						header("Location: extensions.php");
+						header("Location: extensions.php?".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
 					}
 					else {
-						header("Location: extension_edit.php?id=".$extension_uuid.(isset($page) && is_numeric($page) ? '&page='.$page : null));
+						header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
 					}
 					exit;
 			}
@@ -1146,13 +1150,13 @@
 	echo "	var new_ext = prompt('".$text['message-extension']."');\n";
 	echo "	if (new_ext != null) {\n";
 	echo "		if (!isNaN(new_ext)) {\n";
-	echo "			document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext".(!empty($page) && is_numeric($page) ? " + '&page=".$page."'" : null).";\n";
+	echo "			document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null)."';\n";
 	echo "		}\n";
 	echo "		else {\n";
 	echo "			var new_number_alias = prompt('".$text['message-number_alias']."');\n";
 	echo "			if (new_number_alias != null) {\n";
 	echo "				if (!isNaN(new_number_alias)) {\n";
-	echo "					document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '&alias=' + new_number_alias".(!empty($page) && is_numeric($page) ? " + '&page=".$page."'" : null).";\n";
+	echo "					document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '&alias=' + new_number_alias + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null)."';\n";
 	echo "				}\n";
 	echo "			}\n";
 	echo "		}\n";
@@ -1172,7 +1176,7 @@
 	}
 	echo 	"</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'extensions.php'.(isset($page) && is_numeric($page) ? '?page='.$page : null)]);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null)]);
 	if ($action == 'update') {
 		$button_margin = 'margin-left: 15px;';
 		if (permission_exists('xml_cdr_view')) {
@@ -1191,7 +1195,9 @@
 		}
 
 	}
-	echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;','onclick'=>'submit_form();']);
+	if (permission_exists('extension_add') || permission_exists('extension_edit')) {
+		echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;','onclick'=>'submit_form();']);
+	}
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -1710,20 +1716,18 @@
 		echo "    ".$text['label-directory_visible']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "    <select class='formfld' name='directory_visible'>\n";
-		if (!empty($directory_visible) && $directory_visible == "true") {
-			echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+			echo "	<label class='switch'>\n";
+			echo "		<input type='checkbox' id='directory_visible' name='directory_visible' value='true' ".($directory_visible == 'true' ? "checked='checked'" : null).">\n";
+			echo "		<span class='slider'></span>\n";
+			echo "	</label>\n";
 		}
 		else {
-			echo "    <option value='true'>".$text['label-true']."</option>\n";
+			echo "	<select class='formfld' id='directory_visible' name='directory_visible'>\n";
+			echo "		<option value='true' ".($directory_visible == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+			echo "		<option value='false' ".($directory_visible == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+			echo "	</select>\n";
 		}
-		if (!empty($directory_visible) && $directory_visible == "false") {
-			echo "    <option value='false' selected >".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "    <option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "    </select>\n";
 		echo "<br />\n";
 		echo $text['description-directory_visible']."\n";
 		echo "</td>\n";
@@ -1734,20 +1738,18 @@
 		echo "    ".$text['label-directory_exten_visible']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "    <select class='formfld' name='directory_exten_visible'>\n";
-		if (!empty($directory_exten_visible) && $directory_exten_visible == "true") {
-			echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+			echo "	<label class='switch'>\n";
+			echo "		<input type='checkbox' id='directory_exten_visible' name='directory_exten_visible' value='true' ".($directory_exten_visible == 'true' ? "checked='checked'" : null).">\n";
+			echo "		<span class='slider'></span>\n";
+			echo "	</label>\n";
 		}
 		else {
-			echo "    <option value='true'>".$text['label-true']."</option>\n";
+			echo "	<select class='formfld' id='directory_exten_visible' name='directory_exten_visible'>\n";
+			echo "		<option value='true' ".($directory_exten_visible == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+			echo "		<option value='false' ".($directory_exten_visible == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+			echo "	</select>\n";
 		}
-		if (!empty($directory_exten_visible) && $directory_exten_visible == "false") {
-			echo "    <option value='false' selected >".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "    <option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "    </select>\n";
 		echo "<br />\n";
 		echo $text['description-directory_exten_visible']."\n";
 		echo "</td>\n";
@@ -1797,21 +1799,18 @@
 		echo "    ".$text['label-voicemail_enabled']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "    <select class='formfld' name='voicemail_enabled'>\n";
-		echo "    <option value=''></option>\n";
-		if ($voicemail_enabled == true) {
-			echo "    <option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+			echo "	<label class='switch'>\n";
+			echo "		<input type='checkbox' id='voicemail_enabled' name='voicemail_enabled' value='true' ".($voicemail_enabled == 'true' ? "checked='checked'" : null).">\n";
+			echo "		<span class='slider'></span>\n";
+			echo "	</label>\n";
 		}
 		else {
-			echo "    <option value='true'>".$text['label-true']."</option>\n";
+			echo "	<select class='formfld' id='voicemail_enabled' name='voicemail_enabled'>\n";
+			echo "		<option value='true' ".($voicemail_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+			echo "		<option value='false' ".($voicemail_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+			echo "	</select>\n";
 		}
-		if ($voicemail_enabled == false) {
-			echo "    <option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "    <option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "    </select>\n";
 		echo "<br />\n";
 		echo $text['description-voicemail_enabled']."\n";
 		echo "</td>\n";
@@ -1834,11 +1833,18 @@
 			echo "	".$text['label-voicemail_transcription_enabled']."\n";
 			echo "</td>\n";
 			echo "<td class='vtable' align='left'>\n";
-			echo "	<select class='formfld' name='voicemail_transcription_enabled' id='voicemail_transcription_enabled'>\n";
-			echo "    <option value=''></option>\n";
-			echo "    	<option value='true' ".(($voicemail_transcription_enabled == "true") ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
-			echo "    	<option value='false' ".(($voicemail_transcription_enabled == "false") ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
-			echo "	</select>\n";
+			if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+				echo "	<label class='switch'>\n";
+				echo "		<input type='checkbox' id='voicemail_transcription_enabled' name='voicemail_transcription_enabled' value='true' ".($voicemail_transcription_enabled == true ? "checked='checked'" : null).">\n";
+				echo "		<span class='slider'></span> \n";
+				echo "	</label>\n";
+			}
+			else {
+				echo "	<select class='formfld' id='voicemail_transcription_enabled' name='voicemail_transcription_enabled'>\n";
+				echo "		<option value='true'>".$text['option-true']."</option>\n";
+				echo "		<option value='false' ".($voicemail_transcription_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+				echo "	</select>\n";
+			}
 			echo "<br />\n";
 			echo $text['description-voicemail_transcription_enabled']."\n";
 			echo "</td>\n";
@@ -1868,10 +1874,18 @@
 			echo "    ".$text['label-voicemail_local_after_email']."\n";
 			echo "</td>\n";
 			echo "<td class='vtable' align='left'>\n";
-			echo "    <select class='formfld' name='voicemail_local_after_email' id='voicemail_local_after_email' onchange=\"if (this.selectedIndex == 1) { document.getElementById('voicemail_file').selectedIndex = 2; }\">\n";
-			echo "    	<option value='true' ".(($voicemail_local_after_email == true) ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
-			echo "    	<option value='false' ".(($voicemail_local_after_email == false) ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
-			echo "    </select>\n";
+			if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+				echo "	<label class='switch'>\n";
+				echo "		<input type='checkbox' id='voicemail_local_after_email' name='voicemail_local_after_email' value='true' ".($voicemail_local_after_email == 'true' ? "checked='checked'" : null)." onchange=\"if (!this.checked) { document.getElementById('voicemail_file').selectedIndex = 2; }\">\n";
+				echo "		<span class='slider'></span> \n";
+				echo "	</label>\n";
+			}
+			else {
+				echo "	<select class='formfld' id='voicemail_local_after_email' name='voicemail_local_after_email' onchange=\"if (this.selectedIndex == 1) { document.getElementById('voicemail_file').selectedIndex = 2; }\">\n";
+				echo "		<option value='true'>".$text['option-true']."</option>\n";
+				echo "		<option value='false' ".($voicemail_local_after_email == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+				echo "	</select>\n";
+			}
 			echo "<br />\n";
 			echo $text['description-voicemail_local_after_email']."\n";
 			echo "</td>\n";
@@ -2343,6 +2357,10 @@
 	echo "</div>\n";
 	echo "<br><br>";
 
+	if (!empty($order_by)) {
+		echo "<input type='hidden' name='order_by' value='".$order_by."'>\n";
+		echo "<input type='hidden' name='order' value='".$order."'>\n";
+	}
 	if (isset($page) && is_numeric($page)) {
 		echo "<input type='hidden' name='page' value='".$page."'>\n";
 	}

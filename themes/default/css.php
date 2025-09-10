@@ -358,46 +358,46 @@ if (!empty($_SESSION['theme'])) {
 $background_images_enabled = false;
 if (!empty($_SESSION['username'])) {
 	//logged in - use standard background images
-	if ($settings->get('theme', 'background_image_enabled', false) && is_array($settings->get('theme', 'background_image', ''))) {
+	if ($settings->get('theme', 'background_image_enabled', false) && !empty($settings->get('theme', 'background_image', ''))) {
 		$background_images_enabled = true;
-		$background_images = $settings->get('theme', 'background_image', '');
+		$background_images = $settings->get('theme', 'background_image', array());
 	}
 
 	//logged in - use standard background colors
-	if ($settings->get('theme', 'background_color_enabled', true) && !empty($settings->get('theme', 'background_color')[0]) && !empty($settings->get('theme', 'background_color')[1])) {
+	if ($settings->get('theme', 'background_color_enabled', false) && !empty($settings->get('theme', 'background_color')[0]) && !empty($settings->get('theme', 'background_color')[1])) {
 		$background_colors[0] = $settings->get('theme', 'background_color')[0];
 		$background_colors[1] = $settings->get('theme', 'background_color')[1];
 	}
-	elseif ($settings->get('theme', 'background_color_enabled', true) && !empty($settings->get('theme', 'background_color')[0])) {
+	elseif ($settings->get('theme', 'background_color_enabled', false) && !empty($settings->get('theme', 'background_color')[0])) {
 		$background_colors[0] = $settings->get('theme', 'background_color')[0];
 	}
 }
 else {
 	//not logged in - try using login background images
-	if ($settings->get('theme', 'login_background_image_enabled', false) && is_array($settings->get('theme', 'login_background_image', ''))) {
+	if ($settings->get('theme', 'login_background_image_enabled', false) && !empty($settings->get('theme', 'login_background_image', ''))) {
 		$background_images_enabled = true;
-		$background_images = $settings->get('theme', 'login_background_image', '');
+		$background_images = $settings->get('theme', 'login_background_image', array());
 	}
 
 	//otherwise, use standard background images
-	if ($settings->get('theme', 'background_image_enabled', true) && is_array($settings->get('theme', 'background_image', ''))) {
+	if ($settings->get('theme', 'background_image_enabled', false) && !empty($settings->get('theme', 'background_image', ''))) {
 		$background_images_enabled = true;
-		$background_images = $settings->get('theme', 'background_image', '');
+		$background_images = $settings->get('theme', 'background_image', array());
 	}
 
 	//use standard background colors
-	if (!empty($settings->get('theme', 'login_background_color', '')) && !empty($settings->get('theme', 'login_background_color')[0]) && !empty($settings->get('theme', 'login_background_color')[1])) {
+	if ($settings->get('theme', 'login_background_color_enabled', false) && !empty($settings->get('theme', 'login_background_color', '')) && !empty($settings->get('theme', 'login_background_color')[0]) && !empty($settings->get('theme', 'login_background_color')[1])) {
 		$background_colors[0] = $settings->get('theme', 'login_background_color')[0];
 		$background_colors[1] = $settings->get('theme', 'login_background_color')[1];
 	}
-	elseif (!empty($settings->get('theme', 'login_background_color', '')) && !empty($settings->get('theme', 'login_background_color')[0])) {
+	elseif ($settings->get('theme', 'login_background_color_enabled', false) && !empty($settings->get('theme', 'login_background_color', '')) && !empty($settings->get('theme', 'login_background_color')[0])) {
 		$background_colors[0] = $settings->get('theme', 'login_background_color')[0];
 	}
-	elseif ($settings->get('theme', 'background_color_enabled', true) && !empty($settings->get('theme', 'background_color')[0]) && !empty($settings->get('theme', 'background_color')[1])) {
+	elseif (!$settings->get('theme', 'login_background_image_enabled', false) && $settings->get('theme', 'background_color_enabled', false) && !empty($settings->get('theme', 'background_color')[0]) && !empty($settings->get('theme', 'background_color')[1])) {
 		$background_colors[0] = $settings->get('theme', 'background_color')[0];
 		$background_colors[1] = $settings->get('theme', 'background_color')[1];
 	}
-	elseif ($settings->get('theme', 'background_color_enabled', true) && !empty($settings->get('theme', 'background_color')[0])) {
+	elseif (!$settings->get('theme', 'login_background_image_enabled', false) && $settings->get('theme', 'background_color_enabled', false) && !empty($settings->get('theme', 'background_color')[0])) {
 		$background_colors[0] = $settings->get('theme', 'background_color')[0];
 	}
 }
@@ -407,7 +407,7 @@ if ($background_images_enabled) {
 	//background image is enabled
 	$image_extensions = array('jpg','jpeg','png','gif');
 
-	if (count($background_images) > 0) {
+	if (is_array($background_images) && count($background_images) > 0) {
 
 		if ((!isset($_SESSION['background_image'])) or empty($_SESSION['background_image'])) {
 			$_SESSION['background_image'] = $background_images[array_rand($background_images)];
@@ -499,8 +499,6 @@ if (!empty($background_colors[0]) || !empty($background_colors[1])) { //backgrou
 else { //default: white
 	$background_color = "";
 }
-
-
 
 ?>
 
@@ -3134,7 +3132,7 @@ else { //default: white
 
 	@media(min-width: 1200px) {
 		div.hud_details {
-			height: 318px;
+			height: 345.5px;
 			display: block;
 			<?php
 			echo "background: ".($dashboard_detail_background_color[0] ?? '#ffffff').";\n";
@@ -3190,10 +3188,10 @@ else { //default: white
 		display: block;
 		clear: both;
 		background: <?=$dashboard_footer_background_color?>;
-		padding: 4px 0;
+		padding: 6px 0;
 		text-align: center;
 		width: 100%;
-		height: 25px;
+		height: 26.5px;
 		font-size: 13px;
 		line-height: 5px;
 		color: <?=$dashboard_footer_dots_color?>;
@@ -3204,6 +3202,30 @@ else { //default: white
 		color: <?=$dashboard_footer_dots_color_hover?>;
 		background: <?=$dashboard_footer_background_color_hover?>;
 		cursor: pointer;
+		}
+
+/* DASHBOARD EDIT **********************************************************************/
+
+	.chart_type_button {
+		padding: 8px 16px;
+		border: 1px solid rgba(0,0,0,0.1);
+		border-radius: 5px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		}
+
+	.chart_type_button:has(input:checked) {
+		background-color: rgba(142,172,249,0.15);
+		border-color: #8EACF9;
+		}
+
+	.chart_type_button:hover {
+		background-color: rgba(0,0,0,0.03);
+		}
+
+	.chart_type_button i {
+		font-size: 15pt;
 		}
 
 /* PLUGINS ********************************************************************/

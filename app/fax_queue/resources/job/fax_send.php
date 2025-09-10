@@ -63,6 +63,9 @@
 
 //shutdown call back function
 	function shutdown() {
+		//add global variables
+		global $database, $fax_queue_uuid;
+
 		//when the fax status is still sending
 		//then set the fax status to trying
 		$sql = "update v_fax_queue ";
@@ -72,6 +75,12 @@
 		$parameters['fax_queue_uuid'] = $fax_queue_uuid;
 		$database->execute($sql, $parameters);
 		unset($sql);
+
+		//remove the old pid file
+		global $pid_file;
+		if (file_exists($pid_file)) {
+			unlink($pid_file);
+		}
 	}
 	register_shutdown_function('shutdown');
 
@@ -156,7 +165,7 @@
 	$sql .= "and q.domain_uuid = d.domain_uuid and f.fax_uuid = q.fax_uuid";
 	$parameters['fax_queue_uuid'] = $fax_queue_uuid;
 	$row = $database->select($sql, $parameters, 'row');
-	if (is_array($row)) {
+	if (!empty($row)) {
 		$fax_queue_uuid = $row['fax_queue_uuid'];
 		$domain_uuid = $row['domain_uuid'];
 		$domain_name = $row['domain_name'];
@@ -177,6 +186,12 @@
 		$fax_accountcode = $row["fax_accountcode"];
 		$fax_command = $row["fax_command"];
 		$fax_toll_allow = $row["fax_toll_allow"];
+	} else {
+		// Notify user using the system logs
+		syslog(E_WARNING, "Fax Send: UUID {$fax_queue_uuid} not found in fax queue");
+
+		// Exit with non-zero exit code to indicate an error in the program execution
+		exit(1);
 	}
 	unset($parameters);
 
@@ -394,7 +409,7 @@
 			//$dial_string .= "fax_retry_sleep=180,";
 			$dial_string .= "fax_verbose=true,";
 			//$dial_string .= "fax_use_ecm=off,";
-			$dial_string .= "absolute_codec_string=PCMU,PCMA,";
+			$dial_string .= "absolute_codec_string=\'PCMU,PCMA\',";
 			$dial_string .= "api_hangup_hook='lua app/fax/resources/scripts/hangup_tx.lua'";
 
 		//connect to event socket and send the command

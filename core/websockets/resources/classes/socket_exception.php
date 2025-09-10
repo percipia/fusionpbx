@@ -37,5 +37,5 @@ class socket_exception extends \Exception {
 		$this->id = $id;
 		return parent::__construct($message, $code, $previous);
 	}
-	public function getResourceId() { return $this->resource_id; }
+	public function getResourceId() { return $this->id; }
 }

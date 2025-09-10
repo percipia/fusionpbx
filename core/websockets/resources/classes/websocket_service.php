@@ -260,7 +260,7 @@ class websocket_service extends service {
 			foreach ($send_to as $subscriber) {
 				try {
 					// Notify of the message we are broadcasting
-					$this->debug("Broadcasting message '" . $message->payload['event_name'] . "' for service '" . $message->service_name . "' to subscriber $subscriber->id");
+					$this->debug("Broadcasting message '" . $message->topic() . "' for service '" . $message->service_name . "' to subscriber $subscriber->id");
 					$subscriber->send_message($message);
 				} catch (subscriber_token_expired_exception $ste) {
 					$this->info("Subscriber $ste->id token expired");
@@ -528,15 +528,22 @@ class websocket_service extends service {
 				if ($client_socket === $this->server_socket) {
 					$conn = @stream_socket_accept($this->server_socket, 0);
 					if ($conn) {
-						// complete handshake on blocking socket
-						stream_set_blocking($conn, true);
-						$this->handshake($conn);
-						// switch to non-blocking for further reads
-						stream_set_blocking($conn, false);
-						// add them to the websocket list
-						$this->clients[] = $conn;
-						// notify websocket on_connect listeners
-						$this->trigger_connect($conn);
+						try {
+							// complete handshake on blocking socket
+							stream_set_blocking($conn, true);
+							$this->handshake($conn);
+							// switch to non-blocking for further reads
+							stream_set_blocking($conn, false);
+							// add them to the websocket list
+							$this->clients[] = $conn;
+							// notify websocket on_connect listeners
+							$this->trigger_connect($conn);
+						} catch (invalid_handshake_exception $ex) {
+							$resource = $ex->getResourceId();
+							$this->warning('Invalid handshake from resource ' . $resource);
+							$this->disconnect_client($resource);
+							$this->warning('Disconnected resource ' . $resource);
+						}
 						continue;
 					}
 				}
@@ -755,8 +762,8 @@ class websocket_service extends service {
 				break;
 			}
 		}
-		if (!preg_match("/Sec-WebSocket-Key: (.*)\r\n/", $request_header, $matches)) {
-			throw new \RuntimeException("Invalid WebSocket handshake");
+		if (!preg_match("/Sec-WebSocket-Key: (.*)\r\n/i", $request_header, $matches)) {
+			throw new invalid_handshake_exception($resource, "Invalid WebSocket handshake");
 		}
 		$key = trim($matches[1]);
 		$accept_key = base64_encode(
@@ -799,6 +806,7 @@ class websocket_service extends service {
 		// Ensure we have the correct number of bytes
 		if (strlen($hdr) !== 2) {
 			$this->warning('Header is empty!');
+			$this->debug('Header content: ' . bin2hex($hdr) . '(' . strlen($hdr) . ' bytes)');
 			$this->update_connected_clients();
 			return '';
 		}
@@ -877,7 +885,6 @@ class websocket_service extends service {
 	 */
 	public static function send($resource, ?string $payload): bool {
 		if (!is_resource($resource)) {
-			self::log("Cannot send: invalid resource", LOG_ERR);
 			return false;
 		}
 

@@ -284,7 +284,6 @@
 					}
 					if (permission_exists('device_enable')) {
 						$array['devices'][0]['device_enabled'] = $device_enabled;
-						$array['devices'][0]['device_enabled_date'] = 'now()';
 					}
 					if (permission_exists('device_template')) {
 						$array['devices'][0]['device_template'] = $device_template;
@@ -350,7 +349,7 @@
 								if (permission_exists('device_line_shared')) {
 									$array['devices'][0]['device_lines'][$y]['shared_line'] = $row["shared_line"];
 								}
-								$array['devices'][0]['device_lines'][$y]['enabled'] = $row["enabled"];
+								$array['devices'][0]['device_lines'][$y]['enabled'] = $row["enabled"] ?? 'false';
 								if (permission_exists('device_line_port')) {
 									$array['devices'][0]['device_lines'][$y]['sip_port'] = $row["sip_port"];
 								}
@@ -436,13 +435,15 @@
 								$array['devices'][0]['device_settings'][$y]['device_setting_subcategory'] = $row["device_setting_subcategory"] ?? null;
 								$array['devices'][0]['device_settings'][$y]['device_setting_name'] = $row["device_setting_name"] ?? null;
 								$array['devices'][0]['device_settings'][$y]['device_setting_value'] = $row["device_setting_value"] ?? null;
-								$array['devices'][0]['device_settings'][$y]['device_setting_enabled'] = $row["device_setting_enabled"];
+								$array['devices'][0]['device_settings'][$y]['device_setting_enabled'] = $row["device_setting_enabled"] ?? 'false';
+// echo $array['devices'][0]['device_settings'][$y]['device_setting_enabled'].'<br>';
 								$array['devices'][0]['device_settings'][$y]['device_setting_description'] = $row["device_setting_description"];
 								$y++;
 							}
 						}
 					}
-
+// view_array($array);
+// exit;
 				//save the device
 					$database->app_name = 'devices';
 					$database->app_uuid = '4efa1a1a-32e7-bf83-534b-6c8299958a8e';
@@ -1453,10 +1454,18 @@
 				}
 
 				echo "			<td align='left'>\n";
-				echo "				<select class='formfld' name='device_lines[".$x."][enabled]'>\n";
-				echo "					<option value='true' ".(($row['enabled'] == "true") ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
-				echo "					<option value='false' ".(($row['enabled'] == "false") ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
-				echo "				</select>\n";
+				if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+					echo "			<label class='switch'>\n";
+					echo "				<input type='checkbox' name='device_lines[".$x."][enabled]' value='true' ".(empty($row['enabled']) || $row['enabled'] == 'true' ? "checked='checked'" : null).">\n";
+					echo "				<span class='slider'></span>\n";
+					echo "			</label>\n";
+				}
+				else {
+					echo "			<select class='formfld' name='device_lines[".$x."][enabled]'>\n";
+					echo "				<option value='true'>".$text['option-true']."</option>\n";
+					echo "				<option value='false' ".($row['enabled'] == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+					echo "			</select>\n";
+				}
 				echo "			</td>\n";
 
 				if (!empty($device_lines) && is_array($device_lines) && @sizeof($device_lines) > 1 && permission_exists('device_line_delete') && !empty($row['device_line_uuid']) && is_uuid($row['device_line_uuid'])) {
@@ -1809,10 +1818,18 @@
 				echo "</td>\n";
 
 				echo "<td align='left'>\n";
-				echo "  <select class='formfld' name='device_settings[".$x."][device_setting_enabled]' style='width: 90px;'>\n";
-				echo "  	<option value='true'>".$text['label-true']."</option>\n";
-				echo "  	<option value='false' ".(!empty($row['device_setting_enabled']) && $row['device_setting_enabled'] == "false" ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
-				echo "  </select>\n";
+				if (substr($settings->get('theme', 'input_toggle_style'), 0, 6) == 'switch') {
+					echo "	<label class='switch'>\n";
+					echo "		<input type='checkbox' name='device_settings[".$x."][device_setting_enabled]' value='true' ".(empty($row['device_setting_enabled']) || $row['device_setting_enabled'] == 'true' ? "checked='checked'" : null).">\n";
+					echo "		<span class='slider'></span>\n";
+					echo "	</label>\n";
+				}
+				else {
+					echo "	<select class='formfld' name='device_settings[".$x."][device_setting_enabled]'>\n";
+					echo "		<option value='true'>".$text['option-true']."</option>\n";
+					echo "		<option value='false' ".(!empty($row['device_setting_enabled']) && $row['device_setting_enabled'] == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+					echo "	</select>\n";
+				}
 				echo "</td>\n";
 
 				echo "<td align='left'>\n";

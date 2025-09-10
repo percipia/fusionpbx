@@ -39,8 +39,6 @@
 		exit;
 	}
 
-	$dashboard_name = "System Services";
-
 //function to parse a FusionPBX service from a .service file
 	if (!function_exists('get_classname')) {
 		function get_classname(string $file) {
@@ -161,11 +159,11 @@
 
 //show the results
 echo "<div class='hud_box'>\n";
-echo "	<div class='hud_content' ".($dashboard_details_state == 'disabled' ?: "onclick=\"$('#hud_system_services_details').slideToggle('fast'); toggle_grid_row_end('$dashboard_name')\""). ">\n";
+echo "	<div class='hud_content' ".($widget_details_state == 'disabled' ?: "onclick=\"$('#hud_system_services_details').slideToggle('fast');\""). ">\n";
 echo "		<span class='hud_title'>System Services</span>\n";
 
 //doughnut chart
-if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
+if (!isset($widget_chart_type) || $widget_chart_type == "doughnut") {
 	echo "	<div class='hud_chart' style='width: 250px;'><canvas id='system_services_chart'></canvas></div>\n";
 	echo "	<script>\n";
 	echo "		const system_services_chart = new Chart (\n";
@@ -195,7 +193,7 @@ if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
 	echo "							labels: {\n";
 	echo "								usePointStyle: true,\n";
 	echo "								pointStyle: 'rect',\n";
-	echo "								color: '$dashboard_heading_text_color'\n";
+	echo "								color: '$widget_label_text_color'\n";
 	echo "							}\n";
 	echo "						}\n";
 	echo "					}\n";
@@ -207,7 +205,7 @@ if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
 	echo "						ctx.font = chart_text_size + ' ' + chart_text_font;\n";
 	echo "						ctx.textBaseline = 'middle';\n";
 	echo "						ctx.textAlign = 'center';\n";
-	echo "						ctx.fillStyle = '$dashboard_number_text_color';\n";
+	echo "						ctx.fillStyle = '$widget_number_text_color';\n";
 	echo "						ctx.fillText(options.text, width / 2, top + (height / 2));\n";
 	echo "						ctx.save();\n";
 	echo "					}\n";
@@ -216,12 +214,12 @@ if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
 	echo "		);\n";
 	echo "	</script>\n";
 }
-if ($dashboard_chart_type == "number") {
+if ($widget_chart_type == "number") {
 	echo "	<span class='hud_stat'>".$total_services."</span>";
 }
 echo "	</div>\n";
 
-if ($dashboard_details_state != 'disabled') {
+if ($widget_details_state != 'disabled') {
 	echo "	<div class='hud_details hud_box' id='hud_system_services_details'>\n";
 	echo "		<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
 	echo "			<tr>\n";
@@ -252,5 +250,6 @@ if ($dashboard_details_state != 'disabled') {
 
 	echo "		</table>\n";
 	echo "	</div>\n";
+	echo "<span class='hud_expander' onclick=\"$('#hud_system_services_details').slideToggle('fast');\"><span class='fas fa-ellipsis-h'></span></span>";
 }
 echo "</div>\n";

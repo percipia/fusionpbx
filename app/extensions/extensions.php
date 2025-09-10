@@ -46,6 +46,12 @@
 	$language = new text;
 	$text = $language->get();
 
+//get order and order by, page, sort
+	$order_by = preg_replace('#[^a-zA-Z0-9_\-]#', '', ($_REQUEST["order_by"] ?? 'extension'));
+	$order = $_REQUEST["order"] ?? 'asc';
+	$page = isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $_REQUEST['page'] : 0;
+	$sort = $order_by == 'extension' ? 'natural' : null;
+
 //get posted data
 	if (!empty($_POST['extensions']) && is_array($_POST['extensions'])) {
 		$action = $_POST['action'];
@@ -74,14 +80,9 @@
 				break;
 		}
 
-		header('Location: extensions.php'.($search != '' ? '?search='.urlencode($search) : null));
+		header('Location: extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(is_numeric($page) ? '&page='.urlencode($page) : null).($search != '' ? '&search='.urlencode($search) : null));
 		exit;
 	}
-
-//get order and order by
-	$order_by = $_GET["order_by"] ?? 'extension';
-	$order = $_GET["order"] ?? 'asc';
-	$sort = $order_by == 'extension' ? 'natural' : null;
 
 //get total extension count for domain
 	if (isset($_SESSION['limit']['extensions']['numeric'])) {
@@ -94,6 +95,15 @@
 
 //add the search term
 	$search = strtolower($_GET["search"] ?? '');
+
+//build the query string
+	$query_string = '';
+	if (!empty($search)) {
+		$query_string .= '&search='.urlencode($search);
+	}
+	if (!empty($_GET['show']) && $_GET['show'] == "all" && permission_exists('extension_all')) {
+		$query_string .= "&show=all";
+	}
 
 //get total extension count
 	$sql = "select count(*) from v_extensions ";
@@ -127,13 +137,13 @@
 
 //prepare to page the results
 	$rows_per_page = $settings->get('domain', 'paging', 50);
-	$param = "&search=".$search;
-	if (!empty($_GET['show']) && $_GET['show'] == "all" && permission_exists('extension_all')) {
-		$param .= "&show=all";
+	$param = '';
+	if (!empty($order) && !empty($order_by)) {
+		$param .= "&order=".$order;
+		$param .= "&order_by=".$order_by;
 	}
-	$page = isset($_GET['page']) && is_numeric($_GET['page']) ? $_GET['page'] : 0;
-	list($paging_controls, $rows_per_page) = paging($num_rows, $param, $rows_per_page); //bottom
-	list($paging_controls_mini, $rows_per_page) = paging($num_rows, $param, $rows_per_page, true); //top
+	list($paging_controls, $rows_per_page) = paging($num_rows, $param.$query_string, $rows_per_page); //bottom
+	list($paging_controls_mini, $rows_per_page) = paging($num_rows, $param.$query_string, $rows_per_page, true); //top
 	$offset = $rows_per_page * $page;
 
 //get the extensions
@@ -256,6 +266,12 @@
 			echo button::create(['type'=>'button','label'=>$text['button-show_all'],'icon'=>$settings->get('theme', 'button_icon_all'),'link'=>'?show=all']);
 		}
 	}
+	if (!empty($order)) {
+		echo "		<input type='hidden' name='order' value='".$order."'>";
+	}
+	if (!empty($order_by)) {
+		echo "		<input type='hidden' name='order_by' value='".$order_by."'>";
+	}
 	echo 		"<input type='text' class='txt list-search' name='search' id='search' value=\"".escape($search)."\" placeholder=\"".$text['label-search']."\" onkeydown=''>";
 	echo button::create(['label'=>$text['button-search'],'icon'=>$settings->get('theme', 'button_icon_search'),'type'=>'submit','id'=>'btn_search']);
 	//echo button::create(['label'=>$text['button-reset'],'icon'=>$settings->get('theme', 'button_icon_reset'),'type'=>'button','id'=>'btn_reset','link'=>'extensions.php','style'=>($search == '' ? 'display: none;' : null)]);
@@ -292,6 +308,13 @@
 
 	echo "<form id='form_list' method='post'>\n";
 	echo "<input type='hidden' id='action' name='action' value=''>\n";
+	if (!empty($order_by)) {
+		echo "<input type='hidden' name='order_by' value='".$order_by."'>\n";
+		echo "<input type='hidden' name='order' value='".$order."'>\n";
+	}
+	if (isset($page) && is_numeric($page)) {
+		echo "<input type='hidden' name='page' value='".$page."'>\n";
+	}
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
 	echo "<div class='card'>\n";
@@ -309,29 +332,29 @@
 	if (permission_exists('extension_registered')) {
 		echo "<th>&nbsp;</th>\n";
 	}
-	echo th_order_by('extension', $text['label-extension'], $order_by, $order);
-	echo th_order_by('effective_caller_id_name', $text['label-effective_cid_name'], $order_by, $order, null, "class='hide-xs'");
+	echo th_order_by('extension', $text['label-extension'], $order_by, $order, $query_string);
+	echo th_order_by('effective_caller_id_name', $text['label-effective_cid_name'], $order_by, $order, $query_string, "class='hide-xs'");
 	if (permission_exists("outbound_caller_id_name")) {
-		echo th_order_by('outbound_caller_id_name', $text['label-outbound_cid_name'], $order_by, $order, null, "class='hide-sm-dn'");
+		echo th_order_by('outbound_caller_id_name', $text['label-outbound_cid_name'], $order_by, $order, $query_string, "class='hide-sm-dn'");
 	}
 	if (permission_exists("outbound_caller_id_number")) {
-		echo th_order_by('outbound_caller_id_number', $text['label-outbound_cid_number'], $order_by, $order, null, "class='hide-md-dn'");
+		echo th_order_by('outbound_caller_id_number', $text['label-outbound_cid_number'], $order_by, $order, $query_string, "class='hide-md-dn'");
 	}
 	if (permission_exists("extension_call_group")) {
-		echo th_order_by('call_group', $text['label-call_group'], $order_by, $order);
+		echo th_order_by('call_group', $text['label-call_group'], $order_by, $order, $query_string);
 	}
 	if (permission_exists("extension_device_address")) {
-		echo th_order_by('device_address', $text['label-device_address'], $order_by, $order, null, "class='hide-md-dn'");
+		echo th_order_by('device_address', $text['label-device_address'], $order_by, $order, $query_string, "class='hide-md-dn'");
 	}
 	if (permission_exists("extension_device_template")) {
-		echo th_order_by('device_template', $text['label-device_template'], $order_by, $order, null, "class='hide-md-dn'");
+		echo th_order_by('device_template', $text['label-device_template'], $order_by, $order, $query_string, "class='hide-md-dn'");
 	}
 	if (permission_exists("extension_user_context")) {
 		echo th_order_by('user_context', $text['label-user_context'], $order_by, $order);
 	}
-	echo th_order_by('enabled', $text['label-enabled'], $order_by, $order, null, "class='center'");
-	echo th_order_by('description', $text['label-description'], $order_by, $order, null, "class='hide-sm-dn'");
-	if (permission_exists('extension_edit') && filter_var($_SESSION['theme']['list_row_edit_button']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
+	echo th_order_by('enabled', $text['label-enabled'], $order_by, $order, $query_string, "class='center'");
+	echo th_order_by('description', $text['label-description'], $order_by, $order, $query_string, "class='hide-sm-dn'");
+	if (permission_exists('extension_edit') && $settings->get('theme', 'list_row_edit_button', false)) {
 		echo "	<td class='action-button'>&nbsp;</td>\n";
 	}
 	echo "</tr>\n";
@@ -341,7 +364,7 @@
 		foreach($extensions as $row) {
 			$list_row_url = '';
 			if (permission_exists('extension_edit')) {
-				$list_row_url = "extension_edit.php?id=".urlencode($row['extension_uuid']).(is_numeric($page) ? '&page='.urlencode($page) : null);
+				$list_row_url = "extension_edit.php?id=".urlencode($row['extension_uuid']).(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(is_numeric($page) ? '&page='.urlencode($page) : null);
 				if ($row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
 					$list_row_url .= '&domain_uuid='.urlencode($row['domain_uuid']).'&domain_change=true';
 				}
@@ -425,7 +448,7 @@
 			}
 			echo "	</td>\n";
 			echo "	<td class='description overflow hide-sm-dn'>".escape($row['description'])."</td>\n";
-			if (permission_exists('extension_edit') && filter_var($_SESSION['theme']['list_row_edit_button']['boolean'] ?? false, FILTER_VALIDATE_BOOL)) {
+			if (permission_exists('extension_edit') && $settings->get('theme', 'list_row_edit_button', false)) {
 				echo "	<td class='action-button'>";
 				echo button::create(['type'=>'button','title'=>$text['button-edit'],'icon'=>$settings->get('theme', 'button_icon_edit'),'link'=>$list_row_url]);
 				echo "	</td>\n";
@@ -451,4 +474,3 @@
 	require_once "resources/footer.php";
 
 ?>
-

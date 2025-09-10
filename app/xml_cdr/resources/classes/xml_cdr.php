@@ -272,26 +272,30 @@
 				//$this->database->domain_uuid = $domain_uuid;
 				$response = $this->database->save($this->array, false);
 				if ($response['code'] == '200') {
-					//saved to the database successfully delete the database file
-					if (!empty($xml_cdr_dir)) {
-						if (file_exists($xml_cdr_dir.'/'.$this->file)) {
-							unlink($xml_cdr_dir.'/'.$this->file);
-						}
+					//delete the file after it is saved to the database
+					if (!empty($xml_cdr_dir) && file_exists($xml_cdr_dir.'/'.$this->file)) {
+						unlink($xml_cdr_dir.'/'.$this->file);
 					}
 				}
 				else {
 					//move the file to a failed directory
-					if (!empty($xml_cdr_dir)) {
+					if (!empty($xml_cdr_dir) && !$response) {
+						if (!file_exists($xml_cdr_dir.'/failed/sql')) {
+							mkdir($xml_cdr_dir.'/failed/sql', 0770, true);
+							//echo "Failed to create ".$xml_cdr_dir."/failed/sql\n";
+						}
+						rename($xml_cdr_dir.'/'.$this->file, $xml_cdr_dir.'/failed/sql/'.$this->file);
+					}
+					elseif (!empty($xml_cdr_dir)) {
 						if (!file_exists($xml_cdr_dir.'/failed')) {
-							if (!mkdir($xml_cdr_dir.'/failed', 0660, true)) {
-								die('Failed to create '.$xml_cdr_dir.'/failed');
-							}
+							mkdir($xml_cdr_dir.'/failed', 0770, true);
+							//echo "Failed to create ".$xml_cdr_dir."/failed\n";
 						}
 						rename($xml_cdr_dir.'/'.$this->file, $xml_cdr_dir.'/failed/'.$this->file);
 					}
 
 					//send an error message
-					echo 'failed file moved to '.$xml_cdr_dir.'/failed/'.$this->file;
+					//echo "failed file moved to ".$xml_cdr_dir."/failed/".$this->file."\n";
 				}
 
 				//clear the array
@@ -345,13 +349,16 @@
 				$xml_string = preg_replace('/<\/?\d+>/', '', $xml_string);
 
 			//replace xml tag name <set api_hangup_hook> with <api_hangup_hook>
-				$xml_string = preg_replace('/(<\/?)(set )([^>]*>)/', '$1$3', $xml_string);
+				$xml_string = preg_replace('/(<\/?)(set )([^>]*>)/i', '$1$3', $xml_string);
 
 			//replace xml tag name <^^,default_language> with <default_language>
 				$xml_string = preg_replace('/(<\/?)(\^\^,)([^>]*>)/', '$1$3', $xml_string);
 
 			//replace xml tag name <nolocal:operator> with <operator>
-				$xml_string = preg_replace('/(<\/?)(nolocal:)([^>]*>)/', '$1$3', $xml_string);
+				$xml_string = preg_replace('/(<\/?)(nolocal:)([^>]*>)/i', '$1$3', $xml_string);
+
+			//remove spaces in the beginning of the xml open and closing tags
+				$xml_string = preg_replace('/(<\/?)\s*([\w:-]+)/', '$1$2', $xml_string);
 
 			//disable xml entities
 				if (PHP_VERSION_ID < 80000) { libxml_disable_entity_loader(true); }
@@ -359,15 +366,9 @@
 			//load the string into an xml object
 				$xml = simplexml_load_string($xml_string, 'SimpleXMLElement', LIBXML_NOCDATA);
 				if ($xml === false) {
-
 					//failed to load the XML, move the XML file to the failed directory
 					if (!empty($xml_cdr_dir)) {
-						if (!file_exists($xml_cdr_dir.'/failed/invalid_xml')) {
-							if (!mkdir($xml_cdr_dir.'/failed/invalid_xml', 0660, true)) {
-								die('Failed to create '.$xml_cdr_dir.'/failed');
-							}
-						}
-						rename($xml_cdr_dir.'/'.$this->file, $xml_cdr_dir.'/failed/invalid_xml/'.$this->file);
+						rename($xml_cdr_dir.'/'.$this->file, $xml_cdr_dir.'/failed/xml/'.$this->file);
 					}
 
 					//return without saving the invalid xml
@@ -375,19 +376,17 @@
 				}
 
 			//skip call detail records for calls blocked by call block
-				if (isset($xml->variables->call_block) && !empty($this->settings->get('call_block', 'save_call_detail_record'))) {
-					if ($xml->variables->call_block == 'true' && $this->settings->get('call_block', 'save_call_detail_record', false) !== true) {
-						//delete the xml cdr file
-						if (!empty($this->settings->get('switch', 'log'))) {
-							$xml_cdr_dir = $this->settings->get('switch', 'log').'/xml_cdr';
-							if (file_exists($xml_cdr_dir.'/'.$this->file)) {
-								unlink($xml_cdr_dir.'/'.$this->file);
-							}
+				if (isset($xml->variables->call_block) && $xml->variables->call_block == 'true' && !$this->settings->get('call_block', 'save_call_detail_record', true)) {
+					//delete the xml cdr file
+					if (!empty($this->settings->get('switch', 'log'))) {
+						$xml_cdr_dir = $this->settings->get('switch', 'log').'/xml_cdr';
+						if (file_exists($xml_cdr_dir.'/'.$this->file)) {
+							unlink($xml_cdr_dir.'/'.$this->file);
 						}
-
-						//return without saving
-						return false;
 					}
+
+					//return without saving
+					return false;
 				}
 
 			//check for duplicate call uuid's
@@ -1575,9 +1574,8 @@
 		public function move_to_failed($failed_file) {
 			$xml_cdr_dir = $this->settings->get('switch', 'log', '/var/log/freeswitch').'/xml_cdr';
 			if (!file_exists($xml_cdr_dir.'/failed')) {
-				if (!mkdir($xml_cdr_dir.'/failed', 0660, true)) {
-					die('Failed to create '.$xml_cdr_dir.'/failed');
-				}
+				mkdir($xml_cdr_dir.'/failed', 0770, true);
+				//echo "Failed to create ".$xml_cdr_dir."/failed\n";
 			}
 			rename($xml_cdr_dir.'/'.$failed_file, $xml_cdr_dir.'/failed/'.$failed_file);
 		}
@@ -1632,9 +1630,8 @@
 								//echo "WARNING: File too large or zero file size. Moving $file to failed\n";
 								if (!empty($xml_cdr_dir)) {
 									if (!file_exists($xml_cdr_dir.'/failed')) {
-										if (!mkdir($xml_cdr_dir.'/failed', 0660, true)) {
-											die('Failed to create '.$xml_cdr_dir.'/failed');
-										}
+										mkdir($xml_cdr_dir.'/failed', 0770, true);
+										//echo "Failed to create ".$xml_cdr_dir."/failed\n";
 									}
 									if (rename($xml_cdr_dir.'/'.$file, $xml_cdr_dir.'/failed/'.$file)) {
 										//echo "Moved $file successfully\n";
