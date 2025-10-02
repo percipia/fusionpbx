@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2024
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -116,7 +116,6 @@
 	}
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$parameters['group_uuid'] = $_SESSION['group_uuid'] ?? '';
-	$database = new database;
 	$result = $database->select($sql, $parameters, 'all');
 	if (!empty($result)) {
 		foreach($result as $row) {
@@ -228,7 +227,6 @@
 		$parameters['user_uuid'] = $_SESSION['user_uuid'];
 	}
 	$sql .= $sql_search ?? '';
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //prepare to page the results
@@ -245,7 +243,7 @@
 
 //get the list
 	$sql = "select *, ";
-	$sql .= "(select a.contact_attachment_uuid from v_contact_attachments as a where a.contact_uuid = c.contact_uuid and a.attachment_primary = 1 limit 1) as contact_attachment_uuid ";
+	$sql .= "(select a.contact_attachment_uuid from v_contact_attachments as a where a.contact_uuid = c.contact_uuid and a.attachment_primary = true limit 1) as contact_attachment_uuid ";
 	$sql .= "from v_contacts as c ";
 	$sql .= "where true ";
 	if ($show != "all" || !permission_exists('contact_all')) {
@@ -281,7 +279,6 @@
 		$parameters['user_uuid'] = $_SESSION['user_uuid'];
 	}
 	$sql .= $sql_search ?? '';
-	$database = new database;
 	if (!empty($order_by)) {
 		$sql .= order_by($order_by, $order);
 		$sql .= ", contact_organization asc ";
@@ -296,7 +293,6 @@
 		}
 	}
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$contacts = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -472,5 +468,3 @@
 	require_once "resources/footer.php";
 
 ?>
-
-

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2021-2024
+	Portions created by the Initial Developer are Copyright (C) 2021-2025
 	the Initial Developer. All Rights Reserved.
 */
 
@@ -105,7 +105,6 @@
 		$sql .= ")\n";
 		$parameters['search'] = '%'.strtolower($search).'%';
 	}
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 	unset($sql, $parameters);
 
@@ -140,7 +139,6 @@
 	}
 	$sql .= order_by($order_by, $order, 'dashboard_name', 'asc');
 	$sql .= limit_offset($rows_per_page ?? null, $offset ?? null);
-	$database = new database;
 	$dashboards = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -228,7 +226,7 @@
 			$list_row_url = '';
 			if (permission_exists('dashboard_edit')) {
 				$list_row_url = "dashboard_edit.php?id=".urlencode($row['dashboard_uuid']);
-				if ($row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
+				if (!empty($row['domain_uuid']) && $row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
 					$list_row_url .= '&domain_uuid='.urlencode($row['domain_uuid']).'&domain_change=true';
 				}
 			}

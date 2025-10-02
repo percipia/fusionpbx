@@ -66,6 +66,10 @@
 		$apps[$x]['permissions'][$y]['menu']['uuid'] = "7497ade1-b6f4-473d-9859-92c957c36503";
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$y++;
+		$apps[$x]['permissions'][$y]['name'] = "system_view_network";
+		$apps[$x]['permissions'][$y]['menu']['uuid'] = "5243e0d2-0e8b-277a-912e-9d8b5fcdb41d";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
+		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "software_add";
 		//$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$y++;
@@ -178,5 +182,13 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "freeswitch, nginx, postgresql, sshd";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "A comma separated list of additional system services to monitor the status of in the system services dashboard card";
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "158187f6-4914-49b7-95ac-6bf26afada6d";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "system";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "network_interface";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Network interface used to show traffic on dashboard";
 
 ?>

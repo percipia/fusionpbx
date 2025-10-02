@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -96,12 +96,11 @@
 		$sql .= "	or lower(var_name) like :search ";
 		$sql .= "	or lower(var_value) like :search ";
 		$sql .= "	or lower(var_hostname) like :search ";
-		$sql .= "	or lower(var_enabled) like :search ";
+		$sql .= "	or lower(cast(var_enabled as text)) like :search ";
 		$sql .= "	or lower(var_description) like :search ";
 		$sql .= ") ";
 		$parameters['search'] = '%'.$search.'%';
 	}
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //prepare to page the results
@@ -114,7 +113,15 @@
 	$offset = $rows_per_page * $page;
 
 //get the list
-	$sql = "select * from v_vars ";
+	$sql = "select \n";
+	$sql .= "var_uuid, \n";
+	$sql .= "var_category, \n";
+	$sql .= "var_name, \n";
+	$sql .= "var_value, \n";
+	$sql .= "var_hostname, \n";
+	$sql .= "cast(var_enabled as text), \n";
+	$sql .= "var_description \n";
+	$sql .= "from v_vars ";
 	if (!empty($_GET["search"])) {
 		$search = strtolower($_GET["search"]);
 		$sql .= "where (";
@@ -122,14 +129,13 @@
 		$sql .= "	or lower(var_name) like :search ";
 		$sql .= "	or lower(var_value) like :search ";
 		$sql .= "	or lower(var_hostname) like :search ";
-		$sql .= "	or lower(var_enabled) like :search ";
+		$sql .= "	or lower(cast(var_enabled as text)) like :search ";
 		$sql .= "	or lower(var_description) like :search ";
 		$sql .= ") ";
 		$parameters['search'] = '%'.$search.'%';
 	}
 	$sql .= $order_by != '' ? order_by($order_by, $order) : " order by var_category, var_order asc, var_name asc ";
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$vars = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql);
 
@@ -287,4 +293,3 @@
 	require_once "resources/footer.php";
 
 ?>
-

@@ -121,7 +121,7 @@ function save_gateway_xml() {
 		}
 
 	//declare the global variables
-		global $domain_uuid, $config;
+		global $database, $domain_uuid, $config;
 
 	//delete all old gateways to prepare for new ones
 		if (count($_SESSION["domains"]) > 1) {
@@ -139,7 +139,6 @@ function save_gateway_xml() {
 		$sql = "select * from v_gateways ";
 		$sql .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
 		$parameters['domain_uuid'] = $domain_uuid;
-		$database = new database;
 		$result = $database->select($sql, $parameters, 'all');
 		if (!empty($result)) {
 			foreach ($result as $row) {
@@ -256,7 +255,8 @@ function save_gateway_xml() {
 
 function save_var_xml() {
 	if (!empty($_SESSION['switch']['conf']) && is_array($_SESSION['switch']['conf'])) {
-		global $config, $domain_uuid;
+		//declare the global variables
+		global $database, $config, $domain_uuid;
 
 		//skip this function if the conf directory is empty
 		if (empty($_SESSION['switch']['conf']['dir'])) {
@@ -277,9 +277,8 @@ function save_var_xml() {
 
 		//build the xml
 		$sql = "select * from v_vars ";
-		$sql .= "where var_enabled = 'true' ";
+		$sql .= "where var_enabled = true ";
 		$sql .= "order by var_category, var_order asc ";
-		$database = new database;
 		$variables = $database->select($sql, null, 'all');
 		$prev_var_category = '';
 		$xml = '';
@@ -315,6 +314,8 @@ function save_var_xml() {
 }
 
 function outbound_route_to_bridge($domain_uuid, $destination_number, array $channel_variables=null) {
+	//declare the global variables
+	global $database;
 
 	$destination_number = trim($destination_number);
 	preg_match('/^[\*\+0-9]*$/', $destination_number, $matches, PREG_OFFSET_CAPTURE);
@@ -351,11 +352,10 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 	}
 	$sql .= "and (hostname = :hostname or hostname is null) ";
 	$sql .= "and d.app_uuid = '8c914ec3-9fc0-8ab5-4cda-6c9288bdc9a3' ";
-	$sql .= "and d.dialplan_enabled = 'true' ";
-	$sql .= "and (dd.dialplan_detail_enabled = 'true' or dd.dialplan_detail_enabled is null) ";
+	$sql .= "and d.dialplan_enabled = true ";
+	$sql .= "and (dd.dialplan_detail_enabled = true or dd.dialplan_detail_enabled is null) ";
 	$sql .= "order by d.domain_uuid,  d.dialplan_order, dd.dialplan_detail_order ";
 	$parameters['hostname'] = $hostname;
-	$database = new database;
 	$result = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 	if (!empty($result)) {
@@ -423,7 +423,7 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 					}
 				}
 
-				if (!empty($bridge_array) && $dialplan["dialplan_continue"] == "false") {
+				if (!empty($bridge_array) && $dialplan["dialplan_continue"] == false) {
 					break;
 				}
 			}
@@ -438,7 +438,8 @@ function outbound_route_to_bridge($domain_uuid, $destination_number, array $chan
 //}
 
 function extension_exists($extension) {
-	global $domain_uuid;
+	//declare the global variables
+	global $database, $domain_uuid;
 
 	$sql = "select count(*) from v_extensions ";
 	$sql .= "where domain_uuid = :domain_uuid ";
@@ -446,17 +447,16 @@ function extension_exists($extension) {
 	$sql .= "extension = :extension ";
 	$sql .= "or number_alias = :extension ";
 	$sql .= ") ";
-	$sql .= "and enabled = 'true' ";
+	$sql .= "and enabled = true ";
 	$parameters['domain_uuid'] = $domain_uuid;
 	$parameters['extension'] = $extension;
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters, 'column');
 	unset($sql, $parameters);
 	return $num_rows > 0 ? true : false;
 }
 
 function extension_presence_id($extension, $number_alias = false) {
-	global $domain_uuid;
+	global $database, $domain_uuid;
 
 	if ($number_alias === false) {
 		$sql = "select extension, number_alias from v_extensions ";
@@ -467,7 +467,6 @@ function extension_presence_id($extension, $number_alias = false) {
 		$sql .= ") ";
 		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['extension'] = $extension;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row)) {
 			$extension = $row['extension'];
@@ -488,14 +487,13 @@ function extension_presence_id($extension, $number_alias = false) {
 }
 
 function get_recording_filename($id) {
-	global $domain_uuid;
+	global $database, $domain_uuid;
 
 	$sql = "select * from v_recordings ";
 	$sql .= "where recording_uuid = :recording_uuid ";
 	$sql .= "and domain_uuid = :domain_uuid ";
 	$parameters['recording_uuid'] = $id;
 	$parameters['domain_uuid'] = $domain_uuid;
-	$database = new database;
 	$row = $database->select($sql, $parameters, 'row');
 	if (!empty($row)) {
 		//$filename = $row["filename"];
@@ -504,31 +502,6 @@ function get_recording_filename($id) {
 		return $row["filename"];
 	}
 	unset($sql, $parameters, $row);
-}
-
-function dialplan_add($domain_uuid, $dialplan_uuid, $dialplan_name, $dialplan_order, $dialplan_context, $dialplan_enabled, $dialplan_description, $app_uuid) {
-	//build insert array
-		$array['dialplans'][0]['dialplan_uuid'] = $dialplan_uuid;
-		$array['dialplans'][0]['domain_uuid'] = $domain_uuid;
-		if (is_uuid($app_uuid)) {
-			$array['dialplans'][0]['app_uuid'] = $app_uuid;
-		}
-		$array['dialplans'][0]['dialplan_name'] = $dialplan_name;
-		$array['dialplans'][0]['dialplan_order'] = $dialplan_order;
-		$array['dialplans'][0]['dialplan_context'] = $dialplan_context;
-		$array['dialplans'][0]['dialplan_enabled'] = $dialplan_enabled;
-		$array['dialplans'][0]['dialplan_description'] = $dialplan_description;
-	//grant temporary permissions
-		$p = permissions::new();
-		$p->add('dialplan_add', 'temp');
-	//execute insert
-		$database = new database;
-		$database->app_name = 'switch-function-dialplan_add';
-		$database->app_uuid = '2fa2243c-47a1-41a0-b144-eb2b609219e0';
-		$database->save($array);
-		unset($array);
-	//revoke temporary permissions
-		$p->delete('dialplan_add', 'temp');
 }
 
 if (!function_exists('phone_letter_to_number')) {
@@ -547,13 +520,12 @@ if (!function_exists('phone_letter_to_number')) {
 
 if (!function_exists('save_call_center_xml')) {
 	function save_call_center_xml() {
-		global $domain_uuid;
+		global $database, $domain_uuid;
 
 		if (!empty($_SESSION['switch']['call_center']['dir'])) {
 
 			//get the call center queue array
 			$sql = "select * from v_call_center_queues ";
-			$database = new database;
 			$call_center_queues = $database->select($sql, null, 'all');
 			unset($sql);
 
@@ -625,7 +597,6 @@ if (!function_exists('save_call_center_xml')) {
 				//prepare Agent XML string
 					$v_agents = '';
 					$sql = "select * from v_call_center_agents ";
-					$database = new database;
 					$result = $database->select($sql, null, 'all');
 					unset($sql);
 
@@ -715,7 +686,6 @@ if (!function_exists('save_call_center_xml')) {
 				//prepare Tier XML string
 					$v_tiers = '';
 					$sql = "select * from v_call_center_tiers ";
-					$database = new database;
 					$result = $database->select($sql, null, 'all');
 					unset($sql);
 
@@ -865,6 +835,9 @@ if (!function_exists('xml_cdr_conf_xml')) {
 
 if (!function_exists('save_sip_profile_xml')) {
 	function save_sip_profile_xml() {
+		//declare the global variables
+			global $database;
+
 		//skip saving the sip profile xml if the directory is not set
 			if (empty($_SESSION['switch']['sip_profiles']['dir'])) {
 				return;
@@ -878,7 +851,6 @@ if (!function_exists('save_sip_profile_xml')) {
 
 		//get the sip profiles from the database
 			$sql = "select * from v_sip_profiles";
-			$database = new database;
 			$result = $database->select($sql, null, 'all');
 			unset($sql);
 
@@ -888,7 +860,7 @@ if (!function_exists('save_sip_profile_xml')) {
 					$sip_profile_name = $row['sip_profile_name'];
 					$sip_profile_enabled = $row['sip_profile_enabled'];
 
-					if ($sip_profile_enabled == 'false') {
+					if ($sip_profile_enabled == false) {
 						$fout = fopen($profile_dir.'/'.$sip_profile_name.".xml","w");
 						if ($fout) {
 							fclose($fout);
@@ -907,9 +879,8 @@ if (!function_exists('save_sip_profile_xml')) {
 					//get the sip profile settings
 						$sql = "select * from v_sip_profile_settings ";
 						$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
-						$sql .= "and sip_profile_setting_enabled = 'true' ";
+						$sql .= "and sip_profile_setting_enabled = true ";
 						$parameters['sip_profile_uuid'] = $sip_profile_uuid;
-						$database = new database;
 						$result_2 = $database->select($sql, $parameters, 'all');
 						if (!empty($result_2)) {
 							$sip_profile_settings = '';

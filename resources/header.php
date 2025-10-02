@@ -27,12 +27,6 @@
 //includes files
 	require_once __DIR__ . "/require.php";
 
-//start the session
-	if (!isset($_SESSION)) {
-		ini_set("session.cookie_httponly", true);
-		session_start();
-	}
-
 //connect to the database if not initialized
 	$database = database::new();
 
@@ -148,6 +142,14 @@
 			break;
 		case 'always':
 			break;
+	}
+
+//get the input toggle style options: select, switch_round, switch_square
+	if (substr($settings->get('theme', 'input_toggle_style', 'switch_round'), 0, 6) == 'switch') {
+		$input_toggle_style_switch = true;
+	}
+	else {
+		$input_toggle_style_switch = false;
 	}
 
 //start the output buffer

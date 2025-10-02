@@ -55,7 +55,6 @@
 			$sql = "select * from v_ivr_menus ";
 			$sql .= " where domain_uuid = :domain_uuid ";
 			$parameters['domain_uuid'] = $domain_uuid;
-			$database = new database;
 			$result = $database->select($sql, $parameters, 'all');
 			unset($sql, $parameters);
 
@@ -138,7 +137,6 @@
 						$sub_sql .= "order by ivr_menu_option_order asc ";
 						$parameters['ivr_menu_uuid'] = $ivr_menu_uuid;
 						$parameters['domain_uuid'] = $domain_uuid;
-						$database = new database;
 						$sub_result = $database->select($sub_sql, $parameters, 'all');
 						if (is_array($sub_result) && @sizeof($sub_result) != 0) {
 							foreach ($sub_result as $sub_row) {
@@ -159,7 +157,7 @@
 						}
 						unset($sub_sql, $sub_result, $sub_row);
 
-						if ($ivr_menu_direct_dial == "true") {
+						if ($ivr_menu_direct_dial == true) {
 							$tmp .= "		<entry action=\"menu-exec-app\" digits=\"/(^\d{3,6}$)/\" param=\"transfer $1 XML ".$ivr_menu_context."\"/>\n";
 						}
 						$tmp .= "	</menu>\n";

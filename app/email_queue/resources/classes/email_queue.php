@@ -6,10 +6,15 @@
 	class email_queue {
 
 		/**
+		 * declare constant variables
+		 */
+		const app_name = 'email_queue';
+		const app_uuid = '5befdf60-a242-445f-91b3-2e9ee3e0ddf7';
+
+		/**
 		* declare the variables
 		*/
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -21,13 +26,16 @@
 		 */
 		public function __construct() {
 			//assign the variables
-				$this->app_name = 'email_queue';
-				$this->app_uuid = '5befdf60-a242-445f-91b3-2e9ee3e0ddf7';
-				$this->name = 'email_queue';
-				$this->table = 'email_queue';
-				$this->toggle_field = '';
-				$this->toggle_values = ['true','false'];
-				$this->location = 'email_queue.php';
+			$this->name = 'email_queue';
+			$this->table = 'email_queue';
+			$this->toggle_field = '';
+			$this->toggle_values = ['true','false'];
+			$this->location = 'email_queue.php';
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 		}
 
 		/**
@@ -67,14 +75,60 @@
 						//delete the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
 									message::add($text['message-delete']);
+							}
+							unset($records);
+					}
+			}
+		}
+
+		/**
+		 * resend emails in the queue
+		 */
+		public function resend($records) {
+			if (permission_exists($this->name.'_edit')) {
+
+				//add multi-lingual support
+					$language = new text;
+					$text = $language->get();
+
+				//validate the token
+					$token = new token;
+					if (!$token->validate($_SERVER['PHP_SELF'])) {
+						message::add($text['message-invalid_token'],'negative');
+						header('Location: '.$this->location);
+						exit;
+					}
+
+				//resend multiple emails
+					if (is_array($records) && @sizeof($records) != 0) {
+						//build the message array
+							$x = 0;
+							foreach ($records as $record) {
+								//add to the array
+									if ($record['checked'] == 'true' && is_uuid($record['uuid'])) {
+										$array[$this->table][$x][$this->name.'_uuid'] = $record['uuid'];
+										$array[$this->table][$x]['email_status'] = 'waiting';
+										$array[$this->table][$x]['email_retry_count'] = null;
+									}
+
+								//increment the id
+									$x++;
+							}
+
+						//save the changes
+							if (is_array($array) && @sizeof($array) != 0) {
+								//save the array
+
+									$this->database->save($array);
+									unset($array);
+
+								//set message
+									message::add($text['message-resending_messages']);
 							}
 							unset($records);
 					}
@@ -112,8 +166,7 @@
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
 								$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-								$database = new database;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$states[$row['uuid']] = $row['toggle'];
@@ -136,10 +189,8 @@
 						//save the changes
 							if (is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -184,8 +235,7 @@
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
 								$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-								$database = new database;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									$x = 0;
 									foreach ($rows as $row) {
@@ -205,10 +255,8 @@
 						//save the changes and set the message
 							if (is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message

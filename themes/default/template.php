@@ -20,7 +20,7 @@
 	<link rel='stylesheet' type='text/css' href='{$project_path}/resources/bootstrap/css/bootstrap-tempusdominus.min.css.php'>
 	<link rel='stylesheet' type='text/css' href='{$project_path}/resources/bootstrap/css/bootstrap-colorpicker.min.css.php'>
 	<link rel='stylesheet' type='text/css' href='{$project_path}/resources/fontawesome/css/all.min.css.php'>
-	<link rel='stylesheet' type='text/css' href='{$project_path}/themes/default/css.php?updated=202508190425'>
+	<link rel='stylesheet' type='text/css' href='{$project_path}/themes/default/css.php?updated=202509221124'>
 {*//link to custom css file *}
 	{if !empty($settings.theme.custom_css)}
 		<link rel='stylesheet' type='text/css' href='{$settings.theme.custom_css}'>
@@ -704,6 +704,18 @@
 					return this.animate({opacity: 'toggle', height: 'toggle'}, speed, easing, callback);
 				};
 			})(jQuery);
+			{/literal}
+
+		//slide toggle
+			{literal}
+			var switches = document.getElementsByClassName('switch');
+			var toggle = function(){
+				this.children[0].value = (this.children[0].value == 'false' ? 'true' : 'false');
+				this.children[0].dispatchEvent(new Event('change'));
+				};
+			for (var i = 0; i < switches.length; i++) {
+				switches[i].addEventListener('click', toggle, false);
+			}
 			{/literal}
 
 	{literal}

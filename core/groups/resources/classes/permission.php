@@ -27,6 +27,29 @@
 //define the permission class
 	class permission {
 
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'groups';
+		const app_uuid = '2caf27b0-540a-43d5-bb9b-c9871a1e4f84';
+
+		/**
+		 * declare private variables
+		 */
+
+		private $database;
+
+		/**
+		 * called when the object is created
+		 */
+		public function __construct() {
+
+			//assign the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
+		}
+
 		//delete the permissions
 			function delete() {
 
@@ -63,12 +86,11 @@
 					$sql .= "where group_name in ( ";
 					$sql .= "	select group_name ";
 					$sql .= "	from v_groups ";
-					$sql .= "	where group_protected <> 'true' ";
+					$sql .= "	where group_protected <> true ";
 					$sql .= "	and group_name in (".$group_names.") ";
 					$sql .= ")";
 					$sql .= "and (permission_protected <> 'true' or permission_protected is null)";
-					$database = new database;
-					$result = $database->select($sql);
+					$result = $this->database->select($sql);
 
 				//get the group_permissons
 					/*
@@ -76,11 +98,10 @@
 					$sql .= "where group_name in ( ";
 					$sql .= "	select group_name ";
 					$sql .= "	from v_groups ";
-					$sql .= "	where group_protected <> 'true' ";
+					$sql .= "	where group_protected <> true ";
 					$sql .= "	and group_name in (".$group_names.") ";
 					$sql .= ");";
-					$database = new database;
-					$group_permissions = $database->select($sql, null, 'all');
+					$group_permissions = $this->database->select($sql, null, 'all');
 					*/
 
 				//delete unprotected group permissions
@@ -98,10 +119,7 @@
 								$p = permissions::new();
 								$p->add('group_permission_delete', 'temp');
 							//execute delete
-								$database = new database;
-								$database->app_name = 'groups';
-								$database->app_uuid = '2caf27b0-540a-43d5-bb9b-c9871a1e4f84';
-								$database->delete($array);
+								$this->database->delete($array);
 								unset($array);
 							//revoke temporary permissions
 								$p->delete('group_permission_delete', 'temp');
@@ -116,16 +134,14 @@
 				//if the are no groups add the default groups
 					$sql = "select * from v_groups ";
 					$sql .= "where domain_uuid is null ";
-					$database = new database;
-					$groups = $database->select($sql, null, 'all');
+					$groups = $this->database->select($sql, null, 'all');
 
 				//delete the group permissions
 					$this->delete();
 					
 				//get the remaining group permissions
 					$sql = "select permission_name, group_name from v_group_permissions ";
-					$database = new database;
-					$database_group_permissions = $database->select($sql, null, 'all');
+					$this->database_group_permissions = $this->database->select($sql, null, 'all');
 
 				//get the $apps array from the installed apps from the core and mod directories
 					$config_list = glob($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/*/*/app_config.php");
@@ -145,12 +161,12 @@
 									foreach ($permission['groups'] as $group_name) {
 										//check group protection
 										$group_uuid = null;
-										$group_protected = null;
+										$group_protected = false;
 										if (is_array($groups)) {
 											foreach ($groups as $group) {
 												if ($group['group_name'] == $group_name) {
 													$group_uuid = $group['group_uuid'];
-													$group_protected = $group['group_protected'] == 'true' ? true : false;
+													$group_protected = $group['group_protected'];
 													break;
 												}
 											}
@@ -158,7 +174,7 @@
 										if (!$group_protected) {
 											// check if the item is not currently in the database
 											$exists = false;
-											foreach ($database_group_permissions as $i => $group_permission) {
+											foreach ($this->database_group_permissions as $i => $group_permission) {
 												if ($group_permission['permission_name'] == $permission['name']) {
 													if ($group_permission['group_name'] == $group_name) {
 														$exists = true;
@@ -189,10 +205,7 @@
 							$p->add('group_permission_add', 'temp');
 
 						//execute insert
-							$database = new database;
-							$database->app_name = 'groups';
-							$database->app_uuid = '2caf27b0-540a-43d5-bb9b-c9871a1e4f84';
-							$database->save($array);
+							$this->database->save($array);
 							unset($array);
 
 						//revoke temporary permissions

@@ -84,7 +84,7 @@
 
 //system information
 	function system_information(): array {
-		global $db_type;
+		global $database, $db_type;
 		$system_information = [];
 		$esl = event_socket::create();
 
@@ -272,7 +272,6 @@
 
 				//database version
 				$sql = "select version(); ";
-				$database = new database;
 				$database_name = $database->select($sql, null, 'column');
 				$database_array = explode(' ', $database_name);
 

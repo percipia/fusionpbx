@@ -66,7 +66,10 @@
 			local email_queue_enabled = settings:get('email_queue', 'enabled', 'boolean') or "false";
 
 		--get recording instructions and options settings
-			local sql = [[SELECT voicemail_recording_instructions, voicemail_recording_options FROM v_voicemails
+			local sql = [[SELECT 
+				cast(voicemail_recording_instructions as text), 
+				cast(voicemail_recording_options as text)
+				FROM v_voicemails
 				WHERE domain_uuid = :domain_uuid
 				AND voicemail_id = :voicemail_id ]];
 			local params = {domain_uuid = domain_uuid, voicemail_id = voicemail_id};
@@ -77,7 +80,7 @@
 
 		--check voicemail recording instructions setting
 			if (skip_instructions == nil) then
-				if (voicemail_recording_instructions == 'false') then
+				if (voicemail_recording_instructions ~= nil and voicemail_recording_instructions == 'false') then
 					skip_instructions = 'true';
 				else
 					skip_instructions = 'false';
@@ -287,7 +290,7 @@
 				end
 			else
 				if (skip_options == nil) then
-					if (voicemail_recording_options == 'false') then
+					if (voicemail_recording_options ~= nil and voicemail_recording_options == 'false') then
 						skip_options = 'true';
 					else
 						skip_options = 'false';

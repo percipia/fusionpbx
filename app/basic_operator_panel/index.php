@@ -30,8 +30,177 @@ require_once dirname(__DIR__, 2) . "/resources/require.php";
 require_once "resources/check_auth.php";
 
 //check permissions
-if (permission_exists('operator_panel_view')) {
-    //access granted
+	if (permission_exists('operator_panel_view')) {
+		//access granted
+	}
+	else {
+		echo "access denied";
+		exit;
+	}
+
+//add multi-lingual support
+	$language = new text;
+	$text = $language->get();
+
+//set user status
+	if (isset($_REQUEST['status']) && $_REQUEST['status'] != '') {
+
+		//validate the user status
+			$user_status = $_REQUEST['status'];
+			switch ($user_status) {
+				case "Available" :
+					break;
+				case "Available (On Demand)" :
+					break;
+				case "On Break" :
+					break;
+				case "Do Not Disturb" :
+					break;
+				case "Logged Out" :
+					break;
+				default :
+					$user_status = '';
+			}
+
+		//update the status
+			if (permission_exists("user_setting_edit")) {
+				//add the user_edit permission
+				$p = permissions::new();
+				$p->add("user_edit", "temp");
+
+				//update the database user_status
+				$array['users'][0]['user_uuid'] = $_SESSION['user']['user_uuid'];
+				$array['users'][0]['domain_uuid'] = $_SESSION['user']['domain_uuid'];
+				$array['users'][0]['user_status'] = $user_status;
+				$database->save($array);
+
+				//remove the temporary permission
+				$p->delete("user_edit", "temp");
+
+				unset($array);
+			}
+
+		//if call center app is installed then update the user_status
+			if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/call_centers')) {
+				//get the call center agent uuid
+					$sql = "select call_center_agent_uuid from v_call_center_agents ";
+					$sql .= "where domain_uuid = :domain_uuid ";
+					$sql .= "and user_uuid = :user_uuid ";
+					$parameters['domain_uuid'] = $_SESSION['user']['domain_uuid'];
+					$parameters['user_uuid'] = $_SESSION['user']['user_uuid'];
+					$call_center_agent_uuid = $database->select($sql, $parameters, 'column');
+					unset($sql, $parameters);
+
+				//update the user_status
+					if (is_uuid($call_center_agent_uuid)) {
+						$esl = event_socket::create();
+						$switch_cmd = "callcenter_config agent set status ".$call_center_agent_uuid." '".$user_status."'";
+						$switch_result = event_socket::api($switch_cmd);
+					}
+
+				//update the user state
+					if (is_uuid($call_center_agent_uuid)) {
+						$cmd = "api callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
+						$response = event_socket::api($cmd);
+					}
+
+				//update do not disturb
+					if ($user_status == "Do Not Disturb") {
+						$x = 0;
+						foreach ($_SESSION['user']['extension'] as $row) {
+							//build the array
+							$array['extensions'][$x]['extension_uuid'] = $row['extension_uuid'];
+							$array['extensions'][$x]['dial_string'] = '!USER_BUSY';
+							$array['extensions'][$x]['do_not_disturb'] = 'true';
+
+							//delete extension from the cache
+							$cache = new cache;
+							if (!empty($row['extension'])) {
+								$cache->delete("directory:".$row['extension']."@".$_SESSION['user']['domain_name']);
+							}
+							if (!empty($number_alias)) {
+								$cache->delete("directory:".$row['number_alias']."@".$_SESSION['user']['domain_name']);
+							}
+
+							//incrment
+							$x++;
+						}
+					}
+					else {
+						$x = 0;
+						foreach($_SESSION['user']['extension'] as $row) {
+							//build the array
+							$array['extensions'][$x]['extension_uuid'] = $row['extension_uuid'];
+							$array['extensions'][$x]['dial_string'] = null;
+							$array['extensions'][$x]['do_not_disturb'] = 'false';
+
+							//delete extension from the cache
+							$cache = new cache;
+							if (!empty($row['extension'])) {
+								$cache->delete("directory:".$row['extension']."@".$_SESSION['user']['domain_name']);
+							}
+							if (!empty($number_alias)) {
+								$cache->delete("directory:".$row['number_alias']."@".$_SESSION['user']['domain_name']);
+							}
+
+							//incrment
+							$x++;
+						}
+					}
+
+				//grant temporary permissions
+					$p = permissions::new();
+					$p->add('extension_edit', 'temp');
+
+				//execute update
+					$database->save($array);
+					unset($array);
+
+				//revoke temporary permissions
+					$p->delete('extension_edit', 'temp');
+
+				//delete extension from the cache
+					$cache = new cache;
+					if (!empty($extension)) {
+						$cache->delete("directory:".$extension."@".$this->domain_name);
+					}
+					if (!empty($number_alias)) {
+						$cache->delete("directory:".$number_alias."@".$this->domain_name);
+					}
+			}
+
+		//stop execution
+			exit;
+	}
+
+//set the title
+	$document['title'] = $text['title-operator_panel'];
+
+//include the header
+	require_once "resources/header.php";
+
+?>
+
+<!-- virtual_drag function holding elements -->
+<input type='hidden' class='formfld' id='vd_call_id' value=''>
+<input type='hidden' class='formfld' id='vd_ext_from' value=''>
+<input type='hidden' class='formfld' id='vd_ext_to' value=''>
+<input type='hidden' class='formfld' id='sort1' value=''>
+
+<!-- autocomplete for contact lookup -->
+<link rel="stylesheet" type="text/css" href="<?php echo PROJECT_PATH; ?>/resources/jquery/jquery-ui.min.css">
+<script language="JavaScript" type="text/javascript" src="<?php echo PROJECT_PATH; ?>/resources/jquery/jquery-ui.min.js"></script>
+<script type="text/javascript">
+
+<?php
+//determine refresh rate
+$refresh_default = 1500; //milliseconds
+$refresh = is_numeric($_SESSION['operator_panel']['refresh']['numeric']) ? $_SESSION['operator_panel']['refresh']['numeric'] : $refresh_default;
+if ($refresh >= 0.5 && $refresh <= 120) { //convert seconds to milliseconds
+	$refresh = $refresh * 1000;
+}
+else if ($refresh < 0.5 || ($refresh > 120 && $refresh < 500)) {
+	$refresh = $refresh_default; //use default
 }
 else {
     echo "access denied";

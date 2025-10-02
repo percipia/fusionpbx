@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2024
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -80,7 +80,7 @@
 		if (permission_exists('time_condition_context')) {
 			$dialplan_context = $_POST["dialplan_context"];
 		}
-		$dialplan_enabled = $_POST["dialplan_enabled"] ?? 'false';
+		$dialplan_enabled = $_POST["dialplan_enabled"];
 		$dialplan_description = $_POST["dialplan_description"];
 
 		if (!permission_exists('time_condition_domain')) {
@@ -132,7 +132,6 @@
 					$sql = "select * from v_dialplans ";
 					$sql .= "where dialplan_uuid = :dialplan_uuid ";
 					$parameters['dialplan_uuid'] = $dialplan_uuid;
-					$database = new database;
 					$row = $database->select($sql, $parameters, 'row');
 					if (is_array($row) && @sizeof($row) != 0) {
 						$domain_uuid = $row["domain_uuid"];
@@ -165,9 +164,6 @@
 					$p->add('dialplan_detail_delete', 'temp');
 
 				//execute delete
-					$database = new database;
-					$database->app_name = 'time_conditions';
-					$database->app_uuid = '4b821450-926b-175a-af93-a03c441818b1';
 					$database->delete($array);
 					unset($array);
 
@@ -196,9 +192,6 @@
 					$array['dialplans'][0]['dialplan_description'] = $dialplan_description;
 
 				//execute insert/update
-					$database = new database;
-					$database->app_name = 'time_conditions';
-					$database->app_uuid = '4b821450-926b-175a-af93-a03c441818b1';
 					$database->save($array);
 					unset($array);
 
@@ -486,9 +479,6 @@
 					$p->add('dialplan_detail_edit', 'temp');
 
 				//execute insert
-					$database = new database;
-					$database->app_name = 'time_conditions';
-					$database->app_uuid = '4b821450-926b-175a-af93-a03c441818b1';
 					$database->save($array);
 					unset($array);
 
@@ -536,7 +526,6 @@
 			$sql .= "and domain_uuid = :domain_uuid ";
 			$parameters['dialplan_uuid'] = $dialplan_uuid;
 			$parameters['domain_uuid'] = $domain_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (is_array($row) && @sizeof($row) != 0) {
 				$domain_uuid = $row["domain_uuid"];
@@ -570,7 +559,6 @@
 			$sql .= "order by dialplan_detail_group asc, dialplan_detail_order asc";
 			$parameters['dialplan_uuid'] = $dialplan_uuid;
 			$parameters['domain_uuid'] = $domain_uuid;
-			$database = new database;
 			$dialplan_details = $database->select($sql, $parameters, 'all');
 			unset($sql, $parameters);
 
@@ -662,7 +650,6 @@
 
 //set the defaults
 	if (empty($dialplan_context)) { $dialplan_context = $_SESSION['domain_name']; }
-	if (empty($dialplan_enabled)) { $dialplan_enabled = 'true'; }
 
 //create token
 	$object = new token;
@@ -1307,17 +1294,16 @@ if ($action == 'update') {
 	echo "    ".$text['label-enabled']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='dialplan_enabled' name='dialplan_enabled' value='true' ".($dialplan_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
-		echo "		<option value='true' ".($dialplan_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($dialplan_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
+	echo "		<option value='true' ".($dialplan_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo "</td>\n";

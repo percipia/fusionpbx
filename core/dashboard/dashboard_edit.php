@@ -34,9 +34,6 @@
 		exit;
 	}
 
-//initialize the database
-	$database = new database;
-
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
@@ -63,7 +60,7 @@
 	if (!empty($_POST)) {
 		$domain_uuid = permission_exists('dashboard_domain') ? $_POST["domain_uuid"] : $_SESSION['domain_uuid'];
 		$dashboard_name = $_POST["dashboard_name"] ?? '';
-		$dashboard_enabled = $_POST["dashboard_enabled"] ?? 'false';
+		$dashboard_enabled = $_POST["dashboard_enabled"];
 		$dashboard_description = $_POST["dashboard_description"] ?? '';
 
 		//define the regex patterns
@@ -152,7 +149,7 @@
 		if (is_array($row) && @sizeof($row) != 0) {
 			$domain_uuid = $row["domain_uuid"];
 			$dashboard_name = $row["dashboard_name"];
-			$dashboard_enabled = $row["dashboard_enabled"] ?? 'false';
+			$dashboard_enabled = $row["dashboard_enabled"];
 			$dashboard_description = $row["dashboard_description"];
 		}
 		unset($sql, $parameters, $row);
@@ -220,17 +217,16 @@
 	echo "	".$text['label-dashboard_enabled']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' style='position: relative;' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='dashboard_enabled' name='dashboard_enabled' value='true' ".($dashboard_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='dashboard_enabled' name='dashboard_enabled'>\n";
-		echo "		<option value='false'>".$text['option-false']."</option>\n";
-		echo "		<option value='true' ".($dashboard_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "	</select>\n";
+	echo "		<select class='formfld' id='dashboard_enabled' name='dashboard_enabled'>\n";
+	echo "			<option value='true' ".($dashboard_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($dashboard_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo $text['description-dashboard_enabled']."\n";

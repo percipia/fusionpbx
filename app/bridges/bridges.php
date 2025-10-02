@@ -93,7 +93,6 @@
 		$sql_search = " (";
 		$sql_search .= "	lower(bridge_name) like :search ";
 		$sql_search .= "	or lower(bridge_destination) like :search ";
-		$sql_search .= "	or lower(bridge_enabled) like :search ";
 		$sql_search .= "	or lower(bridge_description) like :search ";
 		$sql_search .= ") ";
 		$parameters['search'] = '%'.$search.'%';
@@ -113,7 +112,6 @@
 		}
 		$parameters['domain_uuid'] = $domain_uuid;
 	}
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters ?? null, 'column');
 
 //prepare to page the results
@@ -126,7 +124,7 @@
 	$offset = $rows_per_page * $page;
 
 //get the list
-	$sql = "select d.domain_uuid, b.bridge_uuid, d.domain_name, b.bridge_name, b.bridge_destination, bridge_enabled, bridge_description ";
+	$sql = "select d.domain_uuid, b.bridge_uuid, d.domain_name, b.bridge_name, b.bridge_destination, cast(bridge_enabled as text), bridge_description ";
 	$sql .= "from v_bridges as b, v_domains as d ";
 	$sql .= "where b.domain_uuid = d.domain_uuid ";
 	if (!empty($show) && $show == "all" && permission_exists('bridge_all')) {
@@ -143,7 +141,6 @@
 	}
 	$sql .= order_by($order_by, $order, 'bridge_name', 'asc');
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
 	$bridges = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 

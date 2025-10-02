@@ -189,7 +189,7 @@
 			$sql = "select domain_uuid from v_domains ";
 			$sql .= "where domain_name = :domain_name ";
 			$parameters['domain_name'] = $domain_name;
-			$database = new database;
+
 			$domain_uuid = $database->select($sql, $parameters, 'column');
 			unset($parameters);
 
@@ -202,7 +202,7 @@
 				$domain_exists = true;
 			}
 
-			//if the domain name does not exist then add the domain name
+			//if the domain name does not exist, then add the domain name
 			if (!$domain_exists) {
 				//add the domain permission
 				$p = permissions::new();
@@ -214,19 +214,15 @@
 				$array['domains'][0]['domain_enabled'] = 'true';
 
 				//save to the user data
-				$database = new database;
-				$database->app_name = 'domains';
-				$database->app_uuid = 'b31e723a-bf70-670c-a49b-470d2a232f71';
-				$database->uuid($domain_uuid);
 				$database->save($array);
-				$message = $database->message;
+				//$message = $database->message;
 				unset($array);
 
 				//remove the temporary permission
 				$p->delete("domain_add", "temp");
 			}
 
-			//set the session domain id and name
+			//set the session domain ID and name
 			$_SESSION['domain_uuid'] = $domain_uuid;
 			$_SESSION['domain_name'] = $domain_name;
 
@@ -245,8 +241,6 @@
 			$sql .= "and username = :username ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['username'] = $admin_username;
-
-			$database = new database;
 			$user_uuid = $database->select($sql, $parameters, 'column');
 			unset($parameters);
 
@@ -266,7 +260,6 @@
 			$sql = "select group_uuid from v_groups ";
 			$sql .= "where group_name = :group_name ";
 			$parameters['group_name'] = 'superadmin';
-			$database = new database;
 			$group_uuid = $database->select($sql, $parameters, 'column');
 			unset($parameters);
 
@@ -288,9 +281,6 @@
 			$array['user_groups'][0]['group_name'] = 'superadmin';
 			$array['user_groups'][0]['group_uuid'] = $group_uuid;
 			$array['user_groups'][0]['user_uuid'] = $user_uuid;
-			$database = new database;
-			$database->app_name = 'users';
-			$database->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 			$database->uuid($user_uuid);
 			$database->save($array);
 			$message = $database->message;

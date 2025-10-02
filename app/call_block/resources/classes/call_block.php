@@ -6,17 +6,21 @@
 	class call_block {
 
 		/**
+		 * declare constant variables
+		 */
+		const app_name = 'call_block';
+		const app_uuid = '9ed63276-e085-4897-839c-4f2e36d92d6c';
+
+		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
 		private $uuid_prefix;
 		private $toggle_field;
 		private $toggle_values;
-		private $database;
 
 		/**
 		 * declare public variables
@@ -31,18 +35,18 @@
 		 */
 		public function __construct() {
 
-			//initialize the database
-				$this->database = new database;
-
 			//assign private variables
-				$this->app_name = 'call_block';
-				$this->app_uuid = '9ed63276-e085-4897-839c-4f2e36d92d6c';
-				$this->permission_prefix = 'call_block_';
-				$this->list_page = 'call_block.php';
-				$this->table = 'call_block';
-				$this->uuid_prefix = 'call_block_';
-				$this->toggle_field = 'call_block_enabled';
-				$this->toggle_values = ['true','false'];
+			$this->permission_prefix = 'call_block_';
+			$this->list_page = 'call_block.php';
+			$this->table = 'call_block';
+			$this->uuid_prefix = 'call_block_';
+			$this->toggle_field = 'call_block_enabled';
+			$this->toggle_values = ['true','false'];
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -108,8 +112,6 @@
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$this->database->app_name = $this->app_name;
-									$this->database->app_uuid = $this->app_uuid;
 									$this->database->delete($array);
 									unset($array);
 
@@ -181,8 +183,7 @@
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$this->database->app_name = $this->app_name;
-									$this->database->app_uuid = $this->app_uuid;
+
 									$this->database->save($array);
 									unset($array);
 
@@ -255,8 +256,7 @@
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$this->database->app_name = $this->app_name;
-									$this->database->app_uuid = $this->app_uuid;
+
 									$this->database->save($array);
 									unset($array);
 
@@ -314,7 +314,7 @@
 								$sql .= "from v_destinations as d ";
 								$sql .= "where domain_uuid = :domain_uuid ";
 								$sql .= "and destination_prefix <> '' ";
-								$sql .= "and destination_enabled = 'true' ";
+								$sql .= "and destination_enabled = true ";
 								$sql .= "order by count desc limit 1; ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								$destination_country_code = $this->database->select($sql, $parameters ?? null, 'column');
@@ -378,7 +378,7 @@
 											$array['call_block'][$x]['call_block_count'] = 0;
 											$array['call_block'][$x]['call_block_app'] = $this->call_block_app;
 											$array['call_block'][$x]['call_block_data'] = $this->call_block_data;
-											$array['call_block'][$x]['call_block_enabled'] = 'true';
+											$array['call_block'][$x]['call_block_enabled'] = true;
 											$array['call_block'][$x]['date_added'] = time();
 											$x++;
 										}
@@ -402,7 +402,7 @@
 														$array['call_block'][$x]['call_block_count'] = 0;
 														$array['call_block'][$x]['call_block_app'] = $this->call_block_app;
 														$array['call_block'][$x]['call_block_data'] = $this->call_block_data;
-														$array['call_block'][$x]['call_block_enabled'] = 'true';
+														$array['call_block'][$x]['call_block_enabled'] = true;
 														$array['call_block'][$x]['date_added'] = time();
 														$x++;
 													}
@@ -419,14 +419,14 @@
 								//ensure call block is enabled in the dialplan (build update array)
 									$sql = "select dialplan_uuid from v_dialplans ";
 									$sql .= "where domain_uuid = :domain_uuid ";
-									$sql .= "and app_uuid = '".$this->app_uuid."' ";
-									$sql .= "and dialplan_enabled <> 'true' ";
+									$sql .= "and app_uuid = '".self::app_uuid."' ";
+									$sql .= "and dialplan_enabled <> true ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 									$rows = $this->database->select($sql, $parameters);
 									if (is_array($rows) && @sizeof($rows) != 0) {
 										foreach ($rows as $x => $row) {
 											$array['dialplans'][$x]['dialplan_uuid'] = $row['dialplan_uuid'];
-											$array['dialplans'][$x]['dialplan_enabled'] = 'true';
+											$array['dialplans'][$x]['dialplan_enabled'] = true;
 										}
 									}
 									unset($rows, $parameters);
@@ -436,8 +436,7 @@
 									$p->add('dialplan_edit', 'temp');
 
 								//save the array
-									$this->database->app_name = $this->app_name;
-									$this->database->app_uuid = $this->app_uuid;
+
 									$this->database->save($array);
 									$response = $this->database->message;
 									unset($array);

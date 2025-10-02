@@ -13,11 +13,6 @@
 		exit;
 	}
 
-//connect to the database
-	if (!isset($database)) {
-		$database = new database;
-	}
-
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get($_SESSION['domain']['language']['code'], 'app/call_forward');
@@ -52,7 +47,7 @@
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	}
-	$sql .= "and enabled = 'true' ";
+	$sql .= "and enabled = true ";
 	if (!permission_exists('extension_edit')) {
 		if (is_array($_SESSION['user']['extension']) && count($_SESSION['user']['extension']) > 0) {
 			$sql .= "and (";
@@ -70,7 +65,6 @@
 		}
 	}
 	$sql .= order_by($order_by ?? null, $order ?? null, 'extension', 'asc');
-	$database = new database;
 	$extensions = $database->select($sql, $parameters, 'all');
 	unset($parameters);
 
@@ -84,13 +78,13 @@
 	if (is_array($extensions) && @sizeof($extensions) != 0) {
 		foreach ($extensions as $row) {
 			if (permission_exists('call_forward')) {
-				$stats['call_forward'] += $row['forward_all_enabled'] == 'true' && $row['forward_all_destination'] ? 1 : 0;
+				$stats['call_forward'] += $row['forward_all_enabled'] == true && $row['forward_all_destination'] ? 1 : 0;
 			}
 			if (permission_exists('follow_me')) {
-				$stats['follow_me'] += $row['follow_me_enabled'] == 'true' && is_uuid($row['follow_me_uuid']) ? 1 : 0;
+				$stats['follow_me'] += $row['follow_me_enabled'] == true && is_uuid($row['follow_me_uuid']) ? 1 : 0;
 			}
 			if (permission_exists('do_not_disturb')) {
-				$stats['dnd'] += $row['do_not_disturb'] == 'true' ? 1 : 0;
+				$stats['dnd'] += $row['do_not_disturb'] == true ? 1 : 0;
 			}
 		}
 		$stats['active'] = @sizeof($extensions) - $stats['call_forward'] - $stats['follow_me'] - $stats['dnd'];
@@ -223,13 +217,12 @@
 				if (permission_exists('follow_me')) {
 					//get destination count
 					$follow_me_destination_count = 0;
-					if ($row['follow_me_enabled'] == 'true' && is_uuid($row['follow_me_uuid'])) {
+					if ($row['follow_me_enabled'] == true && is_uuid($row['follow_me_uuid'])) {
 						$sql = "select count(*) from v_follow_me_destinations ";
 						$sql .= "where follow_me_uuid = :follow_me_uuid ";
 						$sql .= "and domain_uuid = :domain_uuid ";
 						$parameters['follow_me_uuid'] = $row['follow_me_uuid'];
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-						$database = new database;
 						$follow_me_destination_count = $database->select($sql, $parameters, 'column');
 						unset($sql, $parameters);
 					}

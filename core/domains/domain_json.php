@@ -37,9 +37,6 @@
 		exit;
 	}
 
-//connect to the database
-	$database = new database;
-
 //get posted data
 	if (!empty($_POST['search'])) {
 		$search = $_POST['search'];
@@ -66,7 +63,7 @@
 		$sql = "select * ";
 		$sql .= "from v_domains ";
 		$sql .= "where true ";
-		$sql .= "and domain_enabled = 'true' \n";
+		$sql .= "and domain_enabled = true \n";
 		if (isset($search)) {
 			$sql .= "	and ( ";
 			$sql .= "		lower(domain_name) like :search ";

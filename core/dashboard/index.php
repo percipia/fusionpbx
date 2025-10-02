@@ -45,15 +45,12 @@
 //additional includes
 	require_once "resources/check_auth.php";
 
-//initialize the database
-	$database = new database;
-
 //disable login message
 	if (isset($_GET['msg']) && $_GET['msg'] == 'dismiss') {
 		unset($_SESSION['login']['message']['text']);
 
 		$sql = "update v_default_settings ";
-		$sql .= "set default_setting_enabled = 'false' ";
+		$sql .= "set default_setting_enabled = false ";
 		$sql .= "where ";
 		$sql .= "default_setting_category = 'login' ";
 		$sql .= "and default_setting_subcategory = 'message' ";
@@ -75,7 +72,7 @@
 //get the dashboard uuid
 	$sql = "select dashboard_uuid ";
 	$sql .= "from v_dashboards ";
-	$sql .= "where dashboard_enabled = 'true' ";
+	$sql .= "where dashboard_enabled = true ";
 	$sql .= "and (";
 	$sql .= "	domain_uuid = :domain_uuid ";
 	$sql .= "	or domain_uuid is null ";
@@ -106,7 +103,7 @@
 	$sql .= "widget_content_text_align, ";
 	$sql .= "widget_content_details, ";
 	$sql .= "widget_chart_type, ";
-	$sql .= "cast(widget_label_enabled as text), ";
+	$sql .= "widget_label_enabled, ";
 	$sql .= "widget_label_text_color, ";
 	$sql .= "widget_label_text_color_hover, ";
 	$sql .= "widget_label_background_color, ";
@@ -127,7 +124,7 @@
 	$sql .= "cast(widget_enabled as text), ";
 	$sql .= "widget_description ";
 	$sql .= "from v_dashboard_widgets as d ";
-	$sql .= "where widget_enabled = 'true' ";
+	$sql .= "where widget_enabled = true ";
 	$sql .= "and dashboard_widget_uuid in ( ";
 	$sql .= "	select dashboard_widget_uuid from v_dashboard_widget_groups where group_uuid in ( ";
 	$sql .= "		".$group_uuids_in." ";
@@ -196,7 +193,7 @@
 
 			//redirect the browser
 			message::add($text['message-update']);
-			header("Location: /core/dashboard/".(!empty($_GET['name']) ? "?name=".$_GET['name'] : null));
+			header("Location: /core/dashboard/".(!empty($_GET['name']) ? "?name=".urlencode($_GET['name']) : null));
 			return;
 		}
 	}
@@ -213,7 +210,7 @@
 	require_once "resources/header.php";
 
 //include websockets
-	$version = md5(file_get_contents(__DIR__, '/resources/javascript/ws_client.js'));
+	$version = md5(file_get_contents(__DIR__ . '/resources/javascript/ws_client.js'));
 	echo "<script src='/core/dashboard/resources/javascript/ws_client.js?v=$version'></script>\n";
 
 //include sortablejs
@@ -224,9 +221,9 @@
 
 //chart variables
 	echo "<script>\n";
-	echo "	var chart_text_font = '".($settings->get('theme', 'dashboard_number_text_font') ?? 'arial')."';\n";
-	echo "	var chart_text_size = '".($settings->get('theme', 'dashboard_chart_text_size') ?? '30px')."';\n";
-	echo "	Chart.overrides.doughnut.cutout = '".($settings->get('theme', 'dashboard_chart_cutout') ?? '75%')."';\n";
+	echo "	var chart_text_font = '".$settings->get('theme', 'dashboard_number_text_font', 'arial')."';\n";
+	echo "	var chart_text_size = '".$settings->get('theme', 'dashboard_chart_text_size', '30px')."';\n";
+	echo "	Chart.overrides.doughnut.cutout = '".$settings->get('theme', 'dashboard_chart_cutout', '75%')."';\n";
 	echo "	Chart.defaults.responsive = true;\n";
 	echo "	Chart.defaults.maintainAspectRatio = false;\n";
 	echo "	Chart.defaults.plugins.legend.display = false;\n";
@@ -245,8 +242,8 @@
 	echo "	<div class='heading'><b>".$text['title-dashboard']."</b></div>\n";
 	echo "	<div class='actions'>\n";
 	echo "		<form id='dashboard' method='post' _onsubmit='setFormSubmitting()'>\n";
-	if ($_SESSION['theme']['menu_style']['text'] != 'side') {
-		echo "		".$text['label-welcome']." <a href='".PROJECT_PATH."/core/users/user_edit.php?id=user'>".$_SESSION["username"]."</a>&nbsp; &nbsp;";
+	if ($settings->get('theme', 'menu_style', '') != 'side') {
+		echo "		".$text['label-welcome']." <a href='".PROJECT_PATH."/core/users/user_profile.php'>".$_SESSION["username"]."</a>&nbsp; &nbsp;";
 	}
 	if (permission_exists('dashboard_edit')) {
 		echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','name'=>'btn_back','style'=>'display: none;','onclick'=>"edit_mode('off');"]);
@@ -322,7 +319,7 @@ foreach ($widgets as $row) {
 		echo "	color: ".$row['widget_icon_color'].";\n";
 		echo "}\n";
 	}
-	if ($row['widget_label_enabled'] == 'false' && $row['widget_path'] != 'dashboard/parent') {
+	if ($row['widget_label_enabled'] === false && $row['widget_path'] != 'dashboard/parent') {
 		echo "#".$widget_id." .hud_title:first-of-type {\n";
 		echo "	display: none;\n";
 		echo "}\n";

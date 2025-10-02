@@ -18,7 +18,7 @@
 
   The Initial Developer of the Original Code is
   Mark J Crane <markjcrane@fusionpbx.com>
-  Copyright (C) 2013 - 2023
+  Copyright (C) 2013 - 2025
   All Rights Reserved.
 
   Contributor(s):
@@ -641,18 +641,30 @@
 														//field type has changed
 														else {
 															switch ($field_type) {
-																case 'numeric': $using = $field_name . "::numeric";
+																case 'numeric':
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " USING " . $field_name . "::numeric;\n";
 																	break;
 																case 'timestamp':
-																case 'datetime': $using = $field_name . "::timestamp without time zone";
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " USING " . $field_name . "::timestamp with time zone;\n";
 																	break;
-																case 'timestamptz': $using = $field_name . "::timestamp with time zone";
+																case 'datetime':
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " USING " . $field_name . "::timestamp without time zone;\n";
 																	break;
-																case 'boolean': $using = $field_name . "::boolean";
+																case 'timestamptz':
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " USING " . $field_name . "::timestamp with time zone;\n";
+																	break;
+																case 'boolean':
+																	if ($db_field_type == 'numeric') {
+																		$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE text USING " . $field_name . "::text;\n";
+																	}
+																	if ($db_field_type == 'text') {
+																		$sql_update .= "UPDATE " . $table_name . " set " . $field_name . " = 'false' where " . $field_name . " = '';\n";
+																	}
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " USING " . $field_name . "::boolean;\n";
 																	break;
 																default: unset($using);
+																	$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . "\n";
 															}
-															$sql_update .= "ALTER TABLE " . $table_name . " ALTER COLUMN " . $field_name . " TYPE " . $field_type . " " . ($using ? "USING " . $using : null) . ";\n";
 														}
 													}
 												}
@@ -820,15 +832,20 @@
 				}
 				//$this->db->beginTransaction();
 				$update_array = explode(";", $sql_update);
-				foreach ($update_array as $sql) {
-					if (strlen(trim($sql))) {
-						try {
-							$this->database->db->query(trim($sql));
-							if ($format == "text") {
-								$response .= "	$sql;\n";
+				if (is_array($update_array) && count($update_array)) {
+					//drop views so that alter table statements complete
+					$result = $this->database->views('drop');
+
+					foreach ($update_array as $sql) {
+						if (strlen(trim($sql))) {
+							try {
+								$this->database->db->query(trim($sql));
+								if ($format == "text") {
+									$response .= "	$sql;\n";
+								}
+							} catch (PDOException $error) {
+								$response .= "	error: " . $error->getMessage() . "	sql: $sql\n";
 							}
-						} catch (PDOException $error) {
-							$response .= "	error: " . $error->getMessage() . "	sql: $sql\n";
 						}
 					}
 				}
@@ -852,16 +869,14 @@
 				}
 			}
 
+			//create views so that alter table statements complete
+			$this->database->views('create');
+
 			//handle response
-			//if ($output == "echo") {
-			//	echo $response;
-			//}
-			//else if ($output == "return") {
 			return $response;
-			//}
+
 		} //end function
 	}
-
 
 //example use
 //$obj = new schema;

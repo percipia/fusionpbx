@@ -27,10 +27,14 @@
 	class registrations {
 
 		/**
+		 * declare constant variables
+		 */
+		const app_name = 'registrations';
+		const app_uuid = '5d9e7cd7-629e-3553-4cf5-f26e39fefa39';
+
+		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
 		private $permission_prefix;
 		private $list_page;
 		public $show;
@@ -81,8 +85,6 @@
 			}
 
 			//assign private variables
-			$this->app_name = 'registrations';
-			$this->app_uuid = '5d9e7cd7-629e-3553-4cf5-f26e39fefa39';
 			$this->permission_prefix = 'registration_';
 			$this->list_page = 'registrations.php';
 			$this->show = 'local';
@@ -124,12 +126,12 @@
 
 			//get the default settings
 				$sql = "select sip_profile_name from v_sip_profiles ";
-				$sql .= "where sip_profile_enabled = 'true' ";
+				$sql .= "where true ";
 				if (!empty($profile) && $profile != 'all') {
 					$sql .= "and sip_profile_name = :sip_profile_name ";
 					$parameters['sip_profile_name'] = $profile;
 				}
-				$sql .= "and sip_profile_enabled = 'true' ";
+				$sql .= "and sip_profile_enabled = true ";
 				$sip_profiles = $this->database->select($sql, $parameters ?? null, 'all');
 
 				if (!empty($sip_profiles)) {

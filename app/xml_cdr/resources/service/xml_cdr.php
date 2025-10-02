@@ -110,8 +110,20 @@
 		file_put_contents($pid_file, getmypid());
 	}
 
+//make sure the database connection is available
+	while (!$database->is_connected()) {
+		//connect to the database
+		$database->connect();
+
+		//reload settings after connection to the database
+		$settings = new settings(['database' => $database]);
+
+		//sleep for a moment
+		sleep(3);
+	}
+
 //get the xml_cdr directory
-	$xml_cdr_dir = $settings->get('switch', 'log').'/xml_cdr';
+	$xml_cdr_dir = $settings->get('switch', 'log', '/var/log/freeswitch').'/xml_cdr';
 
 //rename the directory
 	if (file_exists($xml_cdr_dir.'/failed/invalid_xml')) {
@@ -144,20 +156,23 @@
 //service loop
 	while (true) {
 
-		//make sure the database connection is available
-		while (!$database->is_connected()) {
-			//connect to the database
-			$database->connect();
-
-			//sleep for a moment
-			sleep(3);
-		}
-
 		//get the list of call detail records, and limit the number of records
 		$xml_cdr_array = array_slice(glob($xml_cdr_dir . '/*.cdr.xml'), 0, 100);
 
 		//process the call detail records
 		if (!empty($xml_cdr_array)) {
+			//make sure the database connection is available
+			while (!$database->is_connected()) {
+				//connect to the database
+				$database->connect();
+
+				//reload settings after connection to the database
+				$settings = new settings(['database' => $database]);
+
+				//sleep for a moment
+				sleep(3);
+			}
+
 			foreach ($xml_cdr_array as $xml_cdr_file) {
 				//move the files that are too large or zero file size to the failed size directory
 				if (filesize($xml_cdr_file) >= (3 * 1024 * 1024) || filesize($xml_cdr_file) == 0) {

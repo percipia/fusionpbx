@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2018-2024
+	Portions created by the Initial Developer are Copyright (C) 2018-2025
 	the Initial Developer. All Rights Reserved.
 */
 
@@ -60,7 +60,7 @@
 		$stream_uuid = $_POST["stream_uuid"];
 		$stream_name = $_POST["stream_name"];
 		$stream_location = $_POST["stream_location"];
-		$stream_enabled = $_POST["stream_enabled"] ?? 'false';
+		$stream_enabled = $_POST["stream_enabled"];
 		$stream_description = $_POST["stream_description"];
 	}
 
@@ -117,7 +117,7 @@
 					$sql .= "set queue_moh_sound = :stream_location ";
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "and queue_moh_sound = :original_stream_location ";
-					$parameters['domain_uuid'] = $domain_uuid;
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['stream_location'] = $stream_location;
 					$parameters['original_stream_location'] = $original_stream_location;
 					$database->execute($sql, $parameters);
@@ -130,7 +130,7 @@
 					$sql .= "set destination_hold_music = :stream_location ";
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "and destination_hold_music = :original_stream_location ";
-					$parameters['domain_uuid'] = $domain_uuid;
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['stream_location'] = $stream_location;
 					$parameters['original_stream_location'] = $original_stream_location;
 					$database->execute($sql, $parameters);
@@ -143,7 +143,7 @@
 					$sql .= "set hold_music = :stream_location ";
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "and hold_music = :original_stream_location ";
-					$parameters['domain_uuid'] = $domain_uuid;
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['stream_location'] = $stream_location;
 					$parameters['original_stream_location'] = $original_stream_location;
 					$database->execute($sql, $parameters);
@@ -156,7 +156,7 @@
 					$sql .= "set ivr_menu_ringback = :stream_location ";
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "and ivr_menu_ringback = :original_stream_location ";
-					$parameters['domain_uuid'] = $domain_uuid;
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['stream_location'] = $stream_location;
 					$parameters['original_stream_location'] = $original_stream_location;
 					$database->execute($sql, $parameters);
@@ -169,7 +169,7 @@
 					$sql .= "set ring_group_ringback = :stream_location ";
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "and ring_group_ringback = :original_stream_location ";
-					$parameters['domain_uuid'] = $domain_uuid;
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['stream_location'] = $stream_location;
 					$parameters['original_stream_location'] = $original_stream_location;
 					$database->execute($sql, $parameters);
@@ -231,9 +231,6 @@
 		unset($sql, $parameters, $row);
 	}
 
-//set the defaults
-	if (empty($stream_enabled)) { $stream_enabled = 'true'; }
-
 //need stream_all permission to edit a global stream
 	if (!permission_exists('stream_all') && $domain_uuid == null) {
 		header('Location: streams.php');
@@ -290,17 +287,16 @@
 	echo "	".$text['label-stream_enabled']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' style='position: relative;' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='stream_enabled' name='stream_enabled' value='true' ".($stream_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='stream_enabled' name='stream_enabled'>\n";
-		echo "		<option value='true' ".($stream_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($stream_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='stream_enabled' name='stream_enabled'>\n";
+	echo "		<option value='true' ".($stream_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($stream_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo $text['description-stream_enabled']."\n";

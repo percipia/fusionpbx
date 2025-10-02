@@ -55,12 +55,11 @@
 		$sql .= "	and template_category = 'email' ";
 		$sql .= "	and template_subcategory = 'test' ";
 		$sql .= "	and template_type = 'html' ";
-		$sql .= "	and template_enabled = 'true' ";
+		$sql .= "	and template_enabled = true ";
 		$sql .= "	and (domain_uuid = :domain_uuid or domain_uuid is null) ";
 		$sql .= "limit 1 ";
 		$parameters['template_language'] = $language_dialect;
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-		$database = new database;
 		$template = $database->select($sql, $parameters, 'row');
 		unset($sql, $parameters);
 	}

@@ -28,105 +28,124 @@
 //define the provision class
 	class provision {
 
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'provision';
+		const app_uuid = 'abf28ead-92ef-3de6-ebbb-023fbc2b6dd3';
+
+		/**
+		 * declare public variables
+		 */
 		public $domain_uuid;
 		public $domain_name;
 		public $template_dir;
 		public $device_address;
 		public $device_template;
+
+		/**
+		 * declare private variables
+		 */
 		private $settings;
 		private $database;
 
+		/**
+		 * called when the object is created
+		 */
 		public function __construct($params = []) {
 
 			//preset the the values
-				$settings = null;
-				$domain_uuid = null;
+			$settings = null;
+			$domain_uuid = null;
 
 			//use the parameters to set the values if they exist
-				if (isset($params['database'])) {
-					$this->database = $params['database'];
-				}
-				if (isset($params['settings'])) {
-					$settings = $params['settings'];
-				}
-				if (isset($params['domain_uuid'])) {
-					$domain_uuid = $params['domain_uuid'];
-				}
+			if (isset($params['database'])) {
+				$this->database = $params['database'];
+			}
+			if (isset($params['settings'])) {
+				$settings = $params['settings'];
+			}
+			if (isset($params['domain_uuid'])) {
+				$domain_uuid = $params['domain_uuid'];
+			}
 
 			//check if we can use the settings object to get the database object
-				if (!empty($settings) && empty($this->database)) {
-					$this->database = $settings->database();
-				}
+			if (!empty($settings) && empty($this->database)) {
+				$this->database = $settings->database();
+			}
 
 			//fill in missing
-				if (empty($this->database)) {
-					$this->database = database::new();
-				}
-				if (empty($settings)) {
-					$settings = new settings(['database' => $this->database, 'domain_uuid' => $domain_uuid]);
-				}
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
+			if (empty($settings)) {
+				$settings = new settings(['database' => $this->database, 'domain_uuid' => $domain_uuid]);
+			}
 
 			//assign to the object
-				$this->settings = $settings;
-				$this->domain_uuid = $domain_uuid;
+			$this->settings = $settings;
+			$this->domain_uuid = $domain_uuid;
 
 			//get the project root
-				$project_root = dirname(__DIR__, 4);
+			$project_root = dirname(__DIR__, 4);
 
 			//set the default template directory
-				if (PHP_OS == "Linux") {
-					//set the default template dir
-						if (empty($this->template_dir)) {
-							if (file_exists('/usr/share/fusionpbx/templates/provision')) {
-								$this->template_dir = '/usr/share/fusionpbx/templates/provision';
-							}
-							elseif (file_exists('/etc/fusionpbx/resources/templates/provision')) {
-								$this->template_dir = '/etc/fusionpbx/resources/templates/provision';
-							}
-							else {
-								$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
-							}
+			if (PHP_OS == "Linux") {
+				//set the default template dir
+					if (empty($this->template_dir)) {
+						if (file_exists('/usr/share/fusionpbx/templates/provision')) {
+							$this->template_dir = '/usr/share/fusionpbx/templates/provision';
 						}
-				}
-				elseif (PHP_OS == "FreeBSD") {
-					//if the FreeBSD port is installed use the following paths by default.
-						if (empty($this->template_dir)) {
-							if (file_exists('/usr/local/share/fusionpbx/templates/provision')) {
-								$this->template_dir = '/usr/local/share/fusionpbx/templates/provision';
-							}
-							elseif (file_exists('/usr/local/etc/fusionpbx/resources/templates/provision')) {
-								$this->template_dir = '/usr/local/etc/fusionpbx/resources/templates/provision';
-							}
-							else {
-								$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
-							}
+						elseif (file_exists('/etc/fusionpbx/resources/templates/provision')) {
+							$this->template_dir = '/etc/fusionpbx/resources/templates/provision';
 						}
-				}
-				else if (PHP_OS == "NetBSD") {
-					//set the default template_dir
-						if (empty($this->template_dir)) {
+						else {
 							$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
 						}
-				}
-				else if (PHP_OS == "OpenBSD") {
-					//set the default template_dir
-						if (empty($this->template_dir)) {
+					}
+			}
+			elseif (PHP_OS == "FreeBSD") {
+				//if the FreeBSD port is installed use the following paths by default.
+					if (empty($this->template_dir)) {
+						if (file_exists('/usr/local/share/fusionpbx/templates/provision')) {
+							$this->template_dir = '/usr/local/share/fusionpbx/templates/provision';
+						}
+						elseif (file_exists('/usr/local/etc/fusionpbx/resources/templates/provision')) {
+							$this->template_dir = '/usr/local/etc/fusionpbx/resources/templates/provision';
+						}
+						else {
 							$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
 						}
-				}
-				else {
-					//set the default template_dir
-						if (empty($this->template_dir)) {
-							$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
-						}
-				}
+					}
+			}
+			else if (PHP_OS == "NetBSD") {
+				//set the default template_dir
+					if (empty($this->template_dir)) {
+						$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
+					}
+			}
+			else if (PHP_OS == "OpenBSD") {
+				//set the default template_dir
+					if (empty($this->template_dir)) {
+						$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
+					}
+			}
+			else {
+				//set the default template_dir
+					if (empty($this->template_dir)) {
+						$this->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/resources/templates/provision';
+					}
+			}
 
 			//normalize the device address
-				if (isset($this->device_address)) {
-					$this->device_address = strtolower(preg_replace('#[^a-fA-F0-9./]#', '', $this->device_address));
-				}
+			if (isset($this->device_address)) {
+				$this->device_address = strtolower(preg_replace('#[^a-fA-F0-9./]#', '', $this->device_address));
+			}
 		}
 
+		/**
+		 * get the domain uuid
+		 */
 		public function get_domain_uuid() {
 			return $this->domain_uuid;
 		}
@@ -355,7 +374,7 @@
 							if (is_array($row) && sizeof($row) != 0) {
 
 								//checks either device enabled
-									if ($row['device_enabled'] != 'true') {
+									if ($row['device_enabled'] === false) {
 										syslog(LOG_WARNING, '['.$_SERVER['REMOTE_ADDR']."] provision attempted but the device is not enabled for ".escape($device_address));
 										if ($this->settings->get('provision','debug', false)) {
 											echo "<br/>device disabled<br/>";
@@ -371,7 +390,7 @@
 									$sql .= "set device_provisioned_date = :device_provisioned_date, device_provisioned_method = :device_provisioned_method, device_provisioned_ip = :device_provisioned_ip, device_provisioned_agent = :device_provisioned_agent ";
 									$sql .= "where domain_uuid = :domain_uuid ";
 									$sql .= "and device_address = :device_address  ";
-									$sql .= "and device_provisioned_date < NOW() - INTERVAL '30 seconds' ";
+									$sql .= "and (device_provisioned_date is null or device_provisioned_date < NOW() - INTERVAL '30 seconds') ";
 									$parameters['domain_uuid'] = $domain_uuid;
 									$parameters['device_address'] = strtolower($device_address);
 									$parameters['device_provisioned_date'] = 'now()';
@@ -402,7 +421,7 @@
 							if (empty($device_template)) {
 								$sql = "select * from v_devices ";
 								$sql .= "where domain_uuid = :domain_uuid ";
-								$sql .= "and device_enabled = 'true' ";
+								$sql .= "and device_enabled = true ";
 								$sql .= "limit 1 ";
 								$parameters['domain_uuid'] = $domain_uuid;
 								$row = $this->database->select($sql, $parameters, 'row');
@@ -562,7 +581,7 @@
 								$array['devices'][$x]['device_uuid'] = $device_uuid;
 								$array['devices'][$x]['device_address'] = $device_address;
 								$array['devices'][$x]['device_vendor'] = $device_vendor;
-								$array['devices'][$x]['device_enabled'] = 'true';
+								$array['devices'][$x]['device_enabled'] = true;
 								$array['devices'][$x]['device_template'] = $device_template;
 								$array['devices'][$x]['device_description'] = $_SERVER['HTTP_USER_AGENT'];
 
@@ -591,7 +610,7 @@
 				if (is_uuid($device_uuid)) {
 					$sql = "select * from v_devices ";
 					$sql .= "where device_uuid = :device_uuid ";
-					$sql .= "and device_enabled = 'true' ";
+					$sql .= "and device_enabled = true ";
 					$parameters['device_uuid'] = $device_uuid;
 					$row = $this->database->select($sql, $parameters, 'row');
 					if (is_array($row) && sizeof($row) != 0) {
@@ -607,7 +626,7 @@
 							$parameters['device_uuid'] = $device_uuid;
 							$row = $this->database->select($sql, $parameters, 'row');
 							if (is_array($row) && sizeof($row) != 0) {
-								if ($row["device_enabled"] == "true") {
+								if ($row["device_enabled"]) {
 									$device_label = $row["device_label"];
 
 									//if the device vendor match then use the alternate device template
@@ -632,7 +651,7 @@
 				if (is_uuid($device_uuid) && is_uuid($device_profile_uuid)) {
 					$sql = "select * from v_device_profile_settings ";
 					$sql .= "where device_profile_uuid = :device_profile_uuid ";
-					$sql .= "and profile_setting_enabled = 'true' ";
+					$sql .= "and profile_setting_enabled = true ";
 					$parameters['device_profile_uuid'] = $device_profile_uuid;
 					$device_profile_settings = $this->database->select($sql, $parameters, 'all');
 					if (is_array($device_profile_settings) && sizeof($device_profile_settings) != 0) {
@@ -649,7 +668,7 @@
 				if (is_uuid($device_uuid)) {
 					$sql = "select * from v_device_settings ";
 					$sql .= "where device_uuid = :device_uuid ";
-					$sql .= "and device_setting_enabled = 'true' ";
+					$sql .= "and device_setting_enabled = true ";
 					$parameters['device_uuid'] = $device_uuid;
 					$device_settings = $this->database->select($sql, $parameters, 'all');
 					if (is_array($device_settings) && sizeof($device_settings) != 0) {
@@ -679,17 +698,31 @@
 				$view->cache_dir = sys_get_temp_dir();
 				$view->init();
 
-			//replace the variables in the template in the future loop through all the line numbers to do a replace for each possible line number
+			//replace the variables in the template in the future, loop through all the line numbers to do a replace for each possible line number
 
-				//create a device address with back slashes for backwards compatability
+				//create a device address with backslashes for backwards compatibility
 					//$address_dash = substr($device_address, 0,2).'-'.substr($device_address, 2,2).'-'.substr($device_address, 4,2).'-'.substr($device_address, 6,2).'-'.substr($device_address, 8,2).'-'.substr($device_address, 10,2);
 
 				//get the provisioning information
 					if (is_uuid($device_uuid)) {
+						//get the extensions from the database
+							$sql = "select extension_uuid as contact_uuid, directory_first_name, directory_last_name, ";
+							$sql .= "effective_caller_id_name, effective_caller_id_number, ";
+							$sql .= "number_alias, extension, call_group ";
+							$sql .= "from v_extensions ";
+							$sql .= "where domain_uuid = :domain_uuid ";
+							$sql .= "order by extension asc ";
+							$parameters['domain_uuid'] = $domain_uuid;
+							$extensions = $this->database->select($sql, $parameters, 'all');
+							foreach($extensions as $row) {
+								$extension_labels[$row['extension']]['caller_id_name'] = $row['effective_caller_id_name'];
+							}
+							unset($sql, $parameters);
+
 						//get the device lines array
 							$sql = "select * from v_device_lines ";
 							$sql .= "where device_uuid = :device_uuid ";
-							$sql .= "and (enabled = 'true' or enabled is null or enabled = '') ";
+							$sql .= "and (enabled = true or enabled is null) ";
 							$parameters['device_uuid'] = $device_uuid;
 							//$database_device_lines = $this->database->select($sql, $parameters, 'all');
 							foreach ($this->database->select($sql, $parameters, 'all') as $row) {
@@ -756,7 +789,7 @@
 											$device_lines[$device_key_line]['line_keys'] = $row['device_key_value'];
 										}
 
-										//kept temporarily for backwards comptability to allow custom templates to be updated
+										//kept temporarily for backwards compatibility to allow custom templates to be updated
 										$device_keys[$id] = $row;
 										$device_keys[$id]['device_key_owner'] = "profile";
 									}
@@ -814,6 +847,38 @@
 								}
 							}
 							unset($sql, $parameters, $keys);
+
+						//replace the ${caller_id_name} with the extensions caller id name
+							if (is_array($device_keys)) {
+								foreach($device_keys as $row) {
+									//set the variables
+									$id = $row['device_key_id'];
+									$category = $row['device_key_category'];
+
+									//build the device keys array
+									if (in_array($device_key_vendor, ['cisco', 'spa']) && $row['device_key_type'] == 'disabled') {
+										$device_key_array = explode(';', $row['device_key_value']);
+										foreach($device_key_array as $sub_row) {
+											list($key, $value) = explode('=', $sub_row);
+											if ($key == 'sub') {
+												$extension = explode('@', $value)[0]; //remove the @PROXY
+												$caller_id_name = $extension_labels[$extension]['caller_id_name'];
+												$device_key_label = str_replace('${caller_id_name}', $caller_id_name, $row['device_key_label']);
+												$device_key_label = str_replace('${extension}', $extension, $device_key_label);
+												$device_key_label = str_replace('${user}', $extension, $device_key_label);
+												$device_keys[$category][$id]['device_key_label'] = $device_key_label;
+											}
+										}
+									} elseif (is_numeric($row['device_key_value'])) {
+										$extension = $row['device_key_value'];
+										$caller_id_name = $extension_labels[$row['device_key_value']]['caller_id_name'];
+										$device_key_label = str_replace('${caller_id_name}', $caller_id_name, $row['device_key_label']);
+										$device_key_label = str_replace('${extension}', $extension, $device_key_label);
+										$device_key_label = str_replace('${user}', $extension, $device_key_label);
+										$device_keys[$category][$id]['device_key_label'] = $device_key_label;
+									}
+								}
+							}
 
 						//set the variables
 							if (is_array($device_lines) && sizeof($device_lines) != 0) {
@@ -915,7 +980,7 @@
 							$sql .= "number_alias, extension, call_group ";
 							$sql .= "from v_extensions ";
 							$sql .= "where domain_uuid = :domain_uuid ";
-							$sql .= "and enabled = 'true' ";
+							$sql .= "and enabled = true ";
 							$sql .= "and directory_visible = 'true' ";
 							$sql .= "order by directory_first_name, effective_caller_id_name asc ";
 							$parameters['domain_uuid'] = $domain_uuid;
@@ -1411,7 +1476,7 @@
 												//destination file path
 													$dest_path = path_join($directory, $file_name);
 
-													if ($device_enabled == 'true') {
+													if ($device_enabled) {
 														//output template to string for header processing
 															$file_contents = $this->render();
 
