@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2024
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -42,8 +42,7 @@
 	$language = new text;
 	$text = $language->get();
 
-//initialize database and settings
-	$database = database::new();
+//initialize the settings object
 	$settings = new settings(['database' => $database, $_SESSION['domain_uuid'] ?? '', $_SESSION['user_uuid'] ?? '']);
 
 //set the defaults
@@ -413,8 +412,6 @@
 					}
 
 				//save to the data
-					$database->app_name = 'ivr_menus';
-					$database->app_uuid = 'a5788e9b-58bc-bd1b-df59-fff5d51253ab';
 					$database->save($array);
 					$message = $database->message;
 
@@ -614,6 +611,8 @@
 	if (empty($ivr_menu_digit_len)) { $ivr_menu_digit_len = '5'; }
 	if (!isset($ivr_menu_context)) { $ivr_menu_context = $_SESSION['domain_name']; }
 	if (!isset($ivr_menu_exit_action)) { $ivr_menu_exit_action = ''; }
+	$ivr_menu_direct_dial = $ivr_menu_direct_dial ?? false;
+	$ivr_menu_enabled = $ivr_menu_enabled ?? true;
 
 //get installed languages
 	$language_paths = glob($settings->get('switch', 'sounds')."/*/*/*");
@@ -1047,14 +1046,13 @@
 
 			echo "<td class='formfld' align='left'>\n";
 			echo "	<select name='ivr_menu_options[".$x."][ivr_menu_option_order]' class='formfld' style='width:55px'>\n";
-			//echo "	<option></option>\n";
-			if (strlen(htmlspecialchars($field['ivr_menu_option_order']))> 0) {
-				if (strlen($field['ivr_menu_option_order']) == 1) { $field['ivr_menu_option_order'] = "00".$field['ivr_menu_option_order']; }
-				if (strlen($field['ivr_menu_option_order']) == 2) { $field['ivr_menu_option_order'] = "0".$field['ivr_menu_option_order']; }
-				echo "	<option value='".escape($field['ivr_menu_option_order'])."'>".escape($field['ivr_menu_option_order'])."</option>\n";
+			if (strlen(htmlspecialchars($field['ivr_menu_option_order'])) > 0) {
+				if (strlen($field['ivr_menu_option_order']) == 1) { $ivr_menu_option_order_label = "00".$field['ivr_menu_option_order']; }
+				if (strlen($field['ivr_menu_option_order']) == 2) { $ivr_menu_option_order_label = "0".$field['ivr_menu_option_order']; }
 			}
 			for ($i = 0; $i <= 999; $i++) {
-				echo "	<option value='".str_pad($i, 3, '0', STR_PAD_LEFT)."'>".str_pad($i, 3, '0', STR_PAD_LEFT)."</option>\n";
+				if ($i == $field['ivr_menu_option_order']) { $selected = "selected='selected' "; } else {$selected = ''; }
+				echo "	<option value='".$i."' $selected>".str_pad($i, 3, '0', STR_PAD_LEFT)."</option>\n";
 			}
 			echo "	</select>\n";
 			echo "</td>\n";

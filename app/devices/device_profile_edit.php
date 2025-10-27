@@ -176,8 +176,6 @@
 			}
 
 		//save to the data
-			$database->app_name = 'Device Profiles';
-			$database->app_uuid = 'bb2531c3-97e6-428f-9a19-cbac1b96f5b7';
 			$database->save($array);
 
 		//remove checked keys
@@ -315,11 +313,11 @@
 
 //add an empty row
 	if (empty($device_profile_keys) || !is_array($device_profile_keys) || count($device_profile_keys) == 0) {
-		$rows = $_SESSION['devices']['profile_key_add_rows']['numeric'];
+		$rows = $settings->get('devices', 'profile_key_add_rows');
 		$id = 0;
 	}
 	if (!empty($device_profile_keys) && is_array($device_profile_keys) && count($device_profile_keys) > 0) {
-		$rows = $_SESSION['devices']['profile_key_edit_rows']['numeric'];
+		$rows = $settings->get('devices', 'profile_key_edit_rows');
 		$id = count($device_profile_keys)+1;
 	}
 	for ($x = 0; $x < $rows; $x++) {
@@ -334,7 +332,7 @@
 		$device_profile_keys[$id]['profile_key_line'] = '';
 		$device_profile_keys[$id]['profile_key_value'] = '';
 		$device_profile_keys[$id]['profile_key_extension'] = '';
-		$device_profile_keys[$id]['profile_key_protected'] = '';
+		$device_profile_keys[$id]['profile_key_protected'] = false;
 		$device_profile_keys[$id]['profile_key_label'] = '';
 		$device_profile_keys[$id]['profile_key_icon'] = '';
 		$id++;
@@ -371,6 +369,9 @@
 	if (empty($device_profile_uuid) || !is_uuid($device_profile_uuid)) {
 		$device_profile_uuid = null;
 	}
+
+//set the defaults
+	$device_profile_enabled = $device_profile_enabled ?? true;
 
 //create token
 	$object = new token;

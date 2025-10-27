@@ -48,10 +48,7 @@
 	$domain_uuid = $_SESSION['domain_uuid'] ?? '';
 	$domain_name = $_SESSION['domain_name'] ?? '';
 
-//initialize the database object
-	$database = database::new();
-
-//initialize the settigns object
+//initialize the settings object
 	$settings = new settings(['database' => $database, 'domain_uuid' => $domain_uuid]);
 
 //action add or update
@@ -444,8 +441,6 @@
 
 
 				//save the device
-					$database->app_name = 'devices';
-					$database->app_uuid = '4efa1a1a-32e7-bf83-534b-6c8299958a8e';
 					$database->save($array);
 
 				//remove checked lines
@@ -544,6 +539,9 @@
 	$domains = $database->select($sql, null, 'all');
 	unset($sql, $parameters);
 
+//set the defaults
+	$device_enabled = $device_enabled ?? true;
+
 //use the device address to get the vendor
 	if (empty($device_vendor)) {
 		//get the device vendor using the device address
@@ -593,7 +591,7 @@
 	$device_lines[$x]['auth_id'] = '';
 	$device_lines[$x]['password'] = '';
 	$device_lines[$x]['shared_line'] = '';
-	$device_lines[$x]['enabled'] = false;
+	$device_lines[$x]['enabled'] = true;
 	$device_lines[$x]['sip_port'] = $settings->get('provision', 'line_sip_port', '5060');
 	$device_lines[$x]['sip_transport'] = $settings->get('provision', 'line_sip_transport', 'tcp');
 	$device_lines[$x]['register_expires'] = $settings->get('provision', 'line_register_expires', '120');
@@ -681,7 +679,7 @@
 	for ($x = 0; $x < $rows; $x++) {
 		$device_settings[$id]['device_setting_name'] = '';
 		$device_settings[$id]['device_setting_value'] = '';
-		$device_settings[$id]['device_setting_enabled'] = false;
+		$device_settings[$id]['device_setting_enabled'] = true;
 		$device_settings[$id]['device_setting_description'] = '';
 		$id++;
 	}

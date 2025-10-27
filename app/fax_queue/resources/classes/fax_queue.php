@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2019 - 2021
+	Portions created by the Initial Developer are Copyright (C) 2019-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -36,9 +36,20 @@
 		const app_uuid = '3656287f-4b22-4cf1-91f6-00386bf488f4';
 
 		/**
+		 * Set in the constructor. Must be a database object and cannot be null.
+		 * @var database Database Object
+		 */
+		private $database;
+
+		/**
+		 * Domain UUID set in the constructor. This can be passed in through the $settings_array associative array or set in the session global array
+		 * @var string
+		 */
+		private $domain_uuid;
+
+		/**
 		* declare private variables
 		*/
-		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -48,18 +59,19 @@
 		/**
 		 * called when the object is created
 		 */
-		public function __construct() {
+		public function __construct(array $setting_array = []) {
+			//set domain and user UUIDs
+			$this->domain_uuid = $setting_array['domain_uuid'] ?? $_SESSION['domain_uuid'] ?? '';
+
+			//set objects
+			$this->database = $setting_array['database'] ?? database::new();
+
 			//assign the variables
 			$this->name = 'fax_queue';
 			$this->table = 'fax_queue';
 			$this->toggle_field = '';
 			$this->toggle_values = ['true','false'];
 			$this->location = 'fax_queue.php';
-
-			//connect to the database
-			if (empty($this->database)) {
-				$this->database = database::new();
-			}
 		}
 
 		/**
@@ -88,7 +100,7 @@
 								//add to the array
 									if ($record['checked'] == 'true' && is_uuid($record['fax_queue_uuid'])) {
 										$array[$this->table][$x]['fax_queue_uuid'] = $record['fax_queue_uuid'];
-										$array[$this->table][$x]['domain_uuid'] = $_SESSION['domain_uuid'];
+										$array[$this->table][$x]['domain_uuid'] = $this->domain_uuid;
 									}
 
 								//increment the id
@@ -191,7 +203,7 @@
 								$sql = "select ".$this->name."_uuid as uuid, ".$this->toggle_field." as toggle from v_".$this->table." ";
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
 								$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
-								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+								$parameters['domain_uuid'] = $this->domain_uuid;
 								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
@@ -260,16 +272,24 @@
 								$sql = "select * from v_".$this->table." ";
 								$sql .= "where fax_queue_uuid in (".implode(', ', $uuids).") ";
 								$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
-								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+								$parameters['domain_uuid'] = $this->domain_uuid;
 								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									$x = 0;
 									foreach ($rows as $row) {
+										//convert boolean values to a string
+											foreach($row as $key => $value) {
+												if (gettype($value) == 'boolean') {
+													$value = $value ? 'true' : 'false';
+													$row[$key] = $value;
+												}
+											}
+
 										//copy data
 											$array[$this->table][$x] = $row;
 
 										//add copy to the description
-											$array[$this->table][$x][fax_queue.'_uuid'] = uuid();
+											$array[$this->table][$x][$this->name.'_uuid'] = uuid();
 
 										//increment the id
 											$x++;
@@ -299,21 +319,21 @@
 		 * @return void
 		 */
 		public static function database_maintenance(settings $settings): void {
-			$this->database = $settings->database();
-			$domains = maintenance_service::get_domains($this->database);
+			$database = $settings->database();
+			$domains = maintenance_service::get_domains($database);
 			foreach ($domains as $domain_uuid => $domain_name) {
-				$domain_settings = new settings(['database'=>$this->database, 'domain_uuid'=>$domain_uuid]);
+				$domain_settings = new settings(['database'=>$database, 'domain_uuid'=>$domain_uuid]);
 				$retention_days = $domain_settings->get('fax_queue', 'database_retention_days', '');
 				//delete from v_fax_queue where fax_status = 'sent' and fax_date < NOW() - INTERVAL '$days_keep_fax_queue days'
 				if (!empty($retention_days) && is_numeric($retention_days)) {
 					$sql = "delete from v_fax_queue where fax_status = 'sent' and fax_date < NOW() - INTERVAL '$retention_days days'";
 					$sql .= " and domain_uuid = '$domain_uuid'";
-					$this->database->execute($sql);
-					$code = $this->database->message['code'] ?? 0;
+					$database->execute($sql);
+					$code = $database->message['code'] ?? 0;
 					if ($code == 200) {
 						maintenance_service::log_write(self::class, "Successfully removed entries older than $retention_days", $domain_uuid);
 					} else {
-						$message = $this->database->message['message'] ?? "An unknown error has occurred";
+						$message = $database->message['message'] ?? "An unknown error has occurred";
 						maintenance_service::log_write(self::class, "Unable to remove old database records. Error message: $message ($code)", $domain_uuid, maintenance_service::LOG_ERROR);
 					}
 				}

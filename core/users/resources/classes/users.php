@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2019-2020
+	Portions created by the Initial Developer are Copyright (C) 2019-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -36,11 +36,26 @@
 		const app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 
 		/**
+		 * Set in the constructor. Must be a database object and cannot be null.
+		 * @var database Database Object
+		 */
+		private $database;
+
+		/**
+		 * Settings object set in the constructor. Must be a settings object and cannot be null.
+		 * @var settings Settings Object
+		 */
+		private $settings;
+
+		/**
+		 * Domain UUID set in the constructor. This can be passed in through the $settings_array associative array or set in the session global array
+		 * @var string
+		 */
+		private $domain_uuid;
+
+		/**
 		* declare the variables
 		*/
-		private $app_name;
-		private $app_uuid;
-		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -50,18 +65,19 @@
 		/**
 		 * called when the object is created
 		 */
-		public function __construct() {
+		public function __construct(array $setting_array = []) {
+			//set domain and user UUIDs
+			$this->domain_uuid = $setting_array['domain_uuid'] ?? $_SESSION['domain_uuid'] ?? '';
+
+			//set objects
+			$this->database = $setting_array['database'] ?? database::new();
+
 			//assign the variables
 			$this->name = 'user';
 			$this->table = 'users';
 			$this->toggle_field = 'user_enabled';
 			$this->toggle_values = ['true','false'];
 			$this->location = 'users.php';
-
-			//connect to the database
-			if (empty($this->database)) {
-				$this->database = database::new();
-			}
 		}
 
 		/**
@@ -101,7 +117,7 @@
 												unset($sql, $parameters);
 											}
 											else {
-												$domain_uuid = $_SESSION['domain_uuid'];
+												$domain_uuid = $this->domain_uuid;
 											}
 
 										//required to be a superadmin to delete a member of the superadmin group
@@ -253,6 +269,14 @@
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									$x = 0;
 									foreach ($rows as $row) {
+										//convert boolean values to a string
+											foreach($row as $key => $value) {
+												if (gettype($value) == 'boolean') {
+													$value = $value ? 'true' : 'false';
+													$row[$key] = $value;
+												}
+											}
+
 										//copy data
 											$array[$this->table][$x] = $row;
 
@@ -270,7 +294,6 @@
 						//save the changes and set the message
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 								//save the array
-
 									$this->database->save($array);
 									unset($array);
 
@@ -288,20 +311,20 @@
 		 * @return void
 		 */
 		public static function database_maintenance(settings $settings): void {
-			$this->database = $settings->database();
-			$domains = maintenance_service::get_domains($this->database);
+			$database = $settings->database();
+			$domains = maintenance_service::get_domains($database);
 			foreach ($domains as $domain_uuid => $domain_name) {
-				$domain_settings = new settings(['database' => $this->database, 'domain_uuid' => $domain_uuid]);
+				$domain_settings = new settings(['database' => $database, 'domain_uuid' => $domain_uuid]);
 				$retention_days = $domain_settings->get('users', 'database_retention_days', '');
 				if (!empty($retention_days) && is_numeric($retention_days)) {
 					$sql = "delete from v_user_logs where timestamp < NOW() - INTERVAL '$retention_days days'";
 					$sql.= " and domain_uuid = '$domain_uuid'";
-					$this->database->execute($sql);
-					$code = $this->database->message['code'] ?? 0;
+					$database->execute($sql);
+					$code = $database->message['code'] ?? 0;
 					if ($code == 200) {
 						maintenance_service::log_write(self::class, "Successfully removed entries older than $retention_days", $domain_uuid);
 					} else {
-						$message = $this->database->message['message'] ?? "An unknown error has occurred";
+						$message = $database->message['message'] ?? "An unknown error has occurred";
 						maintenance_service::log_write(self::class, "Unable to remove old database records. Error message: $message ($code)", $domain_uuid, maintenance_service::LOG_ERROR);
 					}
 				} else {
