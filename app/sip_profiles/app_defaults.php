@@ -56,7 +56,7 @@
 					$json = json_encode($xml);
 					$sip_profile = json_decode($json, true);
 					$sip_profile_name = $sip_profile['@attributes']['name'];
-					$sip_profile_enabled = $sip_profile['@attributes']['enabled'] ?? true;
+					$sip_profile_enabled = $sip_profile['@attributes']['enabled'];
 					//echo "sip profile name: ".$sip_profile_name."\n";
 
 					if ($sip_profile_name != "{v_sip_profile_name}") {
@@ -126,6 +126,8 @@
 							$p->add('sip_profile_setting_add', 'temp');
 
 						//execute insert
+							$database->app_name = 'sip_profiles';
+							$database->app_uuid = '159a8da8-0e8c-a26b-6d5b-19c532b6d470';
 							$database->save($array, false);
 							unset($array);
 
@@ -170,7 +172,7 @@
 						$json = json_encode($xml);
 						$sip_profile = json_decode($json, true);
 						$sip_profile_name = $sip_profile['@attributes']['name'];
-						$sip_profile_enabled = $sip_profile['@attributes']['enabled'] ?? true;
+						$sip_profile_enabled = $sip_profile['@attributes']['enabled'];
 
 					//get the sip_profile_uuid using the sip profile name
 						$sql = "select sip_profile_uuid from v_sip_profiles ";
@@ -200,6 +202,8 @@
 							$p->add('sip_profile_domain_add', 'temp');
 
 						//execute insert
+							$database->app_name = 'sip_profiles';
+							$database->app_uuid = '159a8da8-0e8c-a26b-6d5b-19c532b6d470';
 							$database->save($array, false);
 							unset($array);
 
