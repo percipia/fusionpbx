@@ -28,13 +28,10 @@
 
 //includes files
 	require_once dirname(__DIR__, 4) . "/resources/require.php";
+	require_once "resources/check_auth.php";
 
 //check permissions
-	require_once "resources/check_auth.php";
-	if (permission_exists('xml_cdr_view')) {
-		//access granted
-	}
-	else {
+	if (!permission_exists('xml_cdr_view')) {
 		echo "access denied";
 		exit;
 	}
@@ -57,9 +54,9 @@
 	if (!function_exists('is_running')) {
 		function is_running(string $name) {
 			$name = escapeshellarg($name);
-			$pid = shell_exec("ps -aux | grep $name | grep -v grep | awk '{print \$2}' | head -n 1");
+			$pid = trim(shell_exec("ps -aux | grep $name | grep -v grep | awk '{print \$2}' | head -n 1") ?? '');
 			if ($pid && is_numeric($pid)) {
-				$etime = shell_exec("ps -p $pid -o etime= | tr -d '\n'");
+				$etime = trim(shell_exec("ps -p $pid -o etime= | tr -d '\n'") ?? '');
 				return ['running' => true, 'pid' => $pid, 'etime' => $etime];
 			}
 			return ['running' => false, 'pid' => null, 'etime' => null];

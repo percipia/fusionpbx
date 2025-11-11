@@ -86,6 +86,7 @@
 		private $uuid_prefix;
 		private $toggle_field;
 		private $toggle_values;
+		private $tables;
 
 		/**
 		 * Create a settings object using key/value pairs in the $setting_array.
@@ -406,6 +407,9 @@
 					}
 					if (preg_replace('/^.*?(polycom).*$/i', '$1', $agent) == "polycom") {
 						return "polycom";
+					}
+					if (preg_replace('/^.*?(poly).*$/i', '$1', $agent) == "poly") {
+						return "poly";
 					}
 					if (preg_replace('/^.*?(yealink).*$/i', '$1', $agent) == "yealink") {
 						return "yealink";

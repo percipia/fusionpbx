@@ -38,6 +38,7 @@
 		 * @var string
 		 */
 		public $domain_uuid;
+		public $app_uuid;
 
 		/**
 		 * declare public variables
@@ -523,10 +524,10 @@
 								}
 								if ($regex_match) {
 									//get the variables
-										if ($field[dialplan_detail_type] == "set" && $field[dialplan_detail_tag] == "action") {
+										if ($field['dialplan_detail_type'] == "set" && $field['dialplan_detail_tag'] == "action") {
 											//only set variables with values not variables
-											if (strpos($field[dialplan_detail_data], '$') === false) {
-												$this->variables .= $field[dialplan_detail_data].",";
+											if (strpos($field['dialplan_detail_data'], '$') === false) {
+												$this->variables .= $field['dialplan_detail_data'].",";
 											}
 										}
 									//process the $x detail data variables
@@ -551,10 +552,10 @@
 			foreach($database_array['dialplans'] as $row) {
 				if (!empty($row['dialplan_details'])) {
 					foreach($row['dialplan_details'] as $detail) {
-						if ($detail['dialplan_detail_enabled'] == true) {
+						if ($detail['dialplan_detail_enabled'] == 'true') {
 							$array[$id]['domain_uuid'] = $row['domain_uuid'];
 							$array[$id]['dialplan_uuid'] = $row['dialplan_uuid'];
-							$array[$id]['app_uuid'] = $row['app_uuid'];
+							$array[$id]['app_uuid'] = $row['app_uuid'] ?? '';
 							$array[$id]['dialplan_context'] = $row['dialplan_context'];
 							$array[$id]['dialplan_name'] = $row['dialplan_name'];
 							$array[$id]['dialplan_number'] = $row['dialplan_number'];
@@ -699,9 +700,12 @@
 						}
 
 					//define the values before they are used
-						$previous_dialplan_uuid = null;
-						$previous_dialplan_detail_group = null;
-						$dialplan_tag_status = null;
+						$previous_dialplan_uuid = '';
+						$previous_dialplan_detail_group = '';
+						$dialplan_tag_status = '';
+						$condition_attribute = '';
+						$condition_break = '';
+						$xml = '';
 
 					//loop through the results to get the xml from the dialplan_xml field or from dialplan details table
 						$x = 0;
@@ -868,7 +872,7 @@
 											}
 
 										//get the condition break attribute
-											$condition_break = "";
+											$condition_break = '';
 											if ($dialplan_detail_break) {
 												if (!empty($dialplan_detail_break)) {
 													$condition_break = " break=\"" . $dialplan_detail_break . "\"";
@@ -973,7 +977,7 @@
 								if ($condition_attribute && (!empty($condition_attribute))) {
 									$xml .= "	<condition " . $condition_attribute . $condition_break . "/>\n";
 								}
-								else if (!empty($condition) && substr($string, -1) == ">") {
+								else if (!empty($condition) && substr($condition, -1) == ">") {
 									$xml .= $condition . "\n";
 								}
 								else if (!empty($condition)) {
@@ -1034,29 +1038,35 @@
 				$xml_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/resources/switch/conf/dialplan/*.xml");
 				foreach ($xml_list as $xml_file) {
 					//get and parse the xml
-						$xml_string = file_get_contents($xml_file);
-					//get the order number prefix from the file name
-						$name_array = explode('_', basename($xml_file));
-						if (is_numeric($name_array[0])) {
-							$dialplan_order = $name_array[0];
-						}
-						else {
-							$dialplan_order = 0;
-						}
-						$dialplan->dialplan_order = $dialplan_order;
+					$xml_string = file_get_contents($xml_file);
 
-						$this->xml = $xml_string;
-						$this->import();
+					//get the order number prefix from the file name
+					$name_array = explode('_', basename($xml_file));
+					if (is_numeric($name_array[0])) {
+						$dialplan_order = $name_array[0];
+					}
+					else {
+						$dialplan_order = 0;
+					}
+
+					//set the xml string
+					$this->xml = $xml_string;
+
+					//get the domains
+					$sql = 'select * from v_domains';
+					$domains = $this->database->select($sql, null, 'all');
+					$this->import($domains);
+					unset($sql);
 				}
 
 			//update the dialplan order
-				$sql[] = "update v_dialplans set dialplan_order = '870' where dialplan_order = '980' and dialplan_name = 'cidlookup' ";
-				$sql[] = "update v_dialplans set dialplan_order = '880' where dialplan_order = '990' and dialplan_name = 'call_screen' ";
-				$sql[] = "update v_dialplans set dialplan_order = '890' where dialplan_order = '999' and dialplan_name = 'local_extension' ";
-				foreach ($sql as $query) {
+				$sql_array[] = "update v_dialplans set dialplan_order = '870' where dialplan_order = '980' and dialplan_name = 'cidlookup' ";
+				$sql_array[] = "update v_dialplans set dialplan_order = '880' where dialplan_order = '990' and dialplan_name = 'call_screen' ";
+				$sql_array[] = "update v_dialplans set dialplan_order = '890' where dialplan_order = '999' and dialplan_name = 'local_extension' ";
+				foreach ($sql_array as $query) {
 					$this->database->execute($query);
 				}
-				unset($sql, $query);
+				unset($sql_array, $query);
 
 			//add xml for each dialplan where the dialplan xml is empty
 				$this->source = "details";

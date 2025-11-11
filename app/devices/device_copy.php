@@ -29,10 +29,7 @@
 	require_once "resources/check_auth.php";
 
 //check permissions
-	if (permission_exists('device_add')) {
-		//access granted
-	}
-	else {
+	if (!permission_exists('device_add')) {
 		echo "access denied";
 		exit;
 	}
@@ -82,7 +79,6 @@
 	$sql .= "device_model, ";
 	$sql .= "device_firmware_version, ";
 	$sql .= "cast(device_enabled as text), ";
-	$sql .= "device_enabled_date, ";
 	$sql .= "device_template, ";
 	$sql .= "device_user_uuid, ";
 	$sql .= "device_username, ";

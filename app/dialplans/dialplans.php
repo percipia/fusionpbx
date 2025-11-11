@@ -25,16 +25,13 @@
 */
 
 //includes files
-global $settings, $domain_uuid, $database;
-require_once dirname(__DIR__, 2) . "/resources/require.php";
+	global $settings, $domain_uuid, $database;
+	require_once dirname(__DIR__, 2) . "/resources/require.php";
 	require_once "resources/check_auth.php";
 	require_once "resources/paging.php";
 
 //check permissions
-	if (permission_exists('dialplan_view') || permission_exists('inbound_route_view') || permission_exists('outbound_route_view')) {
-		//access granted
-	}
-	else {
+	if (!(permission_exists('dialplan_view') || !permission_exists('inbound_route_view') || permission_exists('outbound_route_view'))) {
 		echo "access denied";
 		exit;
 	}
@@ -178,6 +175,7 @@ require_once dirname(__DIR__, 2) . "/resources/require.php";
 		$parameters['dialplan_context'] = $context;
 	}
 	if (!empty($search)) {
+		$search = strtolower($search);
 		$sql .= "and (";
 		$sql .= " 	lower(dialplan_context) like :search ";
 		$sql .= " 	or lower(dialplan_name) like :search ";

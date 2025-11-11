@@ -30,10 +30,7 @@
 	require_once "resources/paging.php";
 
 //check permissions
-	if (permission_exists('device_view')) {
-		//access granted
-	}
-	else {
+	if (!permission_exists('device_view')) {
 		echo "access denied";
 		exit;
 	}
@@ -205,7 +202,6 @@
 	$sql .= "d.device_provisioned_date, ";
 	$sql .= "d.device_provisioned_method, ";
 	$sql .= "d.device_provisioned_ip, ";
-	$sql .= "d.device_enabled_date, ";
 	$sql .= "d.device_provisioned_agent, ";
 	$sql .= "d.device_location, ";
 	$sql .= "d.device_serial_number, ";

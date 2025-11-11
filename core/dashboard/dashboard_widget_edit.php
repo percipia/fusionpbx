@@ -26,10 +26,7 @@
 	require_once "resources/check_auth.php";
 
 //check permissions
-	if (permission_exists('dashboard_widget_add') || permission_exists('dashboard_widget_edit')) {
-		//access granted
-	}
-	else {
+	if (!(permission_exists('dashboard_widget_add') || permission_exists('dashboard_widget_edit'))) {
 		echo "access denied";
 		exit;
 	}
@@ -654,6 +651,10 @@
 		}
 	}
 
+	if (empty($widget_details_state) || $widget_details_state == 'none') {
+		$items_to_remove[] = 'widget_details_state';
+	}
+
 	$widget_settings = array_diff($widget_settings, $items_to_remove);
 
 ?>
@@ -756,9 +757,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function toggle_label_settings() {
+		let widget_settings = Object.values(<?php echo json_encode($widget_settings); ?>);
 		let label_settings = document.querySelectorAll("[id^='tr_widget_label_']:not([id='tr_widget_label_enabled'])");
+
 		label_settings.forEach(function(setting) {
-			setting.style.display = (setting.style.display == 'none' ? '' : 'none');
+			let setting_name = setting.id.replace("tr_", "");
+			if (widget_settings.includes(setting_name)) {
+				setting.style.display = (setting.style.display == 'none' ? '' : 'none');
+			}
 		});
 	}
 
@@ -766,7 +772,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('widget_url').addEventListener('change', adjust_form_url);
 	document.getElementById('widget_target').addEventListener('change', adjust_form_url);
 	document.getElementById('widget_label_enabled').addEventListener('change', toggle_label_settings);
-	document.querySelectorAll('.switch:has(#widget_label_enabled)').addEventListener('click', toggle_label_settings);
 });
 
 </script>
@@ -1333,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	echo "	".$text['label-widget_details_state']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' style='position: relative;' align='left'>\n";
-	echo "	<select name='widget_details_state' class='formfld'>\n";
+	echo "	<select name='widget_details_state' class='formfld' ".(!in_array('widget_details_state', $widget_settings) ? "disabled" : null).">\n";
 	echo "		<option value='expanded'>".$text['option-expanded']."</option>\n";
 	echo "		<option value='contracted' ".($widget_details_state == "contracted" ? "selected='selected'" : null).">".$text['option-contracted']."</option>\n";
 	echo "		<option value='hidden' ".($widget_details_state == "hidden" ? "selected='selected'" : null).">".$text['option-hidden']."</option>\n";

@@ -130,7 +130,7 @@
 
 		//load an array of the database schema and compare it with the active database
 		if (!empty($action["upgrade_schema"]) && permission_exists("upgrade_schema")) {
-			$obj = new schema();
+			$obj = new schema(['database' => $database]);
 			if (isset($action["data_types"]) && $action["data_types"] == 'true') {
 				$obj->data_types = true;
 			}
@@ -159,7 +159,7 @@
 				$autoload->reload_classes();
 				$autoload->update_cache();
 			}
-			$sel_menu = explode('|', check_str($_POST["sel_menu"]));
+			$sel_menu = explode('|', $_POST["sel_menu"] ?? '');
 			$menu_uuid = $sel_menu[0];
 			$menu_language = $sel_menu[1];
 			$included = true;

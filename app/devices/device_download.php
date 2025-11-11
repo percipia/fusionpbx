@@ -29,10 +29,7 @@
 	require_once "resources/check_auth.php";
 
 //check permissions
-	if (permission_exists('device_export')) {
-		//access granted
-	}
-	else {
+	if (!permission_exists('device_export')) {
 		echo "access denied";
 		exit;
 	}
@@ -113,7 +110,6 @@
 	$available_columns['devices'][] = 'device_label';
 	$available_columns['devices'][] = 'device_vendor';
 	$available_columns['devices'][] = 'device_template';
-	$available_columns['devices'][] = 'device_enabled_date';
 	$available_columns['devices'][] = 'device_username';
 	$available_columns['devices'][] = 'device_password';
 	$available_columns['devices'][] = 'device_uuid_alternate';
