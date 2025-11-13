@@ -48,9 +48,15 @@
 		private $uuid_prefix;
 		private $toggle_field;
 		private $toggle_values;
-		private $json;
-		private  $xml;
-		private $display_type;
+
+		/**
+		 * Mark Cranium big brain moment
+		 * TODO: Make these private again if Mark Cranium adds setter methods to manipulate these variables
+		 * If these are private, app_defaults.php fails because external code can't set them before calling import()
+		 */
+		public $json;
+		public $xml;
+		public $display_type;
 
 
 		/**
