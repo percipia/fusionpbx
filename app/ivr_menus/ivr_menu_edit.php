@@ -46,6 +46,8 @@
 	$ivr_menu_name = '';
 	$ivr_menu_extension = '';
 	$ivr_menu_cid_prefix = '';
+	$ivr_menu_greet_long = '';
+	$ivr_menu_greet_short = '';
 	$ivr_menu_description = '';
 	$ivr_menu_ringback = $settings->get('ivr_menu','default_ringback', 'local_stream://default');
 
@@ -562,7 +564,7 @@
 		$ivr_menu_options[$id]['ivr_menu_option_param'] = '';
 		$ivr_menu_options[$id]['ivr_menu_option_order'] = '';
 		$ivr_menu_options[$id]['ivr_menu_option_description'] = '';
-		$ivr_menu_options[$id]['ivr_menu_option_enabled'] = false;
+		$ivr_menu_options[$id]['ivr_menu_option_enabled'] = true;
 		$id++;
 	}
 
