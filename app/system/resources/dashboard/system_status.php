@@ -235,7 +235,7 @@
 
 		//FusionPBX version
 			echo "<tr class='tr_link_void'>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$settings->get('theme', 'title', 'FusionPBX')."</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>FusionPBX</td>\n";
 			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".software::version()."</td>\n";
 			echo "</tr>\n";
 			$c = ($c) ? 0 : 1;
