@@ -7206,6 +7206,27 @@ $text['button-files']['zh-cn'] = "文件";
 $text['button-files']['ja-jp'] = "ファイル";
 $text['button-files']['ko-kr'] = "파일";
 
+$text['button-rebuild']['en-us'] = "Rebuild";
+$text['button-rebuild']['en-gb'] = "Rebuild";
+$text['button-rebuild']['ar-eg'] = "";
+$text['button-rebuild']['de-at'] = "Wieder Aufbauen"; //copied from de-de
+$text['button-rebuild']['de-ch'] = "Wieder Aufbauen"; //copied from de-de
+$text['button-rebuild']['de-de'] = "Wieder Aufbauen";
+$text['button-rebuild']['es-cl'] = "Reconstruir";
+$text['button-rebuild']['es-mx'] = "Reconstruir";  //copied from es-cl
+$text['button-rebuild']['fr-ca'] = "Reconstruire"; //copied from fr-fr
+$text['button-rebuild']['fr-fr'] = "Reconstruire";
+$text['button-rebuild']['he-il'] = "";
+$text['button-rebuild']['it-it'] = "Ricostruire";
+$text['button-rebuild']['nl-nl'] = "Herbouwen";
+$text['button-rebuild']['pl-pl'] = "Odbudować";
+$text['button-rebuild']['pt-br'] = "Reconstruir"; //copied from pt-pt
+$text['button-rebuild']['pt-pt'] = "Reconstruir";
+$text['button-rebuild']['ro-ro'] = "Reconstrui";
+$text['button-rebuild']['ru-ru'] = "восстановить";
+$text['button-rebuild']['sv-se'] = "Återuppbygga";
+$text['button-rebuild']['uk-ua'] = "Перебудувати";
+
 $text['title-device_vendors']['en-us'] = "Device Vendors";
 $text['title-device_vendors']['en-gb'] = "Device Vendors";
 $text['title-device_vendors']['ar-eg'] = "بائعو الأجهزة";

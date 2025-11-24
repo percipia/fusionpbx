@@ -226,9 +226,16 @@
 		echo "<th class='hud_heading' style='text-align: right;'>".$text['label-value']."</th>\n";
 		echo "</tr>\n";
 
-		//pbx version
+		//PercipiaPBX version
 			echo "<tr class='tr_link_void'>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$settings->get('theme', 'title', 'FusionPBX')."</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".(software::percipia_name())."</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".software::percipia_version()."</td>\n";
+			echo "</tr>\n";
+			$c = ($c) ? 0 : 1;
+
+		//FusionPBX version
+			echo "<tr class='tr_link_void'>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>FusionPBX</td>\n";
 			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".software::version()."</td>\n";
 			echo "</tr>\n";
 			$c = ($c) ? 0 : 1;

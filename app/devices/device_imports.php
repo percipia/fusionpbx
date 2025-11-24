@@ -155,7 +155,7 @@
 			//loop through user columns
 			$x = 0;
 			foreach ($line_fields as $line_field) {
-				$line_field = preg_replace('#[^a-zA-Z0-9_]#', '', $line_field);
+				$line_field = trim(trim($line_field), $enclosure);
 				echo "<tr>\n";
 				echo "	<td width='30%' class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 				//echo "    ".$text['label-zzz']."\n";
@@ -230,7 +230,7 @@
 	}
 
 //upload the csv
-	if (file_exists($_SESSION['file'] ?? '') && $action == 'import') {
+	if (file_exists($_SESSION['file']) && $action == 'import') {
 
 		//validate the token
 			$token = new token;
@@ -439,7 +439,7 @@
 					if (!empty($settings->get('provision', 'path'))) {
 						$prov = new provision;
 						$prov->domain_uuid = $domain_uuid;
-						$response = $prov->write();
+						$response = $prov->write(null);
 					}
 
 				//send the redirect header

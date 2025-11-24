@@ -30,4 +30,22 @@
 			return $n;
 		}
 
+		/**
+		 * percipia_version
+		 */
+		public static function percipia_version() {
+			// the following is a placeholder value to be replaced by sed in the FusionPBX Package CI/CD pipeline:
+			//   sed -i "s/return '2024.7.1'/return '$CI_COMMIT_TAG'/g" tree/var/www/fusionpbx/core/software/resources/classes/software.php
+			return '2024.7.1';
+		}
+
+		/**
+		 * percipia_name
+		 */
+		public static function percipia_name() {
+			// the following is a placeholder value to be replaced by sed in the Postinstall Script:
+			//   sed -i "s/return 'Frequency'/return '$serverName'/g" /var/www/fusionpbx/core/software/resources/classes/software.php
+			return 'Frequency';
+		}
+
 	}

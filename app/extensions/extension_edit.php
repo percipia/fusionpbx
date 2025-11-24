@@ -856,10 +856,12 @@
 							}
 
 						//write the provision files
-							if (!empty($provision_path) && is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/provision')) {
-								$prov = new provision;
-								$prov->domain_uuid = $domain_uuid;
-								$response = $prov->write();
+							if (!empty($_SESSION['provision']['path']['text'])) {
+								if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/provision')) {
+									$prov = new provision;
+									$prov->domain_uuid = $domain_uuid;
+									$response = $prov->write($device_uuid);
+								}
 							}
 
 						//clear the cache

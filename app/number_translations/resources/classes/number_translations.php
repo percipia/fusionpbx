@@ -38,19 +38,25 @@ class number_translations {
 	 */
 	public $number_translation_uuid;
 
-	/**
-	 * declare private variables
-	 */
-	private $database;
-	private $permission_prefix;
-	private $list_page;
-	private $table;
-	private $uuid_prefix;
-	private $toggle_field;
-	private $toggle_values;
-	private $json;
-	private $xml;
-	private $display_type;
+		/**
+		 * declare private variables
+		 */
+		private $database;
+		private $permission_prefix;
+		private $list_page;
+		private $table;
+		private $uuid_prefix;
+		private $toggle_field;
+		private $toggle_values;
+
+		/**
+		 * Mark Cranium big brain moment
+		 * TODO: Make these private again if Mark Cranium adds setter methods to manipulate these variables
+		 * If these are private, app_defaults.php fails because external code can't set them before calling import()
+		 */
+		public $json;
+		public $xml;
+		public $display_type;
 
 	/**
 	 * Initializes the object with setting array.

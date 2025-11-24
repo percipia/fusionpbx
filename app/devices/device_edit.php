@@ -94,7 +94,7 @@
 				exit;
 			}
 
-		//device device address
+		//device mac address
 			if (permission_exists('device_address')) {
 				$device_address = $_POST["device_address"];
 			}
@@ -481,7 +481,7 @@
 					if (!empty($settings->get('provision', 'path'))) {
 						$prov = new provision(['settings' => $settings]);
 						$prov->domain_uuid = $domain_uuid;
-						$response = $prov->write();
+						$response = $prov->write($device_uuid);
 					}
 
 				//set the message
@@ -1028,6 +1028,7 @@
 				$prov = new provision(['settings' => $settings]);
 				$prov->domain_uuid = $domain_uuid;
 				$template_dir = $prov->template_dir;
+				//$files = glob($prov->resolve_template($template_dir, $device_template).'/*');
 				$files = glob($template_dir.'/'.$device_template.'/*');
 			//add file buttons and the file list
 				echo button::create(['type'=>'button','id'=>'button_files','label'=>$text['button-files'],'icon'=>$settings->get('theme', 'button_icon_download', ''),'style'=>($button_margin ?? ''),'onclick'=>'show_files()']);

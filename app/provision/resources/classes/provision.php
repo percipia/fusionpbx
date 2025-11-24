@@ -689,17 +689,64 @@ class provision {
 			}
 		}
 
-		//get the device settings table in the provision category from the profile and update the provision array
-		if (is_uuid($device_uuid) && is_uuid($device_profile_uuid)) {
-			$sql                               = "select * from v_device_profile_settings ";
-			$sql                               .= "where device_profile_uuid = :device_profile_uuid ";
-			$sql                               .= "and profile_setting_enabled = true ";
-			$parameters['device_profile_uuid'] = $device_profile_uuid;
-			$device_profile_settings           = $this->database->select($sql, $parameters, 'all');
-			if (is_array($device_profile_settings) && sizeof($device_profile_settings) != 0) {
-				foreach ($device_profile_settings as $row) {
-					$key             = $row['profile_setting_name'];
-					$value           = $row['profile_setting_value'];
+		/**
+		 * Takes in a template name(grandstream/grp2615) and resolves the full path to the template or false if it cannot be found
+		 * @param $template_dir - The base device template directory
+		 * @param $device_template - The device template to resolve
+		 * @return string
+		 */
+		public function resolve_template($template_dir, $device_template) {
+			// Check for an alias that we should redirect to.
+			if (file_exists("{$template_dir}/{$device_template}/.alias")) {
+				$aliasContents = file_get_contents("{$template_dir}/{$device_template}/.alias");
+				if ($aliasContents !== false) {
+					// Strip any leading dots or slashes and any dots or whitespace anywhere then set it as the device template
+					$device_template = preg_replace(array('/^[\.\/\x5c]+/', '/\./', '/\s/'), '', $aliasContents);
+				}
+			}
+			return path_join($template_dir, $device_template);
+		}
+
+		public function render() {
+
+			//debug
+				$debug = $_REQUEST['debug'] ?? ''; // array
+
+			//get the variables
+				$domain_uuid = $this->domain_uuid;
+				$domain_name = $this->domain_name;
+				$device_template = $this->device_template;
+				$template_dir = $this->template_dir;
+				$device_address = $this->device_address;
+				$file = $this->file;
+
+			//set the device address to lower case to be consistent with the database
+				$device_address = strtolower($device_address);
+
+			//get the device template
+				//if (!empty($_REQUEST['template'])) {
+				//	$device_template = $_REQUEST['template'];
+				//	$search = array('..', '/./');
+				//	$device_template = str_replace($search, "", $device_template);
+				//	$device_template = str_replace('//', '/', $device_template);
+				//}
+
+			//remove ../ and slashes in the file name
+				$search = array('..', '/', '\\', '/./', '//');
+				$file = str_replace($search, "", $file);
+
+			//get the domain_name
+				if (empty($domain_name)) {
+					$sql = "select domain_name from v_domains ";
+					$sql .= "where domain_uuid = :domain_uuid ";
+					$parameters['domain_uuid'] = $domain_uuid;
+					$domain_name = $this->database->select($sql, $parameters, 'column');
+					unset($sql, $parameters);
+				}
+
+			//build the provision array
+				$provision = $this->settings->get('provision', null, []);
+				foreach ($provision as $key => $value) {
 					$provision[$key] = $value;
 				}
 			}
@@ -1545,40 +1592,53 @@ class provision {
 						//template file name
 						$file_name = basename($template_path);
 
-						//configure device object
-						$this->domain_uuid    = $domain_uuid;
-						$this->device_address = $device_address;
-						$this->file           = $file_name;
+			//process each device
+				if (is_array($result)) {
+					foreach ($result as $row) {
+						//get the values from the database and set as variables
+							$domain_uuid = $row["domain_uuid"];
+							$domain_name = $_SESSION['domains'][$domain_uuid]['domain_name'];
+							$device_uuid = $row["device_uuid"];
+							$device_address = $row["device_address"];
+							$device_label = $row["device_label"];
+							$device_vendor = strtolower($row["device_vendor"] ?? '');
+							$device_model = $row["device_model"];
+							$device_firmware_version = $row["device_firmware_version"];
+							$device_enabled = $row["device_enabled"];
+							$device_template = $row["device_template"];
+							$device_username = $row["device_username"];
+							$device_password = $row["device_password"];
+							$device_description = $row["device_description"];
 
 						//format the device address
 						$address_formatted = $this->format_address($device_address, $device_vendor);
 
-						//replace {$mac} in the file name
-						$file_name = str_replace("{\$mac}", $address_formatted, $file_name);
-						$file_name = str_replace("{\$address}", $address_formatted, $file_name);
+						//loop through the provision template directory
+							$dir_array = array();
+							if (strlen($device_template) > 0) {
+								$template_dir = $this->template_dir;
+								//set the template directory
+								if (strlen($provision["template_dir"]) > 0) {
+									$template_dir = $provision["template_dir"];
+								}
+								//if the domain name directory exists then only use templates from it
+								if (is_dir($template_dir.'/'.$domain_name)) {
+									$template_dir = $template_dir.'/'.$domain_name;
+								}
+								$template_path = $this->resolve_template($template_dir, $device_template);
 
-						//render and write configuration to file
-						$provision_dir_array = explode(";", $provision["path"]);
-						if (is_array($provision_dir_array)) {
-							foreach ($provision_dir_array as $directory) {
-								//destination file path
-								$dest_path = path_join($directory, $file_name);
-
-								if ($device_enabled) {
-									//output template to string for header processing
-									$file_contents = $this->render();
-
-									//write the file
-									if (!is_dir($directory)) {
-										mkdir($directory, 0777, true);
-									}
-									$fh = fopen($dest_path, "w") or die("Unable to write to $directory for provisioning. Make sure the path exists and permissons are set correctly.");
-									fwrite($fh, $file_contents);
-									fclose($fh);
-								} else { // device disabled
-									//remove only files with `{$mac}` name
-									if (strpos($template_path, '{$mac}') !== false) {
-										unlink($dest_path);
+								$dir_list = opendir($template_path);
+								if ($dir_list) {
+									$x = 0;
+									while (false !== ($file = readdir($dir_list))) {
+										$ignore = $file == "." || $file == ".." || substr($file, -3) == ".db" ||
+											substr($file, -4) == ".svn" || substr($file, -4) == ".git" ||
+											substr($file, 0, 1) === "."; // Ignore any dot files
+										if (!$ignore) {
+											$dir_array[] = path_join($template_path, $file);
+											if ($x > 1000) { break; };
+											$x++;
+										}
 									}
 								}
 

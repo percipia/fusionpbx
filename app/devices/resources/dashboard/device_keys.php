@@ -279,7 +279,7 @@
 					if (!empty($settings->get('provision', 'path'))) {
 						$prov = new provision;
 						$prov->domain_uuid = $domain_uuid;
-						$response = $prov->write();
+						$response = $prov->write(null);
 					}
 
 				//set the message
