@@ -17,7 +17,7 @@
 
  The Initial Developer of the Original Code is
  Mark J Crane <markjcrane@fusionpbx.com>
- Portions created by the Initial Developer are Copyright (C) 2008-2023
+ Portions created by the Initial Developer are Copyright (C) 2008-2025
  the Initial Developer. All Rights Reserved.
 
  Contributor(s):
@@ -350,6 +350,7 @@
 	$domain_setting_name = $domain_setting_name ?? '';
 	$domain_setting_value = $domain_setting_value ?? '';
 	$domain_setting_order = $domain_setting_order ?? '';
+	$domain_setting_enabled = $domain_setting_enabled ?? true;
 	$domain_setting_description = $domain_setting_description ?? '';
 
 //create token
@@ -828,8 +829,8 @@
 		echo "	<span class='switch'>\n";
 	}
 	echo "	<select class='formfld' id='domain_setting_enabled' name='domain_setting_enabled'>\n";
-	echo "		<option value='true' ".($domain_setting_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".($domain_setting_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		<option value='true' ".($domain_setting_enabled == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($domain_setting_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "	</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";

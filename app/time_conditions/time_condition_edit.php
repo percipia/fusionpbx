@@ -990,6 +990,13 @@ echo "	".$text['description-extension']."<br />\n";
 echo "</td>\n";
 echo "</tr>\n";
 
+/**
+ * Adds a custom condition to the given group.
+ *
+ * @param object $destination     The destination object being processed.
+ * @param int    $group_id        The ID of the group to which the condition is being added.
+ * @param string $dialplan_action The dialplan action for the group (optional).
+ */
 function add_custom_condition($destination, $group_id, $dialplan_action = '') {
 	global $text, $v_link_label_add;
 	echo "<tr>\n";
@@ -1296,8 +1303,8 @@ if ($action == 'update') {
 		echo "	<span class='switch'>\n";
 	}
 	echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
-	echo "		<option value='true' ".($dialplan_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".($dialplan_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		<option value='true' ".($dialplan_enabled == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "	</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";

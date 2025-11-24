@@ -61,7 +61,15 @@
 	$broadcast_toll_allow = '';
 
 //function to Upload CSV/TXT file
-	function upload_file($sql, $broadcast_phone_numbers) {
+/**
+ * Uploads a file and prepares the SQL query for broadcasting phone numbers.
+ *
+ * @param string $sql                     The initial SQL query.
+ * @param mixed  $broadcast_phone_numbers The phone numbers to broadcast, or an empty value if not applicable.
+ *
+ * @return array An array containing the result code ('code') and the prepared SQL query ('sql').
+ */
+function upload_file($sql, $broadcast_phone_numbers) {
 		$upload_csv = $sql = '';
 		if (isset($_FILES['broadcast_phone_numbers_file']) && !empty($_FILES['broadcast_phone_numbers_file']) && $_FILES['broadcast_phone_numbers_file']['size'] > 0) {
 			$filename=$_FILES["broadcast_phone_numbers_file"]["tmp_name"];
@@ -532,8 +540,8 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 			echo "	<span class='switch'>\n";
 		}
 		echo "	<select class='formfld' id='broadcast_avmd' name='broadcast_avmd'>\n";
-		echo "		<option value='true' ".($broadcast_avmd === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($broadcast_avmd === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		<option value='true' ".($broadcast_avmd == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		<option value='false' ".($broadcast_avmd == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 		echo "	</select>\n";
 		if ($input_toggle_style_switch) {
 			echo "		<span class='slider'></span>\n";
