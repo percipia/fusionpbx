@@ -332,7 +332,12 @@ function do_upgrade_schema() {
 	echo $obj->schema('text');
 
 	//update the database foreign key indexes
-	$database->update_indexes();
+	$response = $database->update_indexes();
+	if ($display_type === 'text') {
+		foreach($response as $row) {
+			echo "        ".trim($row['sql'])."\n";
+		}
+	}
 }
 
 /**
