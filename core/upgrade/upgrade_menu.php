@@ -322,11 +322,22 @@ function do_upgrade_domains() {
 /**
  * Upgrade schema and/or data_types
  */
-function do_upgrade_schema(bool $data_types = false) {
+function do_upgrade_schema() {
+	//define the global variables
+	global $database;
+
 	//get the database schema put it into an array then compare and update the database as needed.
 	$obj = new schema();
 	$obj->data_types = $data_types;
 	echo $obj->schema('text');
+
+	//update the database foreign key indexes
+	$response = $database->update_indexes();
+	if ($display_type === 'text') {
+		foreach($response as $row) {
+			echo "        ".trim($row['sql'])."\n";
+		}
+	}
 }
 
 /**
