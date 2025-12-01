@@ -68,9 +68,7 @@
 		private $toggle_values;
 
 		/**
-		 * Initializes the object with settings and default values.
-		 *
-		 * @param array $setting_array Associative array of setting keys to their respective values (optional)
+		 * called when the object is created
 		 */
 		public function __construct(array $setting_array = []) {
 			//set domain and user UUIDs
@@ -94,13 +92,7 @@
 		}
 
 		/**
-		 * Deletes one or multiple records from the access controls table.
-		 *
-		 * @param array $records An array of record IDs to delete, where each ID is an associative array
-		 *                       containing 'uuid' and 'checked' keys. The 'checked' value indicates
-		 *                       whether the corresponding checkbox was checked for deletion.
-		 *
-		 * @return void No return value; this method modifies the database state and sets a message.
+		 * delete records
 		 */
 		public function delete($records) {
 			if (permission_exists($this->permission_prefix.'delete')) {
@@ -149,13 +141,7 @@
 		}
 
 		/**
-		 * Toggles the state of the specified records.
-		 *
-		 * @param array $records An array of record IDs to delete, where each ID is an associative array
-		 *                       containing 'uuid' and 'checked' keys. The 'checked' value indicates
-		 *                       whether the corresponding checkbox was checked for deletion.
-		 *
-		 * @return void No return value; this method modifies the database state and sets a message.
+		 * toggle records
 		 */
 		public function toggle($records) {
 			if (permission_exists($this->permission_prefix.'edit')) {
@@ -226,12 +212,7 @@
 		}
 
 		/**
-		 * Copies one or more records
-		 * @param array $records An array of record IDs to delete, where each ID is an associative array
-		 *                       containing 'uuid' and 'checked' keys. The 'checked' value indicates
-		 *                       whether the corresponding checkbox was checked for deletion.
-		 *
-		 * @return void No return value; this method modifies the database state and sets a message.
+		 * copy records
 		 */
 		public function copy($records) {
 			if (permission_exists($this->permission_prefix.'add')) {

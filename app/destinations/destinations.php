@@ -79,14 +79,6 @@
 	$destination_array = $destination->all('dialplan');
 
 //function to return the action names in the order defined
-	/**
-	 * Returns a list of actions based on the provided destination array and actions.
-	 *
-	 * @param array $destination_array   The array containing the data to process.
-	 * @param array $destination_actions The array of actions to apply to the destination array.
-	 *
-	 * @return array A list of actions resulting from the processing of the destination array and actions.
-	 */
 	function action_name($destination_array, $destination_actions) {
 		global $settings;
 		$actions = [];
@@ -183,8 +175,8 @@
 		$page = $_GET['page'];
 	}
 	if (!isset($page)) { $page = 0; $_GET['page'] = 0; }
-	[$paging_controls, $rows_per_page] = paging($num_rows, $param, $rows_per_page);
-	[$paging_controls_mini, $rows_per_page] = paging($num_rows, $param, $rows_per_page, true);
+	list($paging_controls, $rows_per_page) = paging($num_rows, $param, $rows_per_page);
+	list($paging_controls_mini, $rows_per_page) = paging($num_rows, $param, $rows_per_page, true);
 	$offset = $rows_per_page * $page;
 
 //get the list
@@ -239,21 +231,26 @@
 	unset($sql, $parameters);
 
 //update the array to add the actions
-	if ($show != "all") {
+	if (!$show == "all") {
 		$x = 0;
 		foreach ($destinations as $row) {
-			$destinations[$x]['actions'] = '';
 			if (!empty($row['destination_actions'])) {
 				//prepare the destination actions
 				if (!empty(json_decode($row['destination_actions'], true))) {
-					//add the actions to the array
-					$destination_app_data = [];
 					foreach (json_decode($row['destination_actions'], true) as $action) {
 						$destination_app_data[] = $action['destination_app'].':'.$action['destination_data'];
 					}
-					$actions = action_name($destination_array, $destination_app_data);
-					$destinations[$x]['actions'] = (!empty($actions)) ? implode(', ', $actions) : '';
 				}
+
+				//add the actions to the array
+				$actions = action_name($destination_array, $destination_app_data);
+				$destinations[$x]['actions'] = (!empty($actions)) ? implode(', ', $actions) : '';
+
+				//empty the array before the next iteration
+				unset($destination_app_data);
+			}
+			else {
+				$destinations[$x]['actions'] = '';
 			}
 			$x++;
 		}

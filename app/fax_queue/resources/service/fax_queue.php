@@ -37,16 +37,6 @@
 	//echo "pid_file: ".$pid_file."\n";
 
 //function to check if the process exists
-	/**
-	 * Checks if a process exists.
-	 *
-	 * This function checks if a process with the specified PID file exists, and returns true if it does,
-	 * or false otherwise. If no PID file is provided, the function defaults to returning false.
-	 *
-	 * @param string|false $file The path to the PID file of the process to check for, or false to default to not checking any process.
-	 *
-	 * @return bool True if a process with the specified PID exists, false otherwise.
-	 */
 	function process_exists($file = false) {
 
 		//set the default exists to false
@@ -56,7 +46,7 @@
 		if (file_exists($file)) {
 			$pid = file_get_contents($file);
 			if (function_exists('posix_getsid')) {
-				if (posix_getsid($pid) === false) {
+				if (posix_getsid($pid) === false) { 
 					//process is not running
 					$exists = false;
 				}
@@ -146,15 +136,6 @@
 //get the messages waiting in the fax queue
 	while (true) {
 
-		//connect to the database if needed
-		if (!$database->is_connected()) {
-			$database->connect();
-			if (!$database->is_connected()) {
-				sleep(3);
-				continue;
-			}
-		}
-
 		//get the fax messages that are waiting to send
 			$sql = "select * from v_fax_queue ";
 			$sql .= "where hostname = :hostname ";
@@ -183,6 +164,7 @@
 				echo $sql."\n";
 				print_r($parameters);
 			}
+			$database = new database;
 			$fax_queue = $database->select($sql, $parameters, 'all');
 			unset($parameters);
 

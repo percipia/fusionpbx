@@ -29,22 +29,19 @@
 /**
  * A base message for communication
  *
- * @param string $payload ;
- *
  * @author Tim Fry <tim@fusionpbx.com>
+ * @param string $payload;
  */
 class base_message {
 
 	/**
 	 * The id is contained to the base_message class. Subclasses or child classes should not adjust this value
-	 *
 	 * @var int
 	 */
 	private $id;
 
 	/**
 	 * Payload can be any value
-	 *
 	 * @var mixed
 	 */
 	protected $payload;
@@ -54,7 +51,6 @@ class base_message {
 	 * When the array is provided as an associative array, the object properties
 	 * are filled using the array key as the property name and the value of the array
 	 * for the value of the property in the object.
-	 *
 	 * @param array $associative_properties_array
 	 */
 	public function __construct($associative_properties_array = []) {
@@ -73,9 +69,7 @@ class base_message {
 	 * If the method exists then the method will be called to get the value in the object property.
 	 * If the method is not in the object then the property name is checked to see if it is valid. If the
 	 * name is not available then an exception is thrown.
-	 *
 	 * @param string $name Name of the property
-	 *
 	 * @return mixed
 	 * @throws InvalidProperty
 	 */
@@ -96,15 +90,13 @@ class base_message {
 
 	/**
 	 * Sets the object property in the given name to be the given value
-	 *
-	 * @param string $name  Name of the object property
-	 * @param mixed  $value Value of the object property
-	 *
+	 * @param string $name Name of the object property
+	 * @param mixed $value Value of the object property
 	 * @return void
 	 * @throws \InvalidArgumentException
 	 */
 	public function __set(string $name, $value): void {
-		if (method_exists($this, "set_$name")) {
+		if (method_exists($this, "set_$name")){
 			//
 			// By calling the method with the setter name of the property first, we give
 			// the child object the opportunity to modify the value before it is
@@ -132,7 +124,6 @@ class base_message {
 
 	/**
 	 * Provides a method that PHP will call if the object is echoed or printed.
-	 *
 	 * @return string JSON string representing the object
 	 * @depends to_json
 	 */
@@ -142,7 +133,6 @@ class base_message {
 
 	/**
 	 * Returns this object ID given by PHP
-	 *
 	 * @return int
 	 */
 	public function get_id(): int {
@@ -151,9 +141,7 @@ class base_message {
 
 	/**
 	 * Sets the message payload to be delivered
-	 *
 	 * @param mixed $payload Payload for the message to carry
-	 *
 	 * @return $this Returns this object for chaining
 	 */
 	public function set_payload($payload) {
@@ -163,7 +151,6 @@ class base_message {
 
 	/**
 	 * Returns the payload contained in this message
-	 *
 	 * @return mixed Payload in the message
 	 */
 	public function get_payload() {
@@ -177,11 +164,8 @@ class base_message {
 	 * the method is called with no parameters given, the payload is
 	 * returned to the caller.
 	 * Payload the message object is delivering
-	 *
 	 * @param mixed $payload If set, payload is set to the value. Otherwise, the payload is returned.
-	 *
-	 * @return mixed If payload was given to call the method, this object is returned. If no value was provided the
-	 *               payload is returned.
+	 * @return mixed If payload was given to call the method, this object is returned. If no value was provided the payload is returned.
 	 * @see set_payload
 	 * @see get_payload
 	 */
@@ -194,9 +178,7 @@ class base_message {
 
 	/**
 	 * Recursively convert this object or child object to an array.
-	 *
 	 * @param mixed $iterate Private value to be set while iterating over the object properties
-	 *
 	 * @return array Array representing the properties of this object
 	 */
 	public function to_array($iterate = null): array {
@@ -209,7 +191,7 @@ class base_message {
 				$value = $this->to_array($value);
 			} elseif (is_object($value) && method_exists($value, 'to_array')) {
 				$value = $value->to_array();
-			} elseif (is_object($value) && method_exists($value, '__toArray')) {    // PHP array casting
+			} elseif (is_object($value) && method_exists($value, '__toArray')) {	// PHP array casting
 				$value = $value->__toArray();
 			}
 			$array[$property] = $value;
@@ -219,7 +201,6 @@ class base_message {
 
 	/**
 	 * Returns a json string
-	 *
 	 * @return string
 	 * @depends to_array
 	 */
@@ -229,7 +210,6 @@ class base_message {
 
 	/**
 	 * Returns an array representing this object or child object.
-	 *
 	 * @return array Array of object properties
 	 */
 	public function __toArray(): array {

@@ -54,16 +54,16 @@
 
 //get http post variables and set them to php variables
 	if (!empty($_POST)) {
-		$bridge_uuid = $_POST["bridge_uuid"] ?? null;
-		$bridge_name = $_POST["bridge_name"] ?? null;
-		$bridge_action = $_POST["bridge_action"] ?? null;
-		$bridge_profile = $_POST["bridge_profile"] ?? null;
-		$bridge_variables = $_POST["bridge_variables"] ?? null;
-		$bridge_gateways = $_POST["bridge_gateways"] ?? null;
-		$destination_number = $_POST["destination_number"] ?? null;
-		$bridge_destination = $_POST["bridge_destination"] ?? null;
-		$bridge_enabled = $_POST["bridge_enabled"] ?? null;
-		$bridge_description = $_POST["bridge_description"] ?? null;
+		$bridge_uuid = $_POST["bridge_uuid"];
+		$bridge_name = $_POST["bridge_name"];
+		$bridge_action = $_POST["bridge_action"];
+		$bridge_profile = $_POST["bridge_profile"];
+		$bridge_variables = $_POST["bridge_variables"];
+		$bridge_gateways = $_POST["bridge_gateways"];
+		$destination_number = $_POST["destination_number"];
+		$bridge_destination = $_POST["bridge_destination"];
+		$bridge_enabled = $_POST["bridge_enabled"];
+		$bridge_description = $_POST["bridge_description"];
 	}
 
 //process the user data and save it to the database
@@ -314,7 +314,7 @@
 	}
 
 //get the gateways
-	$actions = explode(',', $bridge_destination ?? '');
+	$actions = explode(',', $bridge_destination);
 	foreach ($actions as $action) {
 		$action_array = explode('/',$action);
 		if (!empty($action_array) && is_array($action_array) && !empty($action_array[1]) && $action_array[1] == 'gateway') {
@@ -566,8 +566,8 @@
 		echo "	<span class='switch'>\n";
 	}
 	echo "		<select class='formfld' id='bridge_enabled' name='bridge_enabled'>\n";
-	echo "			<option value='true' ".($bridge_enabled == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "			<option value='false' ".($bridge_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "			<option value='true' ".($bridge_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($bridge_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "		</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";

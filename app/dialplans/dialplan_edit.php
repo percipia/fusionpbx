@@ -44,10 +44,8 @@
 //declared functions
 	/**
 	 * Checks if a dialplan detail record is marked for deletion
-	 *
 	 * @param string $uuid UUID of the dialplan detail record
-	 * @param array  $deleted_details array of dialplan detail records marked for deletion
-	 *
+	 * @param array $deleted_details array of dialplan detail records marked for deletion
 	 * @return bool Returns true if user has permission and dialplan detail is marked for deletion
 	 */
 	function marked_for_deletion(string $uuid, array $deleted_details): bool {
@@ -653,8 +651,8 @@
 		echo "	<span class='switch'>\n";
 	}
 	echo "	<select class='formfld' id='dialplan_continue' name='dialplan_continue'>\n";
-	echo "		<option value='true' ".($dialplan_continue == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".($dialplan_continue == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		<option value='true' ".($dialplan_continue === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_continue === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "	</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";
@@ -701,8 +699,8 @@
 		echo "	<span class='switch'>\n";
 	}
 	echo "	<select class='formfld' id='dialplan_destination' name='dialplan_destination'>\n";
-	echo "		<option value='true' ".($dialplan_destination == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".($dialplan_destination == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		<option value='true' ".($dialplan_destination === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_destination === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "	</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";
@@ -750,8 +748,8 @@
 		echo "	<span class='switch'>\n";
 	}
 	echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
-	echo "		<option value='true' ".($dialplan_enabled == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".($dialplan_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		<option value='true' ".($dialplan_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "	</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";

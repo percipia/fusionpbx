@@ -9,12 +9,6 @@
 		exit;
 	}
 
-/**
- * set global variables
- * @var database $database
- */
-	global $database;
-
 //increase limits
 	set_time_limit(0);
 	ini_set('max_execution_time', 0);
@@ -137,15 +131,6 @@
 //get the messages waiting in the email queue
 	while (true) {
 
-		//connect to the database if needed
-		if (!$database->is_connected()) {
-			$database->connect();
-			if (!$database->is_connected()) {
-				sleep(3);
-				continue;
-			}
-		}
-
 		//get the messages that are waiting to send
 		$sql = "select * from v_email_queue ";
 		$sql .= "where (email_status = 'waiting' or email_status = 'trying') ";
@@ -154,6 +139,7 @@
 		$sql .= "limit :limit ";
 		$parameters['hostname'] = $hostname;
 		$parameters['limit'] = $email_queue_limit;
+		$database = new database;
 		$email_queue = $database->select($sql, $parameters, 'all');
 		unset($parameters);
 

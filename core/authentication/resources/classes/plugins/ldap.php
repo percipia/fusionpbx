@@ -27,7 +27,6 @@ class plugin_ldap {
 	 */
 	private $database;
 
-
 	/**
 	 * Called when the object is created
 	 */

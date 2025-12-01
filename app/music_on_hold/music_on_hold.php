@@ -612,16 +612,6 @@
 	require_once "resources/footer.php";
 
 //define the download function (helps safari play audio sources)
-	/**
-	 * Downloads a file in chunks as requested by the client.
-	 *
-	 * This function is used to handle byte-range requests, allowing clients
-	 * to request specific parts of the file.
-	 *
-	 * @param string $file The path to the file being downloaded.
-	 *
-	 * @return void
-	 */
 	function range_download($file) {
 		$fp = @fopen($file, 'rb');
 
@@ -650,7 +640,7 @@
 			$c_start = $start;
 			$c_end   = $end;
 			// Extract the range string
-			[, $range] = explode('=', $_SERVER['HTTP_RANGE'], 2);
+			list(, $range) = explode('=', $_SERVER['HTTP_RANGE'], 2);
 			// Make sure the client hasn't sent us a multibyte range
 			if (strpos($range, ',') !== false) {
 				// (?) Shoud this be issued here, or should the first

@@ -342,7 +342,6 @@ if (permission_exists('call_block_all') || permission_exists('call_block_ring_gr
 	$sql .= "order by voicemail_id asc ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$voicemails = $database->select($sql, $parameters);
-	unset($sql, $parameters);
 
 //create token
 	$object = new token;
@@ -456,17 +455,6 @@ if (permission_exists('call_block_all') || permission_exists('call_block_ring_gr
 	echo "	".$text['label-action']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	/**
-	 * Select a call block action.
-	 *
-	 * This function generates an HTML select element for selecting a call block
-	 * action. It includes options for rejecting, busy, holding, and other actions,
-	 * as well as options for extensions, IVRs, ring groups, and voicemail.
-	 *
-	 * @param bool $label Whether to include the label option or not.
-	 *
-	 * @return void The function does not return any value.
-	 */
 	function call_block_action_select($label = false) {
 		global $select_margin, $text, $call_block_app, $call_block_data, $extensions, $ivrs, $voicemails, $ring_groups;
 		echo "<select class='formfld' style='".$select_margin."' name='call_block_action'>\n";
@@ -567,8 +555,8 @@ if (permission_exists('call_block_all') || permission_exists('call_block_ring_gr
 		echo "	<span class='switch'>\n";
 	}
 	echo "		<select class='formfld' id='call_block_enabled' name='call_block_enabled'>\n";
-	echo "			<option value='true' ".($call_block_enabled == true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-	echo "			<option value='false' ".($call_block_enabled == false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "			<option value='true' ".($call_block_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($call_block_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
 	echo "		</select>\n";
 	if ($input_toggle_style_switch) {
 		echo "		<span class='slider'></span>\n";
