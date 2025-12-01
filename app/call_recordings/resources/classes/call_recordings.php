@@ -177,14 +177,18 @@
 			}
 		}
 
-		/**
-		 * transcribe call recordings
-		 */
-		public function transcribe($records) {
-			if (permission_exists($this->name.'_view')) {
-				//add multi-lingual support
-					$language = new text;
-					$text = $language->get();
+	/**
+	 * Transcribes multiple call recordings.
+	 *
+	 * @param array $records An array of records to transcribe.
+	 *
+	 * @return void
+	 */
+	public function transcribe($records) {
+		if (permission_exists($this->name . '_view')) {
+			//add multi-lingual support
+			$language = new text;
+			$text = $language->get();
 
 				//validate the token
 					$token = new token;
@@ -198,10 +202,8 @@
 					$transcribe_enabled = $this->settings->get('transcribe', 'enabled', false);
 					$transcribe_engine = $this->settings->get('transcribe', 'engine', '');
 
-				//transcribe multiple recordings
-					if ($transcribe_enabled && !empty($transcribe_engine) && is_array($records) && @sizeof($records) != 0) {
-						//add the transcribe object
-							$transcribe = new transcribe($this->settings);
+			//transcribe multiple recordings
+			if ($transcribe_enabled && !empty($transcribe_engine) && is_array($records) && @sizeof($records) != 0) {
 
 						//build the array
 							$x = 0;
@@ -209,28 +211,31 @@
 								//add to the array
 									if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
 
-										//get the call recording file name and path
-											$sql = "select call_recording_name, call_recording_path ";
-											$sql .= "from view_call_recordings ";
-											$sql .= "where call_recording_uuid = :call_recording_uuid ";
-											$sql .= "and call_recording_transcription is null ";
-											$parameters['call_recording_uuid'] = $record['uuid'];
-											$field = $this->database->select($sql, $parameters, 'row');
-											if (
-												is_array($field) &&
-												@sizeof($field) != 0 &&
-												file_exists($field['call_recording_path'].'/'.$field['call_recording_name'])
-												) {
-												//audio to text - get the transcription from the audio file
-												$transcribe->audio_path = $field['call_recording_path'];
-												$transcribe->audio_filename = $field['call_recording_name'];
-												$record_transcription = $transcribe->transcribe();
-
-												//build call recording data array
-												if (!empty($record_transcription)) {
-													$array['xml_cdr'][$x]['xml_cdr_uuid'] = $record['uuid'];
-													$array['xml_cdr'][$x]['record_transcription'] = $record_transcription;
-												}
+						//get the call recording file name and path
+						$sql = "select call_recording_name, call_recording_path ";
+						$sql .= "from view_call_recordings ";
+						$sql .= "where call_recording_uuid = :call_recording_uuid ";
+						$sql .= "and call_recording_transcription is null ";
+						$parameters['call_recording_uuid'] = $record['uuid'];
+						$field = $this->database->select($sql, $parameters, 'row');
+						if (
+							is_array($field) &&
+							@sizeof($field) != 0 &&
+							file_exists($field['call_recording_path'] . '/' . $field['call_recording_name'])
+						) {
+							//add the recording to the transcribe queue
+							$array['transcribe_queue'][$x]['transcribe_queue_uuid'] = uuid();
+							$array['transcribe_queue'][$x]['domain_uuid'] = $_SESSION['domain_uuid'];
+							$array['transcribe_queue'][$x]['hostname'] = gethostname();
+							$array['transcribe_queue'][$x]['transcribe_status'] = 'pending';
+							$array['transcribe_queue'][$x]['transcribe_application_name'] = 'call_recordings';
+							$array['transcribe_queue'][$x]['transcribe_application_uuid'] = '56165644-598d-4ed8-be01-d960bcb8ffed';
+							$array['transcribe_queue'][$x]['transcribe_audio_path'] = $field['call_recording_path'];
+							$array['transcribe_queue'][$x]['transcribe_audio_name'] = $field['call_recording_name'];
+							$array['transcribe_queue'][$x]['transcribe_target_table'] = 'xml_cdr';
+							$array['transcribe_queue'][$x]['transcribe_target_key_name'] = 'xml_cdr_uuid';
+							$array['transcribe_queue'][$x]['transcribe_target_key_uuid'] = $record['uuid'];
+							$array['transcribe_queue'][$x]['transcribe_target_column_name'] = 'record_transcription';
 
 												//increment the id
 												$x++;
@@ -243,19 +248,18 @@
 						//update the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 
-								//add temporary permissions
-									$p = permissions::new();
-									$p->add('xml_cdr_edit', 'temp');
+					//add temporary permissions
+					$p = permissions::new();
+					$p->add('transcribe_queue_add', 'temp');
 
-								//remove record_path, record_name and record_length
-									$this->database->app_name = 'xml_cdr';
-									$this->database->app_uuid = '4a085c51-7635-ff03-f67b-86e834422848';
-									$this->database->save($array, false);
-									$message = $this->database->message;
-									unset($array);
+					//remove record_path, record_name and record_length
+					$this->database->app_name = 'xml_cdr';
+					$this->database->app_uuid = '4a085c51-7635-ff03-f67b-86e834422848';
+					$this->database->save($array, false);
+					unset($array);
 
-								//remove the temporary permissions
-									$p->delete('xml_cdr_edit', 'temp');
+					//remove the temporary permissions
+					$p->delete('transcribe_queue_add', 'temp');
 
 								//set message
 									message::add($text['message-audio_transcribed']);
@@ -288,60 +292,60 @@
 				//single recording
 				if (empty($records) || !is_array($records) || @sizeof($records) == 0) {
 
-					//get call recording from database
-						if (is_uuid($this->recording_uuid)) {
-							$sql = "select ";
-							$sql .= "domain_uuid, ";
-							$sql .= "call_recording_uuid, ";
-							$sql .= "caller_id_name, ";
-							$sql .= "caller_id_number, ";
-							$sql .= "caller_destination, ";
-							$sql .= "destination_number, ";
-							$sql .= "call_recording_name, ";
-							$sql .= "call_recording_path, ";
-							$sql .= "call_recording_transcription, ";
-							$sql .= "call_recording_length, ";
-							$sql .= "call_recording_date, ";
-							$sql .= "call_direction, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'YYYY') AS call_recording_year, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'Month') AS call_recording_month_name, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'MM') AS call_recording_month_number, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD') AS call_recording_day, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH24MISS') AS call_recording_time, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD Mon YYYY') as call_recording_date_formatted, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH12:MI:SS am') as call_recording_time_formatted ";
-							if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
-								$sql .= ", call_recording_base64 ";
-							}
-							$sql .= "from view_call_recordings ";
-							$sql .= "where call_recording_uuid = :call_recording_uuid ";
-							$parameters['call_recording_uuid'] = $this->recording_uuid;
-							$parameters['time_zone'] = $time_zone;
-							$row = $this->database->select($sql, $parameters, 'row');
-							if (is_array($row) && @sizeof($row) != 0) {
-								$call_recording_uuid = $row['call_recording_uuid'];
-								$caller_id_name = $row['caller_id_name'];
-								$caller_id_number = $row['caller_id_number'];
-								$caller_destination = $row['caller_destination'];
-								$destination_number = $row['destination_number'];
-								$call_recording_name = $row['call_recording_name'];
-								$call_recording_path = $row['call_recording_path'];
-								$call_recording_date = $row['call_recording_date'];
-								$call_direction = $row['call_direction'];
-								$call_recording_year = $row['call_recording_year'];
-								$call_recording_month_name = $row['call_recording_month_name'];
-								$call_recording_month_number = $row['call_recording_month_number'];
-								$call_recording_day = $row['call_recording_day'];
-								$call_recording_time = $row['call_recording_time'];
-								$call_recording_date_formatted = $row['call_recording_date_formatted'];
-								$call_recording_time_formatted = $row['call_recording_time_formatted'];
-								$call_recording_base64 = $row['call_recording_base64'];
-								if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
-									file_put_contents($call_recording_path.'/'.$call_recording_name, base64_decode($row['call_recording_base64']));
-								}
-							}
-							unset($sql, $parameters, $row);
+				//get call recording from database
+				if (is_uuid($this->recording_uuid)) {
+					$sql = "select ";
+					$sql .= "domain_uuid, ";
+					$sql .= "call_recording_uuid, ";
+					$sql .= "caller_id_name, ";
+					$sql .= "caller_id_number, ";
+					$sql .= "caller_destination, ";
+					$sql .= "destination_number, ";
+					$sql .= "call_recording_name, ";
+					$sql .= "call_recording_path, ";
+					$sql .= "call_recording_transcription, ";
+					$sql .= "call_recording_length, ";
+					$sql .= "call_recording_date, ";
+					$sql .= "call_direction, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'YYYY') AS call_recording_year, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'Month') AS call_recording_month_name, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'MM') AS call_recording_month_number, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD') AS call_recording_day, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH24MISS') AS call_recording_time, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD Mon YYYY') as call_recording_date_formatted, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH12:MI:SS am') as call_recording_time_formatted ";
+					if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
+						$sql .= ", call_recording_base64 ";
+					}
+					$sql .= "from view_call_recordings ";
+					$sql .= "where call_recording_uuid = :call_recording_uuid ";
+					$parameters['call_recording_uuid'] = $this->recording_uuid;
+					$parameters['time_zone'] = $time_zone;
+					$row = $this->database->select($sql, $parameters, 'row');
+					if (is_array($row) && @sizeof($row) != 0) {
+						$call_recording_uuid = $row['call_recording_uuid'];
+						$caller_id_name = $row['caller_id_name'];
+						$caller_id_number = $row['caller_id_number'];
+						$caller_destination = $row['caller_destination'];
+						$destination_number = $row['destination_number'];
+						$call_recording_name = $row['call_recording_name'];
+						$call_recording_path = $row['call_recording_path'];
+						$call_recording_date = $row['call_recording_date'];
+						$call_direction = $row['call_direction'];
+						$call_recording_year = $row['call_recording_year'];
+						$call_recording_month_name = $row['call_recording_month_name'];
+						$call_recording_month_number = $row['call_recording_month_number'];
+						$call_recording_day = $row['call_recording_day'];
+						$call_recording_time = $row['call_recording_time'];
+						$call_recording_date_formatted = $row['call_recording_date_formatted'];
+						$call_recording_time_formatted = $row['call_recording_time_formatted'];
+						$call_recording_base64 = $row['call_recording_base64'];
+						if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
+							file_put_contents($call_recording_path . '/' . $call_recording_name, base64_decode($row['call_recording_base64']));
 						}
+					}
+					unset($sql, $parameters, $row);
+				}
 
 					//build full path
 						$full_recording_path = $call_recording_path.'/'.$call_recording_name;
@@ -405,9 +409,9 @@
 
 				} else { //multiple recordings
 
-					//add multi-lingual support
-						$language = new text;
-						$text = $language->get();
+				//add multi-lingual support
+				$language = new text;
+				$text = $language->get();
 
 					//validate the token
 						$token = new token;
@@ -425,56 +429,56 @@
 						}
 						unset($records, $record);
 
-					//get data for recordings
-						if (!empty($uuids) && is_array($uuids) && @sizeof($uuids) != 0) {
-							$sql = "select ";
-							$sql .= "domain_uuid, ";
-							$sql .= "call_recording_uuid, ";
-							$sql .= "caller_id_name, ";
-							$sql .= "caller_id_number, ";
-							$sql .= "caller_destination, ";
-							$sql .= "destination_number, ";
-							$sql .= "call_recording_name, ";
-							$sql .= "call_recording_path, ";
-							$sql .= "call_recording_transcription, ";
-							$sql .= "call_recording_length, ";
-							$sql .= "call_recording_date, ";
-							$sql .= "call_direction, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'YYYY') AS call_recording_year, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'Month') AS call_recording_month_name, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'MM') AS call_recording_month_number, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD') AS call_recording_day, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH24MISS') AS call_recording_time, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD Mon YYYY') as call_recording_date_formatted, ";
-							$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH12:MI:SS am') as call_recording_time_formatted ";
-							if (!empty($storage_type) && $storage_type == 'base64') {
-								$sql .= ", call_recording_base64 ";
+				//get data for recordings
+				if (!empty($uuids) && is_array($uuids) && @sizeof($uuids) != 0) {
+					$sql = "select ";
+					$sql .= "domain_uuid, ";
+					$sql .= "call_recording_uuid, ";
+					$sql .= "caller_id_name, ";
+					$sql .= "caller_id_number, ";
+					$sql .= "caller_destination, ";
+					$sql .= "destination_number, ";
+					$sql .= "call_recording_name, ";
+					$sql .= "call_recording_path, ";
+					$sql .= "call_recording_transcription, ";
+					$sql .= "call_recording_length, ";
+					$sql .= "call_recording_date, ";
+					$sql .= "call_direction, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'YYYY') AS call_recording_year, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'Month') AS call_recording_month_name, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'MM') AS call_recording_month_number, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD') AS call_recording_day, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH24MISS') AS call_recording_time, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'DD Mon YYYY') as call_recording_date_formatted, ";
+					$sql .= "TO_CHAR(timezone(:time_zone, call_recording_date), 'HH12:MI:SS am') as call_recording_time_formatted ";
+					if (!empty($storage_type) && $storage_type == 'base64') {
+						$sql .= ", call_recording_base64 ";
+					}
+					$sql .= "from view_call_recordings ";
+					$sql .= "where call_recording_uuid in ('" . implode("','", $uuids) . "') ";
+					$parameters['time_zone'] = $time_zone;
+					$rows = $this->database->select($sql, $parameters, 'all');
+					if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
+						foreach ($rows as $row) {
+							$call_recording_uuid = $row['call_recording_uuid'];
+							$caller_id_name = $row['caller_id_name'];
+							$caller_id_number = $row['caller_id_number'];
+							$caller_destination = $row['caller_destination'];
+							$destination_number = $row['destination_number'];
+							$call_recording_name = $row['call_recording_name'];
+							$call_recording_path = $row['call_recording_path'];
+							$call_recording_date = $row['call_recording_date'];
+							$call_direction = $row['call_direction'];
+							$call_recording_year = $row['call_recording_year'];
+							$call_recording_month_name = $row['call_recording_month_name'];
+							$call_recording_month_number = $row['call_recording_month_number'];
+							$call_recording_day = $row['call_recording_day'];
+							$call_recording_time = $row['call_recording_time'];
+							$call_recording_date_formatted = $row['call_recording_date_formatted'];
+							$call_recording_time_formatted = $row['call_recording_time_formatted'];
+							if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
+								file_put_contents($call_recording_path . '/' . $call_recording_name, base64_decode($row['call_recording_base64']));
 							}
-							$sql .= "from view_call_recordings ";
-							$sql .= "where call_recording_uuid in ('".implode("','", $uuids)."') ";
-							$parameters['time_zone'] = $time_zone;
-							$rows = $this->database->select($sql, $parameters, 'all');
-							if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
-								foreach ($rows as $row) {
-									$call_recording_uuid = $row['call_recording_uuid'];
-									$caller_id_name = $row['caller_id_name'];
-									$caller_id_number = $row['caller_id_number'];
-									$caller_destination = $row['caller_destination'];
-									$destination_number = $row['destination_number'];
-									$call_recording_name = $row['call_recording_name'];
-									$call_recording_path = $row['call_recording_path'];
-									$call_recording_date = $row['call_recording_date'];
-									$call_direction = $row['call_direction'];
-									$call_recording_year = $row['call_recording_year'];
-									$call_recording_month_name = $row['call_recording_month_name'];
-									$call_recording_month_number = $row['call_recording_month_number'];
-									$call_recording_day = $row['call_recording_day'];
-									$call_recording_time = $row['call_recording_time'];
-									$call_recording_date_formatted = $row['call_recording_date_formatted'];
-									$call_recording_time_formatted = $row['call_recording_time_formatted'];
-									if (!empty($storage_type) && $storage_type == 'base64' && !empty($row['call_recording_base64'])) {
-										file_put_contents($call_recording_path.'/'.$call_recording_name, base64_decode($row['call_recording_base64']));
-									}
 
 									if (file_exists($call_recording_path.'/'.$call_recording_name)) {
 										//add the original file to the array - use original file name

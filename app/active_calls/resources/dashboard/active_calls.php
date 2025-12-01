@@ -125,7 +125,6 @@ echo "<script src='/app/active_calls/resources/javascript/arrows.js?v=$version'>
         const active_calls_count = document.getElementById('active_calls_chart').getContext('2d');
         window.active_calls_chart = new Chart(active_calls_count, {
             type: 'line',
-            elements: { point: { radius: 0, hoverRadius: 6, hitRadius: 10 } },
             data: {
                 datasets: [
                     {
@@ -135,6 +134,8 @@ echo "<script src='/app/active_calls/resources/javascript/arrows.js?v=$version'>
                         fill: true,
                         tension: 0.3,
                         pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHitRadius: 10,
                         spanGaps: true,
                         data: []
                     }
@@ -172,19 +173,60 @@ echo "<script src='/app/active_calls/resources/javascript/arrows.js?v=$version'>
                 plugins: {
                     legend: {display: false},
                     tooltip: {
-                        enabled: true,
-                        mode: 'nearest',
-                        intersect: false,
-                        callbacks: {
-                            label: (ctx) => {
-                                const y = ctx?.parsed?.y;
-                                return Number.isFinite(y) ? `count: ${y}` : '';
-                            }
-                        },
-                        filter: (ctx) => Number.isFinite(ctx.parsed?.y)
+                        enabled: false
                     }
                 }
             }
+        });
+        
+        // Create custom tooltip element
+        const tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chartjs-tooltip';
+        tooltipEl.style.cssText = 'position: absolute; background: rgba(0, 0, 0, 0.8); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000;';
+        document.body.appendChild(tooltipEl);
+        
+        // Manual hover detection on canvas
+        const canvas = document.getElementById('active_calls_chart');
+        canvas.addEventListener('mousemove', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Get the chart's scale information
+            const chart = window.active_calls_chart;
+            const xScale = chart.scales.x;
+            const yScale = chart.scales.y;
+            
+            // Find closest data point
+            let closestPoint = null;
+            let minDistance = Infinity;
+            const threshold = 15; // pixels
+            
+            chart.data.datasets[0].data.forEach((point, index) => {
+                if (point && typeof point.x !== 'undefined' && typeof point.y !== 'undefined') {
+                    const pixelX = xScale.getPixelForValue(point.x);
+                    const pixelY = yScale.getPixelForValue(point.y);
+                    const distance = Math.sqrt(Math.pow(x - pixelX, 2) + Math.pow(y - pixelY, 2));
+                    
+                    if (distance < minDistance && distance < threshold) {
+                        minDistance = distance;
+                        closestPoint = point;
+                    }
+                }
+            });
+            
+            if (closestPoint && Number.isFinite(closestPoint.y)) {
+                tooltipEl.textContent = `Active Calls: ${closestPoint.y}`;
+                tooltipEl.style.opacity = '1';
+                tooltipEl.style.left = (e.pageX + 10) + 'px';
+                tooltipEl.style.top = (e.pageY - 30) + 'px';
+            } else {
+                tooltipEl.style.opacity = '0';
+            }
+        });
+        
+        canvas.addEventListener('mouseleave', function() {
+            tooltipEl.style.opacity = '0';
         });
     }
 <?php
@@ -266,28 +308,40 @@ if (!empty($_SESSION['user']['extension'])) {
 		active_calls_widget_client.ws.addEventListener("open", async () => {
 			try {
 				console.log('Connected');
-				console.log('Requesting authentication');
+				reconnectAttempts = 0;
 
 				//set the status as inactive while waiting
 				const status = document.getElementById('calls_active_count');
 				status.style.backgroundColor = colors.INACTIVE;
-
-				//wait to be authenticated
-				await active_calls_widget_client.request('authentication');
-				reconnectAttempts = 0;
-
-				//bind active call event to function
-				active_calls_widget_client.onEvent("CHANNEL_CALLSTATE", channel_callstate_event);
-				console.log('Sent request for calls in progress');
-
-				//get the in progress calls
-				active_calls_widget_client.request('active.calls', 'in.progress');
-
-				//display green circle for connected
-				status.style.backgroundColor = colors.CONNECTED;
 			} catch (err) {
 				console.error("WS setup failed: ", err);
 				return;
+			}
+		});
+
+		// Handle incoming messages for authentication
+		active_calls_widget_client.ws.addEventListener("message", async (event) => {
+			try {
+				const message = JSON.parse(event.data);
+				// Check for authentication request from server
+				if (message.status_code === 407 && message.service_name === 'authentication') {
+					console.log('Authentication required - sending credentials');
+					await active_calls_widget_client.request('authentication');
+					console.log('Authentication sent');
+					
+					//bind active call event to function
+					active_calls_widget_client.onEvent("CHANNEL_CALLSTATE", channel_callstate_event);
+					console.log('Sent request for calls in progress');
+
+					//get the in progress calls
+					active_calls_widget_client.request('active.calls', 'in.progress');
+
+					//display green circle for connected
+					const status = document.getElementById('calls_active_count');
+					status.style.backgroundColor = colors.CONNECTED;
+				}
+			} catch (err) {
+				// Let the ws_client handle other messages
 			}
 		});
 
@@ -319,8 +373,6 @@ if (!empty($_SESSION['user']['extension'])) {
 		const other_leg_unique_id = call.other_leg_unique_id ?? '';
 		switch (state) {
 			case 'ringing':
-				//calls that are already in progress should be answered status
-				if (call.caller_channel_created_time > Date.now()) call.answer_state = 'answered';
 				//update the data
 				update_call(call);
 				replace_arrow_color(uuid, colors.RINGING);
@@ -460,15 +512,14 @@ echo '<td id="answer_state_${uuid}">${call.answer_state}</td>' . PHP_EOL;
 echo '<td id="duration_${uuid}"></td>'.PHP_EOL;
 ?>`;
 //end string block
+			// Only display calls that belong to the current domain (server-side filtering ensures proper security)
+			// The backend filter already restricts calls based on user permissions
 			row.style.display = 'table-row';
 
 			// add the row to the table
 			tbody.appendChild(row);
 
-			console.log('NEW ROW ADDED', row.id);
-
-			// add the uuid to the map
-			callsMap.set(call.unique_id, row);
+			//console.log('NEW ROW ADDED', row.id);
 
 			// start the timer
 			start_duration_timer(call.unique_id, call.caller_channel_created_time);
@@ -540,7 +591,12 @@ echo '<td id="duration_${uuid}"></td>'.PHP_EOL;
 			//calculate already elapsed time
 			const start = new Date(start_time / 1000);
 			const now = new Date();
-			const elapsed = Math.floor(now.getTime() - start.getTime());
+			let elapsed = Math.floor(now.getTime() - start.getTime());
+
+			// Fix rounding issue where floor can produce negative elapsed time
+			if (elapsed < 0) {
+				elapsed = 0;
+			}
 
 			//format time
 			const hh = Math.floor(elapsed / (1000 * 3600)).toString();
