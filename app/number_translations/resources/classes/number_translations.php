@@ -59,12 +59,30 @@
 		public $display_type;
 
 
-		/**
-		 * called when the object is created
-		 */
-		public function __construct(array $setting_array = []) {
-			//set objects
-			$this->database = $setting_array['database'] ?? database::new();
+	/**
+	 * Checks if a given name exists as a number translation.
+	 *
+	 * @param string $name The name to check for existence.
+	 *
+	 * @return bool True if the number translation exists, false otherwise.
+	 */
+	public function number_translation_exists($name) {
+		$sql                                   = "select count(*) from v_number_translations ";
+		$sql                                   .= "where number_translation_name = :number_translation_name ";
+		$parameters['number_translation_name'] = $name;
+		return $this->database->select($sql, $parameters, 'column') != 0 ? true : false;
+	}
+    
+	/**
+     *  Load properly private property xml
+	 * 
+     *  @param string $xml content of template files.
+	 * 
+	 * 	@return void
+    */
+	public function get_xml($xml) {
+		$this->xml = $xml;
+	}
 
 			//assign private variables
 			$this->permission_prefix = 'number_translation_';

@@ -17,21 +17,31 @@
  * @param string $config_path Configuration path currently in use
  * @param string $config_file Configuration file currently in use
  * @param string $config_path_and_filename Full path and configuration file currently in use
+ *
  * @internal the @param statements are used because they match the magic __get function that allows those to be accessed publicly
  */
 final class config {
 
-	// Full path and filename of config.conf
-	private $file;
-
-	// The internal array that holds the configuration in the config.conf file
-	private $configuration;
-
 	/**
 	 * Configuration object used to hold a single instance
-	 * @var array
+	 *
+	 * @var config
 	 */
 	public static $config = null;
+
+	/**
+	 * The full path and file name for the config file.
+	 *
+	 * @var string
+	 */
+	private $file;
+
+	/**
+	 * The array of settings contained in the config file.
+	 *
+	 * @var array
+	 */
+	private $configuration;
 
 	/**
 	 * Loads the framework configuration file

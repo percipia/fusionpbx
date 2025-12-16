@@ -44,14 +44,111 @@
 			//open a database connection
 			$this->database = $setting_array['database'] ?? database::new();
 
-			//get the list of installed apps from the core and mod directories
-			$config_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/app_config.php");
-			$x = 0;
-			foreach ($config_list as $config_path) {
-				try {
-					include($config_path);
-				} catch (Exception $e) {
-					//echo 'Caught exception: ',  $e->getMessage(), "\n";
+		//includes files
+		require dirname(__DIR__, 2) . "/resources/require.php";
+
+		//open a database connection
+		$this->database = $setting_array['database'] ?? database::new();
+
+		//get the list of installed apps from the core and mod directories
+		$config_list = glob(dirname(__DIR__, 2) . "/*/*/app_config.php");
+		$x = 0;
+		foreach ($config_list as $config_path) {
+			try {
+				include($config_path);
+			} catch (Exception $e) {
+				//echo 'Caught exception: ',  $e->getMessage(), "\n";
+			}
+			$x++;
+		}
+		$this->applications = $apps;
+
+		//set the db_type
+		$this->db_type = $db_type;
+
+		//set the db_name
+		$this->db_name = $db_name;
+
+		//get the table info
+		if ($this->db_type == "pgsql") {
+			$sql = "SELECT *, ordinal_position, ";
+			$sql .= "table_name, ";
+			$sql .= "column_name, ";
+			$sql .= "data_type, ";
+			$sql .= "column_default, ";
+			$sql .= "is_nullable, ";
+			$sql .= "character_maximum_length, ";
+			$sql .= "numeric_precision ";
+			$sql .= "FROM information_schema.columns ";
+			$sql .= "WHERE table_catalog = '" . $db_name . "' ";
+			$sql .= "and table_schema not in ('pg_catalog', 'information_schema') ";
+			$sql .= "ORDER BY ordinal_position; ";
+			$schema = $this->database->select($sql, null, 'all');
+			foreach ($schema as $row) {
+				$this->schema_info[$row['table_name']][] = $row;
+			}
+		}
+	}
+
+	/**
+	 * Generate SQL statements for creating tables.
+	 *
+	 * This method loops through the list of applications and generates CREATE TABLE
+	 * SQL statements based on the table definitions provided in each application's database settings.
+	 *
+	 * @return array An array containing the generated SQL statements.
+	 */
+	public function sql() {
+		$sql = '';
+		$sql_schema = '';
+		foreach ($this->applications as $app) {
+			if (isset($app['db']) && count($app['db'])) {
+				foreach ($app['db'] as $row) {
+					//create the sql string
+					$table_name = $row['table']['name'];
+					$sql = "CREATE TABLE " . $row['table']['name'] . " (\n";
+					$field_count = 0;
+					foreach ($row['fields'] as $field) {
+						if (!empty($field['deprecated']) and ($field['deprecated'] == "true")) {
+							//skip this field
+						} else {
+							if ($field_count > 0) {
+								$sql .= ",\n";
+							}
+							if (is_array($field['name'])) {
+								$sql .= $field['name']['text'] . " ";
+							} else {
+								$sql .= $field['name'] . " ";
+							}
+							if (is_array($field['type'])) {
+								$sql .= $field['type'][$this->db_type];
+							} else {
+								$sql .= $field['type'];
+							}
+							if (isset($field['key']) && isset($field['key']['type']) && ($field['key']['type'] == "primary")) {
+								$sql .= " PRIMARY KEY";
+							}
+							if (isset($field['key']) && isset($field['key']['type']) && ($field['key']['type'] == "foreign")) {
+								if ($this->db_type == "pgsql") {
+									//$sql .= " references ".$field['key']['reference']['table']."(".$field['key']['reference']['field'].")";
+								}
+								if ($this->db_type == "sqlite") {
+									//$sql .= " references ".$field['key']['reference']['table']."(".$field['key']['reference']['field'].")";
+								}
+								if ($this->db_type == "mysql") {
+									//$sql .= " references ".$field['key']['reference']['table']."(".$field['key']['reference']['field'].")";
+								}
+							}
+							$field_count++;
+						}
+					}
+					if ($this->db_type == "mysql") {
+						$sql .= ") ENGINE=INNODB;";
+					} else {
+						$sql .= ");";
+					}
+					$this->result['sql'][] = $sql;
+					unset($sql);
 				}
 				$x++;
 			}

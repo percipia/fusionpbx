@@ -119,13 +119,71 @@
 			//set the default value
 			$this->dialplan_global = false;
 
-			//assign property defaults
-			$this->permission_prefix = 'dialplan_';
-			$this->list_page = 'dialplans.php';
-			$this->table = 'dialplans';
-			$this->uuid_prefix = 'dialplan_';
-			$this->toggle_field = 'dialplan_enabled';
-			$this->toggle_values = ['true','false'];
+		//assign property defaults
+		$this->permission_prefix = 'dialplan_';
+		$this->list_page         = 'dialplans.php';
+		$this->table             = 'dialplans';
+		$this->uuid_prefix       = 'dialplan_';
+		$this->toggle_field      = 'dialplan_enabled';
+		$this->toggle_values     = ['true', 'false'];
+	}
+
+	/**
+	 * Checks if a specific dialplan exists in the database.
+	 *
+	 * @return bool True if the dialplan exists, False otherwise
+	 */
+	public function dialplan_exists() {
+		$sql                         = "select count(*) from v_dialplans ";
+		$sql                         .= "where (domain_uuid = :domain_uuid or domain_uuid is null)";
+		$sql                         .= "and dialplan_uuid = :dialplan_uuid ";
+		$parameters['domain_uuid']   = $this->domain_uuid;
+		$parameters['dialplan_uuid'] = $this->dialplan_uuid;
+		return $this->database->select($sql, $parameters ?? null, 'column') != 0 ? true : false;
+		unset($sql, $parameters);
+	}
+
+	/**
+	 * Imports dialplans from XML files for the specified domains.
+	 *
+	 * @param array $domains An array of domain data, where each domain is an associative array containing 'domain_uuid' and
+	 *                       other relevant information.
+	 *
+	 * @return void
+	 */
+	public function import($domains) {
+		//set the row id
+		$x = 0;
+
+		//get the array of xml files
+		$xml_list = glob(dirname(__DIR__, 4) . "/*/*/resources/switch/conf/dialplan/*.xml");
+
+		//add a band-aid for CLI editors with faulty syntax highlighting
+		/* **/
+
+		//build the dialplan xml array
+		/*
+		foreach ($xml_list as $xml_file) {
+			$xml_string = file_get_contents($xml_file);
+
+			//prepare the xml
+			if (!empty($xml_string)) {
+				//replace the variables
+					$length = (is_numeric($this->settings->get('security', 'pin_length'))) ? $this->settings->get('security', 'pin_length') : 8;
+					$xml_string = str_replace("{v_context}", $domain['domain_name'], $xml_string);
+					$xml_string = str_replace("{v_pin_number}", generate_password($length, 1), $xml_string);
+				//convert the xml string to an xml object
+					$xml = simplexml_load_string($xml_string);
+				//convert to json
+					$json = json_encode($xml);
+				//convert to an array
+					$dialplan = json_decode($json, true);
+			}
+			if (!empty($this->json)) {
+				//convert to an array
+					$dialplan = json_decode($json, true);
+			}
+			$_SESSION['dialplans']['default'][] = $dialplan;
 		}
 
 
@@ -602,12 +660,153 @@
 			//get the dialplans from the dialplan_xml field in the dialplans table
 				if ($this->source == "dialplans") {
 
-					//get the data using a join between the dialplans and dialplan details tables
-						$sql = "select dialplan_uuid, dialplan_xml ";
-						$sql .= "from v_dialplans ";
-						if (is_uuid($this->uuid)) {
-							$sql .= "where dialplan_uuid = :dialplan_uuid ";
-							$parameters['dialplan_uuid'] = $this->uuid;
+		//save the dialplan xml
+		if ($this->destination == "database") {
+			if (!empty($dialplans)) {
+				$x = 0;
+				foreach ($dialplans as $key => $value) {
+					if (is_uuid($key) && !empty($value)) {
+						//build update array
+						$array['dialplans'][$x]['dialplan_uuid'] = $key;
+						$array['dialplans'][$x]['dialplan_xml']  = $value;
+
+						//grant temporary permissions
+						$p = permissions::new();
+						$p->add('dialplan_edit', 'temp');
+
+						//execute update
+						$this->database->save($array);
+						unset($array);
+
+						//revoke temporary permissions
+						$p->delete('dialplan_edit', 'temp');
+					}
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * Initializes the object with default settings and updates the database.
+	 *
+	 * This method processes XML files, imports domains, and updates dialplan orders in the database.
+	 * It also adds XML for each dialplan where the dialplan XML is empty.
+	 *
+	 * @return void
+	 */
+	public function defaults() {
+
+		//get the array of xml files and then process thm
+		$xml_list = glob(dirname(__DIR__, 4) . "/*/*/resources/switch/conf/dialplan/*.xml");
+		foreach ($xml_list as $xml_file) {
+			//get and parse the xml
+			$xml_string = file_get_contents($xml_file);
+
+			//get the order number prefix from the file name
+			$name_array = explode('_', basename($xml_file));
+			if (is_numeric($name_array[0])) {
+				$dialplan_order = $name_array[0];
+			} else {
+				$dialplan_order = 0;
+			}
+
+			//set the xml string
+			$this->xml = $xml_string;
+
+			//get the domains
+			$sql     = 'select * from v_domains';
+			$domains = $this->database->select($sql, null, 'all');
+			$this->import($domains);
+			unset($sql);
+		}
+
+		//update the dialplan order
+		$sql_array[] = "update v_dialplans set dialplan_order = '870' where dialplan_order = '980' and dialplan_name = 'cidlookup' ";
+		$sql_array[] = "update v_dialplans set dialplan_order = '880' where dialplan_order = '990' and dialplan_name = 'call_screen' ";
+		$sql_array[] = "update v_dialplans set dialplan_order = '890' where dialplan_order = '999' and dialplan_name = 'local_extension' ";
+		foreach ($sql_array as $query) {
+			$this->database->execute($query);
+		}
+		unset($sql_array, $query);
+
+		//add xml for each dialplan where the dialplan xml is empty
+		$this->source      = "details";
+		$this->destination = "database";
+		$this->is_empty    = "dialplan_xml";
+		$array             = $this->xml();
+		//print_r($array);
+		unset($this->source, $this->destination, $this->is_empty, $array);
+
+	}
+
+	/**
+	 * Deletes one or more records.
+	 *
+	 * @param array $records An array of record IDs to delete, where each ID is an associative array
+	 *                       containing 'uuid' and 'checked' keys. The 'checked' value indicates
+	 *                       whether the corresponding checkbox was checked for deletion.
+	 *
+	 * @return void No return value; this method modifies the database state and sets a message.
+	 */
+	public function delete($records) {
+
+		if (permission_exists($this->permission_prefix . 'delete')) {
+
+			//add multi-lingual support
+			$language = new text;
+			$text     = $language->get();
+
+			//validate the token
+			$token = new token;
+			if (!$token->validate($_SERVER['PHP_SELF'])) {
+				message::add($text['message-invalid_token'], 'negative');
+				header('Location: ' . $this->list_page);
+				exit;
+			}
+
+			//delete multiple records
+			if (!empty($records)) {
+
+				//build the delete array
+				foreach ($records as $x => $record) {
+					if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
+
+						//build delete array
+						$array[$this->table][$x][$this->uuid_prefix . 'uuid'] = $record['uuid'];
+						$array['dialplan_details'][$x]['dialplan_uuid']       = $record['uuid'];
+
+						//get the dialplan context
+						$sql                         = "select dialplan_context from v_dialplans ";
+						$sql                         .= "where dialplan_uuid = :dialplan_uuid ";
+						$parameters['dialplan_uuid'] = $record['uuid'];
+						$dialplan_contexts[]         = $this->database->select($sql, $parameters ?? null, 'column');
+						unset($sql, $parameters);
+
+					}
+				}
+
+				//delete the checked rows
+				if (!empty($array)) {
+
+					//grant temporary permissions
+					$p = permissions::new();
+					$p->add('dialplan_delete', 'temp');
+					$p->add('dialplan_detail_delete', 'temp');
+
+					//execute delete
+					$this->database->delete($array);
+
+					//revoke temporary permissions
+					$p->delete('dialplan_delete', 'temp');
+					$p->delete('dialplan_detail_delete', 'temp');
+
+					//clear the cache
+					if (!empty($dialplan_contexts)) {
+						$dialplan_contexts = array_unique($dialplan_contexts, SORT_STRING);
+						$cache             = new cache;
+						foreach ($dialplan_contexts as $dialplan_context) {
+							$cache->delete("dialplan:" . $dialplan_context);
 						}
 						else {
 							if (!empty($this->context)) {

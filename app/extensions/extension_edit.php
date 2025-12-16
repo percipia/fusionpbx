@@ -322,7 +322,7 @@
 	}
 
 //delete the line from the v_device_lines
-	if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/devices')) {
+	if (is_dir(dirname(__DIR__, 2).'/app/devices')) {
 		if (!empty($_REQUEST["delete_type"]) && $_REQUEST["delete_type"] == "device_line" && is_uuid($_REQUEST["delete_uuid"]) && permission_exists("extension_delete")) {
 			//set the variables
 				$device_line_uuid = $_REQUEST["delete_uuid"];
@@ -719,7 +719,7 @@
 							}
 
 						//add or update voicemail
-							if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/voicemails')) {
+							if (is_dir(dirname(__DIR__, 2).'/app/voicemails')) {
 								//set the voicemail password
 									if (empty($voicemail_password)) {
 										$voicemail_password = generate_password($voicemail_password_length, 1);
@@ -846,12 +846,10 @@
 							}
 
 						//write the provision files
-							if (!empty($_SESSION['provision']['path']['text'])) {
-								if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/provision')) {
-									$prov = new provision;
-									$prov->domain_uuid = $domain_uuid;
-									$response = $prov->write($device_uuid);
-								}
+							if (!empty($provision_path) && is_dir(dirname(__DIR__, 2).'/app/provision')) {
+								$prov = new provision;
+								$prov->domain_uuid = $domain_uuid;
+								$response = $prov->write();
 							}
 
 						//clear the cache
@@ -951,7 +949,7 @@
 		}
 
 	//get the voicemail data
-		if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/voicemails')) {
+		if (is_dir(dirname(__DIR__, 2).'/app/voicemails')) {
 			$sql = "select * from v_voicemails ";
 			$sql .= "where domain_uuid = :domain_uuid ";
 			$sql .= "and voicemail_id = :voicemail_id ";
@@ -1321,7 +1319,7 @@
 		echo "	</tr>";
 	}
 
-	if (permission_exists('voicemail_edit') && is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/voicemails')) {
+	if (permission_exists('voicemail_edit') && is_dir(dirname(__DIR__, 2).'/app/voicemails')) {
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-voicemail_password']."\n";
@@ -1349,7 +1347,7 @@
 	}
 
 	if (permission_exists('device_edit') && (empty($extension_type) || $extension_type != 'virtual')) {
-		if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/devices')) {
+		if (is_dir(dirname(__DIR__, 2).'/app/devices')) {
 			echo "<tr>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "	".$text['label-provisioning']."\n";
@@ -1786,7 +1784,7 @@
 		echo "</tr>\n";
 	}
 
-	if (permission_exists('voicemail_edit') && is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/voicemails')) {
+	if (permission_exists('voicemail_edit') && is_dir(dirname(__DIR__, 2).'/app/voicemails')) {
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-voicemail_enabled']."\n";
@@ -2032,7 +2030,7 @@
 		echo "</tr>\n";
 	}
 
-	if (is_dir($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/music_on_hold') && permission_exists('extension_hold_music')) {
+	if (is_dir(dirname(__DIR__, 2).'/app/music_on_hold') && permission_exists('extension_hold_music')) {
 		echo "<tr>\n";
 		echo "<td width=\"30%\" class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "	".$text['label-hold_music']."\n";

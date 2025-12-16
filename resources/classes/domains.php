@@ -101,7 +101,348 @@ class domains {
 	}
 
 	/**
-	 * delete rows from the database
+	 * get all enabled domains
+	 *
+	 * @returns array all enabled domains with uuid as array key
+	 */
+	public static function enabled() {
+
+		//define database as global
+		global $database;
+
+		//define default return value
+		$domains = [];
+
+		//get the domains from the database
+		$sql = "select * from v_domains ";
+		$sql .= "where domain_enabled = true ";
+		$sql .= "order by domain_name asc; ";
+		$result = $database->select($sql, null, 'all');
+		if (!empty($result)) {
+			foreach ($result as $row) {
+				$domains[$row['domain_uuid']] = $row;
+			}
+		}
+
+		//return the domains array
+		return $domains;
+	}
+
+	/**
+	 * get all disabled domains
+	 *
+	 * @returns array all disabled domains with uuid as array key
+	 */
+	public static function disabled() {
+
+		//define database as global
+		global $database;
+
+		//define default return value
+		$domains = [];
+
+		//get the domains from the database
+		$sql = "select * from v_domains ";
+		$sql .= "where domain_enabled = false ";
+		$sql .= "order by domain_name asc; ";
+		$result = $database->select($sql, null, 'all');
+		if (!empty($result)) {
+			foreach ($result as $row) {
+				$domains[$row['domain_uuid']] = $row;
+			}
+		}
+
+		//return the domains array
+		return $domains;
+	}
+
+	/**
+	 * Toggles the state of one or more records.
+	 *
+	 * @param array $records  An array of record IDs to delete, where each ID is an associative array
+	 *                        containing 'uuid' and 'checked' keys. The 'checked' value indicates
+	 *                        whether the corresponding checkbox was checked for deletion.
+	 *
+	 * @return void No return value; this method modifies the database state and sets a message.
+	 */
+	public function toggle($records) {
+		if (permission_exists($this->name . '_edit')) {
+
+			//add multi-lingual support
+			$language = new text;
+			$text = $language->get();
+
+			//validate the token
+			$token = new token;
+			if (!$token->validate($_SERVER['PHP_SELF'])) {
+				message::add($text['message-invalid_token'], 'negative');
+				header('Location: ' . $this->location);
+				exit;
+			}
+
+			//toggle the checked records
+			if (is_array($records) && @sizeof($records) != 0) {
+				//get current toggle state
+				foreach ($records as $record) {
+					if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
+						$uuids[] = "'" . $record['uuid'] . "'";
+					}
+				}
+				if (is_array($uuids) && @sizeof($uuids) != 0) {
+					$sql = "select " . $this->name . "_uuid as uuid, " . $this->toggle_field . " as toggle from v_" . $this->table . " ";
+					$sql .= "where " . $this->name . "_uuid in (" . implode(', ', $uuids) . ") ";
+					$rows = $this->database->select($sql, $parameters ?? null, 'all');
+					if (is_array($rows) && @sizeof($rows) != 0) {
+						foreach ($rows as $row) {
+							$states[$row['uuid']] = $row['toggle'];
+						}
+					}
+					unset($sql, $parameters, $rows, $row);
+				}
+
+				//build update array
+				$x = 0;
+				foreach ($states as $uuid => $state) {
+					//create the array
+					$array[$this->table][$x][$this->name . '_uuid'] = $uuid;
+					$array[$this->table][$x][$this->toggle_field] = $state == $this->toggle_values[0] ? $this->toggle_values[1] : $this->toggle_values[0];
+
+					//increment the id
+					$x++;
+				}
+
+				//save the changes
+				if (is_array($array) && @sizeof($array) != 0) {
+					//save the array
+
+					$this->database->save($array);
+					unset($array);
+
+					//set message
+					message::add($text['message-toggle']);
+				}
+				unset($records, $states);
+			}
+		}
+	}
+
+	/**
+	 * Copies one or more records
+	 *
+	 * @param array $records  An array of record IDs to delete, where each ID is an associative array
+	 *                        containing 'uuid' and 'checked' keys. The 'checked' value indicates
+	 *                        whether the corresponding checkbox was checked for deletion.
+	 *
+	 * @return void No return value; this method modifies the database state and sets a message.
+	 */
+	public function copy($records) {
+		if (permission_exists($this->name . '_add')) {
+
+			//add multi-lingual support
+			$language = new text;
+			$text = $language->get();
+
+			//validate the token
+			$token = new token;
+			if (!$token->validate($_SERVER['PHP_SELF'])) {
+				message::add($text['message-invalid_token'], 'negative');
+				header('Location: ' . $this->location);
+				exit;
+			}
+
+			//copy the checked records
+			if (is_array($records) && @sizeof($records) != 0) {
+
+				//get checked records
+				foreach ($records as $record) {
+					if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
+						$uuids[] = "'" . $record['uuid'] . "'";
+					}
+				}
+
+				//create the array from existing data
+				if (is_array($uuids) && @sizeof($uuids) != 0) {
+					$sql = "select * from v_" . $this->table . " ";
+					$sql .= "where " . $this->name . "_uuid in (" . implode(', ', $uuids) . ") ";
+					$rows = $this->database->select($sql, null, 'all');
+					if (is_array($rows) && @sizeof($rows) != 0) {
+						$x = 0;
+						foreach ($rows as $row) {
+							//convert boolean values to a string
+							foreach ($row as $key => $value) {
+								if (gettype($value) == 'boolean') {
+									$value = $value ? 'true' : 'false';
+									$row[$key] = $value;
+								}
+							}
+
+							//copy data
+							$array[$this->table][$x] = $row;
+
+							//add copy to the description
+							$array[$this->table][$x][$this->name . '_uuid'] = uuid();
+							$array[$this->table][$x][$this->name . '_description'] = trim($row[$this->name . '_description']) . ' (' . $text['label-copy'] . ')';
+
+							//increment the id
+							$x++;
+						}
+					}
+					unset($sql, $parameters, $rows, $row);
+				}
+
+				//save the changes and set the message
+				if (is_array($array) && @sizeof($array) != 0) {
+					//save the array
+
+					$this->database->save($array);
+					unset($array);
+
+					//set message
+					message::add($text['message-copy']);
+				}
+				unset($records);
+			}
+		}
+	}
+
+	/**
+	 * Upgrade function to apply necessary changes and settings.
+	 *
+	 * @return void
+	 */
+	public function upgrade() {
+
+		//add multi-lingual support
+		$language = new text;
+		$text = $language->get(null, 'core/upgrade');
+
+		//includes files
+		require dirname(__DIR__, 2) . "/resources/require.php";
+
+		//add missing default settings
+		$this->settings();
+
+		//save the database object to be used by app_defaults.php
+		$database = $this->database;
+
+		//get the variables
+		$config = new config;
+		$config_path = $config->config_file;
+
+		//get the list of installed apps from the core and app directories (note: GLOB_BRACE doesn't work on some systems)
+		$config_list_1 = glob(dirname(__DIR__, 2) . "/*/*/app_config.php");
+		$config_list_2 = glob(dirname(__DIR__, 2) . "/*/*/app_menu.php");
+		$config_list = array_merge((array)$config_list_1, (array)$config_list_2);
+		unset($config_list_1, $config_list_2);
+		$x = 0;
+		foreach ($config_list as $config_path) {
+			$app_path = dirname($config_path);
+			$app_path = preg_replace('/\A.*(\/.*\/.*)\z/', '$1', $app_path);
+			include($config_path);
+			$x++;
+		}
+
+		//get the domains
+		$sql = "select * from v_domains ";
+		$domains = $this->database->select($sql, null, 'all');
+		unset($sql);
+
+		//get the list of installed apps from the core and mod directories
+		$default_list = glob(dirname(__DIR__, 2) . "/*/*/app_defaults.php");
+
+		//loop through all domains
+		$domains_processed = 1;
+		foreach ($domains as $domain) {
+			//get the values from database and set them as php variables
+			$domain_uuid = $domain["domain_uuid"];
+			$domain_name = $domain["domain_name"];
+
+			//get the context
+			$context = $domain_name;
+
+			//get the email queue settings
+			$settings = new settings(["database" => $this->database, "domain_uuid" => $domain_uuid]);
+
+			//run the php code in app_defaults.php
+			foreach ($default_list as $default_path) {
+				include($default_path);
+			}
+
+			//track the number of domains processed
+			$domains_processed++;
+		}
+
+	} //end upgrade method
+
+	/**
+	 * Get the default settings for the application.
+	 *
+	 * This function first retrieves an array of default setting UUIDs from the database,
+	 * then checks each app_config.php file in the project directory to see if they contain
+	 * any default settings that are not already included in the UUID list. If so, it adds
+	 * them to the array and attempts to insert them into the database.
+	 *
+	 * @return void
+	 */
+	public function settings() {
+
+		//includes files
+		require dirname(__DIR__, 2) . "/resources/require.php";
+
+		//get an array of the default settings UUIDs
+		$sql = "select * from v_default_settings ";
+		$result = $this->database->select($sql, null, 'all');
+		foreach ($result as $row) {
+			$setting[$row['default_setting_uuid']] = 1;
+		}
+		unset($sql);
+
+		//get the list of default settings
+		$config_list = glob(dirname(__DIR__, 2) . "/*/*/app_config.php");
+		$x = 0;
+		foreach ($config_list as $config_path) {
+			include($config_path);
+			$x++;
+		}
+		$x = 0;
+		foreach ($apps as $app) {
+			if (isset($app['default_settings']) && is_array($app['default_settings'])) {
+				foreach ($app['default_settings'] as $row) {
+					if (!isset($setting[$row['default_setting_uuid']])) {
+						$array['default_settings'][$x] = $row;
+						$array['default_settings'][$x]['app_uuid'] = $app['uuid'];
+						$x++;
+					}
+				}
+			}
+		}
+
+		//add the missing default settings
+		if (isset($array) && is_array($array) && count($array) > 0) {
+			//grant temporary permissions
+			$p = permissions::new();
+			$p->add('default_setting_add', 'temp');
+
+			//execute insert
+			$this->database->app_name = 'default_settings';
+			$this->database->app_uuid = '2c2453c0-1bea-4475-9f44-4d969650de09';
+			$this->database->save($array, false);
+			unset($array);
+
+			//revoke temporary permissions
+			$p->delete('default_setting_add', 'temp');
+		}
+
+	} //end settings method
+
+	/**
+	 * Deletes one or multiple records.
+	 *
+	 * @param array $records An array of record IDs to delete, where each ID is an associative array
+	 *                       containing 'uuid' and 'checked' keys. The 'checked' value indicates
+	 *                       whether the corresponding checkbox was checked for deletion.
+	 *
+	 * @return void No return value; this method modifies the database state and sets a message.
 	 */
 	public function delete($records) {
 		if (permission_exists($this->name.'_delete')) {
@@ -142,27 +483,107 @@ class domains {
 										$result = $this->database->select($sql, $parameters, 'all');
 										unset($sql, $parameters);
 
-										if (is_array($result) && sizeof($result) != 0) {
-											foreach ($result as $row) {
-												$name = $row['domain_setting_name'];
-												$category = $row['domain_setting_category'];
-												$subcategory = $row['domain_setting_subcategory'];
-												if ($subcategory != '') {
-													if ($name == "array") {
-														$_SESSION[$category][] = $row['default_setting_value'];
-													}
-													else {
-														$_SESSION[$category][$name] = $row['default_setting_value'];
-													}
-												}
-												else {
-													if ($name == "array") {
-														$_SESSION[$category][$subcategory][] = $row['default_setting_value'];
-													}
-													else {
-														$_SESSION[$category][$subcategory]['uuid'] = $row['default_setting_uuid'];
-														$_SESSION[$category][$subcategory][$name] = $row['default_setting_value'];
-													}
+						if (is_array($result) && sizeof($result) != 0) {
+							foreach ($result as $row) {
+								$name = $row['domain_setting_name'];
+								$category = $row['domain_setting_category'];
+								$subcategory = $row['domain_setting_subcategory'];
+								if ($subcategory != '') {
+									if ($name == "array") {
+										$_SESSION[$category][] = $row['default_setting_value'];
+									} else {
+										$_SESSION[$category][$name] = $row['default_setting_value'];
+									}
+								} else {
+									if ($name == "array") {
+										$_SESSION[$category][$subcategory][] = $row['default_setting_value'];
+									} else {
+										$_SESSION[$category][$subcategory]['uuid'] = $row['default_setting_uuid'];
+										$_SESSION[$category][$subcategory][$name] = $row['default_setting_value'];
+									}
+								}
+							}
+						}
+						unset($result, $row);
+
+						//get the $apps array from the installed apps from the core and mod directories
+						$config_list = glob(dirname(__DIR__, 2) . "/*/*/app_config.php");
+						$x = 0;
+						if (isset($config_list)) foreach ($config_list as $config_path) {
+							include($config_path);
+							$x++;
+						}
+
+						//delete the domain data from all tables in the database
+						if (isset($apps)) foreach ($apps as $app) {
+							if (isset($app['db'])) foreach ($app['db'] as $row) {
+								if (is_array($row['table']['name'])) {
+									$table_name = $row['table']['name']['text'];
+									if (defined('STDIN')) {
+										echo "<pre>" . print_r($table_name, 1) . "<pre>\n";
+									}
+								} else {
+									$table_name = $row['table']['name'];
+								}
+								if ($table_name !== "v" && isset($row['fields'])) {
+									foreach ($row['fields'] as $field) {
+										if ($field['name'] == 'domain_uuid' && $table_name != 'v_domains') {
+											$sql = "delete from " . $table_name . " where domain_uuid = :domain_uuid ";
+											$parameters['domain_uuid'] = $id;
+											$this->database->app_name = 'domain_settings';
+											$this->database->app_uuid = 'b31e723a-bf70-670c-a49b-470d2a232f71';
+											$this->database->execute($sql, $parameters);
+											unset($sql, $parameters);
+										}
+									}
+								}
+							}
+						}
+
+						//delete the directories
+						if (!empty($domain_name)) {
+							//set the needle
+							if (count($_SESSION["domains"]) > 1) {
+								$v_needle = 'v_' . $domain_name . '_';
+							} else {
+								$v_needle = 'v_';
+							}
+
+							//delete the dialplan
+							@unlink($_SESSION['switch']['dialplan']['dir'] . '/' . $domain_name . '.xml');
+							if (!empty($_SESSION['switch']['dialplan']['dir'])) {
+								system('rm -rf ' . $_SESSION['switch']['dialplan']['dir'] . '/' . $domain_name);
+							}
+
+							//delete the dialplan public
+							@unlink($_SESSION['switch']['dialplan']['dir'] . '/public/' . $domain_name . '.xml');
+							if (!empty($_SESSION['switch']['dialplan']['dir'])) {
+								system('rm -rf ' . $_SESSION['switch']['dialplan']['dir'] . '/public/' . $domain_name);
+							}
+
+							//delete the extension
+							@unlink($_SESSION['switch']['extensions']['dir'] . '/' . $domain_name . '.xml');
+							if (!empty($_SESSION['switch']['extensions']['dir'])) {
+								system('rm -rf ' . $_SESSION['switch']['extensions']['dir'] . '/' . $domain_name);
+							}
+
+							//delete fax
+							if (!empty($_SESSION['switch']['storage']['dir'])) {
+								system('rm -rf ' . $_SESSION['switch']['storage']['dir'] . '/fax/' . $domain_name);
+							}
+
+							//delete the gateways
+							if (!empty($_SESSION['switch']['sip_profiles']['dir'])) {
+								if ($dh = opendir($_SESSION['switch']['sip_profiles']['dir'])) {
+									$files = [];
+									while ($file = readdir($dh)) {
+										if ($file != "." && $file != ".." && $file[0] != '.') {
+											if (is_dir($dir . "/" . $file)) {
+												//this is a directory do nothing
+											} else {
+												//check if file extension is xml
+												if (strpos($file, $v_needle) !== false && substr($file, -4) == '.xml') {
+													@unlink($_SESSION['switch']['sip_profiles']['dir'] . "/" . $file);
 												}
 											}
 										}

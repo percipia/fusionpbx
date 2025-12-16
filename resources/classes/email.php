@@ -99,9 +99,26 @@
 			$this->domain_uuid = $setting_array['domain_uuid'] ?? $_SESSION['domain_uuid'] ?? '';
 			$this->user_uuid = $setting_array['user_uuid'] ?? $_SESSION['user_uuid'] ?? '';
 
-			//set the objects
-			$this->database = $setting_array['database'] ?? database::new();
-			$this->settings = $setting_array['settings'] ?? new settings(['database' => $this->database, 'domain_uuid' => $this->domain_uuid, 'user_uuid' => $this->user_uuid]);
+		//set the objects
+		$this->database = $setting_array['database'] ?? database::new();
+		$this->settings = $setting_array['settings'] ?? new settings(['database' => $this->database, 'domain_uuid' => $this->domain_uuid, 'user_uuid' => $this->user_uuid]);
+	}
+
+	/**
+	 * Parse an email message.
+	 *
+	 * This method takes a raw email message as input and parses it into its constituent parts,
+	 * including headers, body, attachments, and other metadata. The parsed data is stored in
+	 * various properties of the object, making it available for further processing or storage.
+	 *
+	 * @param string $message Raw email message to be parsed.
+	 */
+	public function parse($message) {
+		//includes
+		require_once('resources/pop3/mime_parser.php');
+		require_once('resources/pop3/rfc822_addresses.php');
+		if (file_exists(dirname(__DIR__, 2) . "/app/emails/email_transcription.php")) {
+			require_once(dirname(__DIR__, 2) . "/app/emails/email_transcription.php");
 		}
 
 		/**

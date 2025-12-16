@@ -616,31 +616,22 @@
 													$array['follow_me_destinations'][$x]['follow_me_uuid'] = $extensions[$x]['follow_me_uuid'];
 												}
 
-											//include ring group destinations, if exists
-												if (file_exists($_SERVER["PROJECT_ROOT"]."/app/ring_groups/app_config.php")) {
-													$array['ring_group_destinations'][$x]['destination_number'] = $extensions[$x]['extension'];
-													$array['ring_group_destinations'][$x]['domain_uuid'] = $this->domain_uuid;
-													if (is_numeric($extensions[$x]['number_alias'])) {
-														$array['ring_group_destinations'][$y]['destination_number'] = $extensions[$x]['number_alias'];
-														$array['ring_group_destinations'][$y]['domain_uuid'] = $this->domain_uuid;
-													}
-													$y++;
-												}
+							//include ring group destinations, if exists
+							if (file_exists(dirname(__DIR__, 4) . "/app/ring_groups/app_config.php")) {
+								$array['ring_group_destinations'][$x]['destination_number'] = $extensions[$x]['extension'];
+								$array['ring_group_destinations'][$x]['domain_uuid']        = $this->domain_uuid;
+								if (is_numeric($extensions[$x]['number_alias'])) {
+									$array['ring_group_destinations'][$y]['destination_number'] = $extensions[$x]['number_alias'];
+									$array['ring_group_destinations'][$y]['domain_uuid']        = $this->domain_uuid;
+								}
+								$y++;
+							}
 
-											//include extension settings, if exists
-												if (file_exists($_SERVER["PROJECT_ROOT"]."/app/extension_settings/app_config.php")) {
-													$array['extension_settings'][$x]['extension_uuid'] = $record['uuid'];
-													$array['extension_settings'][$x]['domain_uuid'] = $this->domain_uuid;
-												}
-
-											//create array of voicemail ids
-												if ($this->delete_voicemail && permission_exists('voicemail_delete')) {
-													if (is_numeric($extensions[$x]['extension'])) { $voicemail_ids[] = $extensions[$x]['extension']; }
-													if (is_numeric($extensions[$x]['number_alias'])) { $voicemail_ids[] = $extensions[$x]['number_alias']; }
-												}
-
-										}
-										unset($sql, $parameters, $row);
+							//include extension settings, if exists
+							if (file_exists(dirname(__DIR__, 4) . "/app/extension_settings/app_config.php")) {
+								$array['extension_settings'][$x]['extension_uuid'] = $record['uuid'];
+								$array['extension_settings'][$x]['domain_uuid']    = $this->domain_uuid;
+							}
 
 								}
 							}
@@ -828,6 +819,93 @@
 					}
 
 			}
+
+			//toggle the checked records
+			if (is_array($records) && @sizeof($records) != 0) {
+
+				//get current toggle state
+				foreach ($records as $x => $record) {
+					if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
+						$uuids[] = "'" . $record['uuid'] . "'";
+					}
+				}
+				if (is_array($uuids) && @sizeof($uuids) != 0) {
+					$sql                       = "select " . $this->uuid_prefix . "uuid as uuid, " . $this->toggle_field . " as toggle, extension, number_alias, user_context from v_" . $this->table . " ";
+					$sql                       .= "where domain_uuid = :domain_uuid ";
+					$sql                       .= "and " . $this->uuid_prefix . "uuid in (" . implode(', ', $uuids) . ") ";
+					$parameters['domain_uuid'] = $this->domain_uuid;
+					$rows                      = $this->database->select($sql, $parameters, 'all');
+					if (is_array($rows) && @sizeof($rows) != 0) {
+						foreach ($rows as $row) {
+							//for use below and to clear cache (bottom)
+							$extensions[$row['uuid']]['state']        = $row['toggle'];
+							$extensions[$row['uuid']]['extension']    = $row['extension'];
+							$extensions[$row['uuid']]['number_alias'] = $row['number_alias'];
+							$extensions[$row['uuid']]['user_context'] = $row['user_context'];
+						}
+					}
+					unset($sql, $parameters, $rows, $row);
+				}
+
+				//build update array
+				$x = 0;
+				foreach ($extensions as $uuid => $extension) {
+					$array[$this->table][$x][$this->uuid_prefix . 'uuid'] = $uuid;
+					$array[$this->table][$x][$this->toggle_field]         = $extension['state'] == $this->toggle_values[0] ? $this->toggle_values[1] : $this->toggle_values[0];
+					$x++;
+				}
+
+				//save the changes
+				if (is_array($array) && @sizeof($array) != 0) {
+
+					//grant temporary permissions
+					$p = permissions::new();
+					$p->add('extension_edit', 'temp');
+
+					//save the array
+
+					$this->database->save($array);
+					unset($array);
+
+					//revoke temporary permissions
+					$p->delete('extension_edit', 'temp');
+
+					//synchronize configuration
+					if (!empty($this->settings->get('switch', 'extensions')) && is_writable($this->settings->get('switch', 'extensions'))) {
+						$this->xml();
+					}
+
+					//write the provision files
+					if (!empty($this->settings->get('provision', 'path'))) {
+						if (is_dir(dirname(__DIR__, 4) . '/app/provision')) {
+							$prov              = new provision;
+							$prov->domain_uuid = $this->domain_uuid;
+							$response          = $prov->write();
+						}
+					}
+
+					//clear the cache
+					foreach ($extensions as $uuid => $extension) {
+						$cache = new cache;
+						$cache->delete(gethostname() . ":directory:" . $extension['extension'] . "@" . $extension['user_context']);
+						if (permission_exists('number_alias') && !empty($extension['number_alias'])) {
+							$cache->delete(gethostname() . ":directory:" . $extension['number_alias'] . "@" . $extension['user_context']);
+						}
+					}
+					unset($extensions);
+
+					//clear the destinations session array
+					if (isset($_SESSION['destinations']['array'])) {
+						unset($_SESSION['destinations']['array']);
+					}
+
+					//set message
+					message::add($text['message-toggle']);
+
+				}
+				unset($records);
+			}
+
 		}
 
 	}

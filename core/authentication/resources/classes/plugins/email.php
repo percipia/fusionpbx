@@ -97,12 +97,12 @@ class plugin_email {
 				$language = new text;
 				$text = $language->get(null, '/core/authentication');
 
-				//initialize a template object
-				$view = new template();
-				$view->engine = 'smarty';
-				$view->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/authentication/resources/views/';
-				$view->cache_dir = sys_get_temp_dir();
-				$view->init();
+			//initialize a template object
+			$view               = new template();
+			$view->engine       = 'smarty';
+			$view->template_dir = dirname(__DIR__, 5) . '/core/authentication/resources/views/';
+			$view->cache_dir    = sys_get_temp_dir();
+			$view->init();
 
 				//assign default values to the template
 				$view->assign("project_path", PROJECT_PATH);
@@ -361,26 +361,185 @@ class plugin_email {
 				//messages
 				$view->assign('messages', message::html(true, '		'));
 
-				//show the views
-				$content = $view->render('email.htm');
-				echo $content;
+			//get the language code
+			$language_code = $settings->get('domain', 'language', 'en-us');
+
+			//get the email template from the database
+			$sql                                = "select template_subject, template_body ";
+			$sql                                .= "from v_email_templates ";
+			$sql                                .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
+			$sql                                .= "and template_language = :template_language ";
+			$sql                                .= "and template_category = :template_category ";
+			$sql                                .= "and template_subcategory = :template_subcategory ";
+			$sql                                .= "and template_type = :template_type ";
+			$sql                                .= "and template_enabled = true ";
+			$parameters['domain_uuid']          = $_SESSION["domain_uuid"];
+			$parameters['template_language']    = $language_code;
+			$parameters['template_category']    = 'authentication';
+			$parameters['template_subcategory'] = 'email';
+			$parameters['template_type']        = 'html';
+			$row                                = $this->database->select($sql, $parameters, 'row');
+			$email_subject                      = $row['template_subject'];
+			$email_body                         = $row['template_body'];
+			unset($sql, $parameters, $row);
+
+			//replace variables in email subject
+			$email_subject = str_replace('${domain_name}', $_SESSION["domain_name"], $email_subject);
+
+			//replace variables in email body
+			$email_body = str_replace('${domain_name}', $_SESSION["domain_name"], $email_body);
+			$email_body = str_replace('${auth_code}', $_SESSION["user"]["authentication"]["email"]["code"], $email_body);
+
+			//get the email from name and address
+			$email_from_address = $_SESSION['email']['smtp_from']['text'];
+			$email_from_name    = $_SESSION['email']['smtp_from_name']['text'];
+
+			//get the email send mode options: direct or email_queue
+			$email_send_mode = $_SESSION['authentication']['email_send_mode']['text'] ?? 'email_queue';
+
+			//send the email
+			if ($email_send_mode == 'email_queue') {
+				//set the variables
+				$email_queue_uuid = uuid();
+				$email_uuid       = uuid();
+				$hostname         = gethostname();
+
+				//add the temporary permissions
+				$p = permissions::new();
+				$p->add("email_queue_add", 'temp');
+				$p->add("email_queue_edit", 'temp');
+
+				$array['email_queue'][0]["email_queue_uuid"]    = $email_queue_uuid;
+				$array['email_queue'][0]["domain_uuid"]         = $_SESSION["domain_uuid"];
+				$array['email_queue'][0]["hostname"]            = $hostname;
+				$array['email_queue'][0]["email_date"]          = 'now()';
+				$array['email_queue'][0]["email_from"]          = $email_from_address;
+				$array['email_queue'][0]["email_to"]            = $_SESSION["user_email"];
+				$array['email_queue'][0]["email_subject"]       = $email_subject;
+				$array['email_queue'][0]["email_body"]          = $email_body;
+				$array['email_queue'][0]["email_status"]        = 'waiting';
+				$array['email_queue'][0]["email_retry_count"]   = 3;
+				$array['email_queue'][0]["email_uuid"]          = $email_uuid;
+				$array['email_queue'][0]["email_action_before"] = null;
+				$array['email_queue'][0]["email_action_after"]  = null;
+				$this->database->save($array);
+				$err = $this->database->message;
+				unset($array);
+
+				//remove the temporary permission
+				$p->delete("email_queue_add", 'temp');
+				$p->delete("email_queue_edit", 'temp');
+			} else {
+				//send email - direct
+				$email               = new email;
+				$email->recipients   = $_SESSION["user_email"];
+				$email->subject      = $email_subject;
+				$email->body         = $email_body;
+				$email->from_address = $email_from_address;
+				$email->from_name    = $email_from_name;
+				//$email->attachments = $email_attachments;
+				$email->debug_level = 0;
+				$email->method      = 'direct';
+				$sent               = $email->send();
+			}
+
+			//debug informations
+			//$email_response = $email->response;
+			//$email_error = $email->email_error;
+			//echo $email_response."<br />\n";
+			//echo $email_error."<br />\n";
+
+			//get the domain
+			$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
+			$domain_name  = $domain_array[0];
+
+			//create token
+			//$object = new token;
+			//$token = $object->create('login');
+
+			//add multi-lingual support
+			$language = new text;
+			$text     = $language->get(null, '/core/authentication');
+
+			//initialize a template object
+			$view               = new template();
+			$view->engine       = 'smarty';
+			$view->template_dir = dirname(__DIR__, 5) . '/core/authentication/resources/views/';
+			$view->cache_dir    = sys_get_temp_dir();
+			$view->init();
+
+			//assign default values to the template
+			$view->assign("project_path", PROJECT_PATH);
+			$view->assign("login_destination_url", $login_destination);
+			$view->assign("favicon", $theme_favicon);
+			$view->assign("login_title", $text['label-verify']);
+			$view->assign("login_email_description", $text['label-email_description']);
+			$view->assign("login_authentication_code", $text['label-authentication_code']);
+			$view->assign("login_logo_width", $theme_login_logo_width);
+			$view->assign("login_logo_height", $theme_login_logo_height);
+			$view->assign("login_logo_source", $theme_logo);
+			$view->assign("button_verify", $text['label-verify']);
+			$view->assign("message_delay", $theme_message_delay);
+			if (!empty($_SESSION['username'])) {
+				$view->assign("username", $_SESSION['username']);
+				$view->assign("button_cancel", $text['button-cancel']);
+			}
+
+			//messages
+			$view->assign('messages', message::html(true, '		'));
+
+			//show the views
+			$content = $view->render('email.htm');
+			echo $content;
+			exit;
+		}
+
+		//if authorized then verify
+		if (isset($_POST['authentication_code'])) {
+
+			//check if the authentication code has expired. if expired return false
+			if (!empty($_SESSION["user"]) && $_SESSION["user"]["authentication"]["email"]["epoch"] + 3 > time()) {
+				//authentication code expired
+				$result["plugin"]        = "email";
+				$result["domain_name"]   = $_SESSION["domain_name"];
+				$result["username"]      = $_SESSION["username"];
+				$result["error_message"] = 'code expired';
+				$result["authorized"]    = false;
+				print_r($result);
+				return $result;
 				exit;
 			}
 
 		//if authorized then verify
 			if (isset($_POST['authentication_code'])) {
 
-				//check if the authentication code has expired. if expired return false
-				if (!empty($_SESSION["user"]) && $_SESSION["user"]["authentication"]["email"]["epoch"] + 3 > time()) {
-					//authentication code expired
-					$result["plugin"] = "email";
-					$result["domain_name"] = $_SESSION["domain_name"];
-					$result["username"] = $_SESSION["username"];
-					$result["error_message"] = 'code expired';
-					$result["authorized"] = false;
-					print_r($result);
-					return $result;
-					exit;
+			//validate the code
+			if (!empty($_SESSION["user"]) && $_SESSION["user"]["authentication"]["email"]["code"] === $_POST['authentication_code']) {
+				$auth_valid = true;
+			} else {
+				$auth_valid = false;
+			}
+
+			//clear posted authentication code
+			unset($_POST['authentication_code']);
+
+			//check if contacts app exists
+			$contacts_exists = file_exists(dirname(__DIR__, 5) . '/core/contacts/') ? true : false;
+
+			//get the user details
+			if ($auth_valid) {
+				//get user data from the database
+				$sql = "select ";
+				$sql .= "	u.user_uuid, ";
+				$sql .= "	u.username, ";
+				$sql .= "	u.user_email, ";
+				$sql .= "	u.contact_uuid ";
+				if ($contacts_exists) {
+					$sql .= ",";
+					$sql .= "c.contact_organization, ";
+					$sql .= "c.contact_name_given, ";
+					$sql .= "c.contact_name_family, ";
+					$sql .= "a.contact_attachment_uuid ";
 				}
 
 				//get the user details

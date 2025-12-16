@@ -238,17 +238,27 @@ Con	Portions created by the Initial Developer are Copyright (C) 2008-2025
 		if ($system_information['os']['uptime'] !== 'unknown') {
 			echo "<tr>\n";
 			echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
-			echo "		Uptime\n";
+			echo "		".$text['label-uptime']."\n";
 			echo "	</td>\n";
 			echo "	<td class=\"row_style1\">\n";
 			echo "		".$system_information['os']['uptime']." \n";
 			echo "	</td>\n";
 			echo "</tr>\n";
 		}
+		if (!empty($system_information['os']['hostname'])) {
+			echo "<tr>\n";
+			echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
+			echo "		".$text['label-hostname']."\n";
+			echo "	</td>\n";
+			echo "	<td class=\"row_style1\">\n";
+			echo "		".$system_information['os']['hostname']." \n";
+			echo "	</td>\n";
+			echo "</tr>\n";
+		}
 	}
 	echo "<tr>\n";
 	echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
-	echo "		Date\n";
+	echo "		".$text['label-date']."\n";
 	echo "	</td>\n";
 	echo "	<td class=\"row_style1\">\n";
 	echo "		".$system_information['os']['date']." \n";
@@ -328,7 +338,7 @@ Con	Portions created by the Initial Developer are Copyright (C) 2008-2025
 			//disk_free_space returns the number of bytes available on the drive;
 			//1 kilobyte = 1024 byte
 			//1 megabyte = 1024 kilobyte
-			$drive_letter = substr($_SERVER["DOCUMENT_ROOT"], 0, 2);
+			$drive_letter = substr(dirname(__DIR__, 2), 0, 2);
 			$disk_size = round(disk_total_space($drive_letter)/1024/1024, 2);
 			$disk_size_free = round(disk_free_space($drive_letter)/1024/1024, 2);
 			$disk_percent_available = round(($disk_size_free/$disk_size) * 100, 2);
@@ -426,7 +436,7 @@ Con	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	}
 
 //memcache information
-	if (permission_exists("system_view_memcache") && file_exists($_SERVER["PROJECT_ROOT"]."/app/sip_status/app_config.php")){
+	if (permission_exists("system_view_memcache") && file_exists(dirname(__DIR__, 2)."/app/sip_status/app_config.php")){
 		echo "<div class='card'>\n";
 		echo "<table width='100%' border='0' cellpadding='7' cellspacing='0'>\n";
 		echo "	<tr>\n";
@@ -456,21 +466,22 @@ Con	Portions created by the Initial Developer are Copyright (C) 2008-2025
 
 	if (permission_exists("system_view_support")) {
 		$system_support = "- Application\n";
-		$system_support .= "  - version ".$system_information['version']."\n";
-		$system_support .= "  - branch ".$system_information['git']['branch']."\n";
-		$system_support .= "  - path ".$system_information['path']."\n";
+		$system_support .= "  - version: ".$system_information['version']."\n";
+		$system_support .= "  - branch: ".$system_information['git']['branch']."\n";
+		$system_support .= "  - path: ".$system_information['path']."\n";
 		$system_support .= "- PHP\n";
-		$system_support .= "  - version ".$system_information['php']['version']."\n";
+		$system_support .= "  - version: ".$system_information['php']['version']."\n";
+		$system_support .= "  - apcu enabled: ".$system_information['php']['apcu']."\n";
 		if (isset($system_information['switch']['version'])) {
 			$system_support .= "- Switch\n";
-			$system_support .= "  - version ".$system_information['switch']['version']."\n";
+			$system_support .= "  - version: ".$system_information['switch']['version']."\n";
 		}
 		$system_support .= "- Database\n";
-		$system_support .= "  - name ".$system_information['database']['name']."\n";
-		$system_support .= "  - version ".$system_information['database']['version']."\n";
+		$system_support .= "  - name: ".$system_information['database']['name']."\n";
+		$system_support .= "  - version: ".$system_information['database']['version']."\n";
 		$system_support .= "- Operating System\n";
-		$system_support .= "  - name ".$system_information['os']['name']."\n";
-		$system_support .= "  - version ".$system_information['os']['version']."\n";
+		$system_support .= "  - name: ".$system_information['os']['name']."\n";
+		$system_support .= "  - version: ".$system_information['os']['version']."\n";
 
 		echo "<div class='card'>\n";
 		echo "<table width='100%' border='0' cellpadding='7' cellspacing='0'>\n";

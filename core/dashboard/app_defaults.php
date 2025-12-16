@@ -12,103 +12,24 @@ if ($domains_processed == 1) {
 		$new_table = $database->select($sql, null, 'all');
 		unset($sql, $parameters);
 
-		$sql = "select * from v_dashboard ";
-		$old_table = $database->select($sql, null, 'all');
-		unset($sql, $parameters);
+	//simplify the dashboard path
+	if (!empty($new_table)) {
+		$database->execute("delete from v_dashboard;");
+	}
 
-		if (empty($new_table) && !empty($old_table)) {
-			$sql = "INSERT INTO v_dashboard_widgets ( ";
-			$sql .= "	dashboard_uuid, ";
-			$sql .= "	dashboard_widget_uuid, ";
-			$sql .= "	dashboard_widget_parent_uuid, ";
-			$sql .= "	widget_name, ";
-			$sql .= "	widget_path, ";
-			$sql .= "	widget_icon, ";
-			$sql .= "	widget_icon_color, ";
-			$sql .= "	widget_url, ";
-			$sql .= "	widget_target, ";
-			$sql .= "	widget_width, ";
-			$sql .= "	widget_height, ";
-			$sql .= "	widget_content, ";
-			$sql .= "	widget_content_text_align, ";
-			$sql .= "	widget_content_details, ";
-			$sql .= "	widget_chart_type, ";
-			$sql .= "	widget_label_enabled, ";
-			$sql .= "	widget_label_text_color, ";
-			$sql .= "	widget_label_text_color_hover, ";
-			$sql .= "	widget_label_background_color, ";
-			$sql .= "	widget_label_background_color_hover, ";
-			$sql .= "	widget_number_text_color, ";
-			$sql .= "	widget_number_text_color_hover, ";
-			$sql .= "	widget_number_background_color, ";
-			$sql .= "	widget_background_color, ";
-			$sql .= "	widget_background_color_hover, ";
-			$sql .= "	widget_detail_background_color, ";
-			$sql .= "	widget_background_gradient_style, ";
-			$sql .= "	widget_background_gradient_angle, ";
-			$sql .= "	widget_column_span, ";
-			$sql .= "	widget_row_span, ";
-			$sql .= "	widget_details_state, ";
-			$sql .= "	widget_order, ";
-			$sql .= "	widget_enabled, ";
-			$sql .= "	widget_description, ";
-			$sql .= "	insert_date, ";
-			$sql .= "	insert_user, ";
-			$sql .= "	update_date, ";
-			$sql .= "	update_user ";
-			$sql .= ") ";
-			$sql .= "SELECT ";
-			$sql .= "	'3e2cbaa4-2bec-41b2-a626-999a59b8b19c', ";
-			$sql .= "	dashboard_uuid, ";
-			$sql .= "	dashboard_parent_uuid, ";
-			$sql .= "	dashboard_name, ";
-			$sql .= "	dashboard_path, ";
-			$sql .= "	dashboard_icon, ";
-			$sql .= "	dashboard_icon_color, ";
-			$sql .= "	dashboard_url, ";
-			$sql .= "	dashboard_target, ";
-			$sql .= "	dashboard_width, ";
-			$sql .= "	dashboard_height, ";
-			$sql .= "	dashboard_content, ";
-			$sql .= "	dashboard_content_text_align, ";
-			$sql .= "	dashboard_content_details, ";
-			$sql .= "	dashboard_chart_type, ";
-			$sql .= "	dashboard_label_enabled, ";
-			$sql .= "	dashboard_label_text_color, ";
-			$sql .= "	dashboard_label_text_color_hover, ";
-			$sql .= "	dashboard_label_background_color, ";
-			$sql .= "	dashboard_label_background_color_hover, ";
-			$sql .= "	dashboard_number_text_color, ";
-			$sql .= "	dashboard_number_text_color_hover, ";
-			$sql .= "	dashboard_number_background_color, ";
-			$sql .= "	dashboard_background_color, ";
-			$sql .= "	dashboard_background_color_hover, ";
-			$sql .= "	dashboard_detail_background_color, ";
-			$sql .= "	dashboard_background_gradient_style, ";
-			$sql .= "	dashboard_background_gradient_angle, ";
-			$sql .= "	dashboard_column_span, ";
-			$sql .= "	dashboard_row_span, ";
-			$sql .= "	dashboard_details_state, ";
-			$sql .= "	dashboard_order, ";
-			$sql .= "	dashboard_enabled, ";
-			$sql .= "	dashboard_description, ";
-			$sql .= "	insert_date, ";
-			$sql .= "	insert_user, ";
-			$sql .= "	update_date, ";
-			$sql .= "	update_user ";
-			$sql .= "FROM v_dashboard; ";
-			$database->execute($sql);
-			unset($sql, $parameters);
-		}
-
+	//migrate data from the dashboard_groups old table to the new dashboard_widget_groups table
+	if ($database->table_exists('v_dashboard_groups')) {
+		//get the dashboard widget groups
 		$sql = "select * from v_dashboard_widget_groups ";
 		$new_groups = $database->select($sql, null, 'all');
 		unset($sql, $parameters);
 
+		//get the dashboard groups
 		$sql = "select * from v_dashboard_groups ";
 		$old_groups = $database->select($sql, null, 'all');
 		unset($sql, $parameters);
 
+		//use the dashboard groups to add data into the dashboard widget groups
 		if (empty($new_groups) && !empty($old_groups)) {
 			$sql = "INSERT INTO v_dashboard_widget_groups ( ";
 			$sql .= "	dashboard_uuid, ";
@@ -133,6 +54,7 @@ if ($domains_processed == 1) {
 			$database->execute($sql);
 			unset($sql, $parameters);
 		}
+	}
 
 	//make the default groups exist
 		$group = new groups;
@@ -156,14 +78,64 @@ if ($domains_processed == 1) {
 		unset($sql, $parameters);
 
 	//add the dashboards
-		$dashboard_config_file = glob($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/dashboard/resources/dashboard/config.php');
-		$x = 0;
-		foreach($dashboard_config_file as $file) {
-			include ($file);
+	$dashboard_config_file = glob(dirname(__DIR__, 2).'/core/dashboard/resources/dashboard/config.php');
+	$x = 0;
+	foreach($dashboard_config_file as $file) {
+		include ($file);
+		$x++;
+	}
+	$dashboards = $array;
+	unset($array);
+
+	//build the array
+	$x = 0;
+	foreach($dashboards['dashboards'] as $row) {
+		//check if the dashboard is already in the database
+		$dashboard_found = false;
+		foreach($dashboard_widgets as $dashboard_widget) {
+			if ($dashboard_widget['dashboard_uuid'] == $row['dashboard_uuid']) {
+				$dashboard_found = true;
+			}
+		}
+
+		//add the dashboard to the array
+		if (!$dashboard_found) {
+			$array['dashboards'][$x]['dashboard_uuid'] = $row['dashboard_uuid'];
+			$array['dashboards'][$x]['dashboard_name'] = $row['dashboard_name'];
+			$array['dashboards'][$x]['dashboard_enabled'] = $row['dashboard_enabled'];
+			$array['dashboards'][$x]['dashboard_description'] = $row['dashboard_description'];
 			$x++;
 		}
-		$dashboards = $array;
-		unset($array);
+	}
+
+	//save the data
+	if (!empty($array)) {
+		$database->save($array, false);
+	}
+	unset($array);
+
+	//get the dashboard
+	$sql = "select ";
+	$sql .= "dashboard_uuid, ";
+	$sql .= "dashboard_widget_uuid, ";
+	$sql .= "widget_name, ";
+	$sql .= "widget_path, ";
+	$sql .= "widget_order, ";
+	$sql .= "cast(widget_enabled as text), ";
+	$sql .= "widget_description ";
+	$sql .= "from v_dashboard_widgets ";
+	$dashboard_widgets = $database->select($sql, null, 'all');
+	unset($sql, $parameters);
+
+	//add the dashboard widgets
+	$config_files = glob(dirname(__DIR__, 2).'/*/*/resources/dashboard/config.php');
+	$x = 0;
+	foreach($config_files as $file) {
+		include ($file);
+		$x++;
+	}
+	$widgets = $array;
+	unset($array);
 
 	//build the array
 		$x = 0;

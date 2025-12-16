@@ -70,20 +70,20 @@
 				$cache_location = '/var/cache/fusionpbx';
 				break;
 			case "WIN":
-				$system_drive = getenv('SystemDrive');
-				$config_path = $system_drive . DIRECTORY_SEPARATOR . 'ProgramData' . DIRECTORY_SEPARATOR . 'fusionpbx' ;
-				$config_file = $config_path.DIRECTORY_SEPARATOR.'config.conf';
-				$document_root = $_SERVER["DOCUMENT_ROOT"];
+				$system_drive  = getenv('SystemDrive');
+				$config_path   = $system_drive . DIRECTORY_SEPARATOR . 'ProgramData' . DIRECTORY_SEPARATOR . 'fusionpbx';
+				$config_file   = $config_path . DIRECTORY_SEPARATOR . 'config.conf';
+				$document_root = dirname(__DIR__, 4);
 
-				$conf_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'conf';
-				$sounds_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'sounds';
-				$database_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'db';
-				$recordings_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'recordings';
-				$storage_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'storage';
-				$voicemail_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'voicemail';
-				$scripts_dir = $_SERVER['ProgramFiles'].DIRECTORY_SEPARATOR.'freeswitch'.DIRECTORY_SEPARATOR.'scripts';
-				$php_dir = dirname(PHP_BINARY);
-				$cache_location = dirname($_SERVER['DOCUMENT_ROOT']).DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR.'fusionpbx';
+				$conf_dir       = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'conf';
+				$sounds_dir     = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'sounds';
+				$database_dir   = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'db';
+				$recordings_dir = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'recordings';
+				$storage_dir    = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'storage';
+				$voicemail_dir  = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'voicemail';
+				$scripts_dir    = $_SERVER['ProgramFiles'] . DIRECTORY_SEPARATOR . 'freeswitch' . DIRECTORY_SEPARATOR . 'scripts';
+				$php_dir        = dirname(PHP_BINARY);
+				$cache_location = dirname(dirname(__DIR__, 4)) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'fusionpbx';
 				break;
 			}
 

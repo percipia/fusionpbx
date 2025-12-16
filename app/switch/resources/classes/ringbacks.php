@@ -100,16 +100,139 @@
 			$language = new text;
 			$text = $language->get();
 
-			//get the ringtones
-			$sql = "select * from v_vars ";
-			$sql .= "where var_category = 'Ringtones' ";
-			$sql .= "order by var_name asc ";
-			$ringtones = $this->database->select($sql, null, 'all');
-			if (!empty($ringtones)) {
-				foreach ($ringtones as $ringtone) {
-					$ringtone = $ringtone['var_name'];
-					if (isset($text['label-'.$ringtone])) {
-						$label = $text['label-'.$ringtone];
+		//get the ringtones
+		$sql       = "select * from v_vars ";
+		$sql       .= "where var_category = 'Ringtones' ";
+		$sql       .= "order by var_name asc ";
+		$ringtones = $this->database->select($sql, null, 'all');
+		if (!empty($ringtones)) {
+			foreach ($ringtones as $ringtone) {
+				$ringtone = $ringtone['var_name'];
+				if (isset($text['label-' . $ringtone])) {
+					$label = $text['label-' . $ringtone];
+				} else {
+					$label = $ringtone;
+				}
+				$ringtones_list[$ringtone] = $label;
+			}
+		}
+		$this->ringtones_list = $ringtones_list ?? '';
+		unset($sql, $ringtones, $ringtone, $ringtones_list);
+
+		//get the default_ringback label
+		/*
+		$sql = "select * from v_vars where var_name = 'ringback' ";
+		$row = $this->database->select($sql, null, 'row');
+		unset($sql);
+		$default_ringback = (string) $row['var_value'];
+		$default_ringback = preg_replace('/\A\$\${/',"",$default_ringback);
+		$default_ringback = preg_replace('/}\z/',"",$default_ringback);
+		#$label = $text['label-'.$default_ringback];
+		#if($label == "") {
+			$label = $default_ringback;
+		#}
+		$this->default_ringback_label = $label;
+		unset($results, $default_ringback, $label);
+		*/
+
+		//get the tones
+		$tones            = new tones;
+		$this->tones_list = $tones->tones_list();
+
+		//get music on hold	and recordings
+		if (is_dir(dirname(__DIR__, 4) . '/app/music_on_hold')) {
+			$music            = new switch_music_on_hold;
+			$this->music_list = $music->get();
+		}
+		if (is_dir(dirname(__DIR__, 4) . '/app/recordings')) {
+			$recordings            = new switch_recordings;
+			$this->recordings_list = $recordings->list_recordings();
+		}
+
+		if (is_dir(dirname(__DIR__, 4) . '/app/streams')) {
+			$sql                       = "select * from v_streams ";
+			$sql                       .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
+			$sql                       .= "and stream_enabled = 'true' ";
+			$sql                       .= "order by stream_name asc ";
+			$parameters['domain_uuid'] = $this->domain_uuid;
+			$streams                   = $this->database->select($sql, $parameters, 'all');
+			$this->streams             = $streams;
+			unset($sql, $parameters, $streams, $row);
+		}
+	}
+
+	/**
+	 * Checks if a given value is valid.
+	 *
+	 * @param mixed $value The value to check for validity
+	 *
+	 * @return bool True if the value is valid, false otherwise
+	 */
+	public function valid($value) {
+		foreach ($this->ringtones_list as $ringtone_value => $ringtone_name) {
+			if ($value == "\${" . $ringtone_value . "}") {
+				return true;
+			}
+		}
+
+		foreach ($this->tones_list as $tone_value => $tone_name) {
+			if ($value == "\${" . $tone_value . "}") {
+				return true;
+			}
+		}
+
+		foreach ($this->music_list as $row) {
+			$name = '';
+			if (!empty($row['domain_uuid'])) {
+				$name = $row['domain_name'] . '/';
+			}
+			$name .= $row['music_on_hold_name'];
+			if ($value == "local_stream://" . $name) {
+				return true;
+			}
+		}
+
+		foreach ($this->recordings_list as $recording_value => $recording_name) {
+			if ($value == $recording_value) {
+				return true;
+			}
+		}
+
+		foreach ($this->streams as $row) {
+			if ($value == $row['stream_location']) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Generates a HTML <select> element based on given name and selected value.
+	 *
+	 * @param string $name     The name of the select element
+	 * @param mixed  $selected The currently selected value for the select element
+	 *
+	 * @return string A fully formed HTML <select> element with options populated from various lists (music, recordings, streams, ringtones, tones)
+	 */
+	public function select($name, $selected) {
+		//add multi-lingual support
+		$language = new text;
+		$text     = $language->get();
+
+		//start the select
+		$select = "<select class='formfld' name='" . $name . "' id='" . $name . "' style='width: auto;'>\n";
+		$select .= "		<option value=''></option>\n";
+
+		//music list
+		if (!empty($this->music_list)) {
+			$select        .= "	<optgroup label='" . $text['label-music_on_hold'] . "'>\n";
+			$previous_name = '';
+			foreach ($this->music_list as $row) {
+				if ($previous_name != $row['music_on_hold_name']) {
+					$name = '';
+					if (!empty($row['domain_uuid'])) {
+						$name = $row['domain_name'] . '/';
 					}
 					else {
 						$label = $ringtone;

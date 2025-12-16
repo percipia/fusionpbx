@@ -563,7 +563,467 @@
 			//get the list of languages
 				$language = new text;
 
-			//create a uuid array of the original uuid used as the key and new uuid as the value
+				if ($menu_item_level == 0) {
+					$menu_html .= "</li>\n";
+					$menu_html .= "</ul>\n\n";
+				}
+
+				$menu_html_full .= $menu_html;
+			} //end for each
+		}
+
+		return $menu_html_full;
+	}
+
+	/**
+	 * Retrieves an array of menu items.
+	 *
+	 * @param int $menu_item_level The level of the menu items (default: 0).
+	 *
+	 * @return array An array of menu items and their sub menus.
+	 */
+	public function menu_array($menu_item_level = 0) {
+
+		//if there are no groups then set the public group
+		if (!isset($_SESSION['groups'][0]['group_name'])) {
+			$_SESSION['groups'][0]['group_name'] = 'public';
+		}
+
+		//get the menu from the database
+		$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, ";
+		$sql .= "i.menu_item_title, i.menu_item_category, i.menu_item_icon, ";
+		$sql .= "i.menu_item_icon_color, i.menu_item_uuid, i.menu_item_parent_uuid ";
+		$sql .= "from v_menu_items as i, v_menu_languages as l ";
+		$sql .= "where i.menu_item_uuid = l.menu_item_uuid ";
+		$sql .= "and l.menu_language = :menu_language ";
+		$sql .= "and l.menu_uuid = :menu_uuid ";
+		$sql .= "and i.menu_uuid = :menu_uuid ";
+		$sql .= "and i.menu_item_parent_uuid is null ";
+		$sql .= "and i.menu_item_uuid in ";
+		$sql .= "( ";
+		$sql .= "select menu_item_uuid ";
+		$sql .= "from v_menu_item_groups ";
+		$sql .= "where menu_uuid = :menu_uuid ";
+		$x = 0;
+		foreach ($_SESSION['groups'] as $row) {
+			$sql_where_or[] = "group_name = :group_name_" . $x;
+			$parameters['group_name_' . $x] = $row['group_name'];
+			$x++;
+		}
+		if (is_array($sql_where_or) && @sizeof($sql_where_or) != 0) {
+			$sql .= "and ( ";
+			$sql .= implode(' or ', $sql_where_or);
+			$sql .= ") ";
+		}
+		$sql .= "and menu_item_uuid is not null ";
+		$sql .= ") ";
+		$sql .= "order by i.menu_item_order asc ";
+		$parameters['menu_language'] = $this->settings->get('domain', 'language', 'en-us');
+		$parameters['menu_uuid'] = $this->menu_uuid;
+		$result = $this->database->select($sql, $parameters, 'all');
+		unset($sql, $parameters);
+
+		//save the menu into an array
+		$x = 0;
+		$a = [];
+		if (is_array($result) && @sizeof($result) != 0) {
+			foreach ($result as $row) {
+				//add the row to the array
+				$a[$x] = $row;
+
+				//add the sub menus to the array
+				$menu_item_level = 0;
+				if (!empty($row['menu_item_uuid'])) {
+					$a[$x]['menu_items'] = $this->menu_child_array($menu_item_level, $row['menu_item_uuid']);
+				}
+
+				//increment the row number
+				$x++;
+			}
+		}
+		unset($result, $row);
+
+		//return the array
+		return $a;
+	}
+
+	/**
+	 * Retrieves a child menu array based on the provided menu item level and UUID.
+	 *
+	 * @param int    $menu_item_level The level of the menu item.
+	 * @param string $menu_item_uuid  The UUID of the menu item.
+	 *
+	 * @return array An array containing the child menu items.
+	 */
+	private function menu_child_array($menu_item_level, $menu_item_uuid) {
+
+		//set the level
+		$menu_item_level++;
+
+		//if there are no groups then set the public group
+		if (!isset($_SESSION['groups'][0]['group_name'])) {
+			$_SESSION['groups'][0]['group_name'] = 'public';
+		}
+
+		//get the child menu from the database
+		$sql = "select i.menu_item_link, l.menu_item_title as menu_language_title, ";
+		$sql .= "i.menu_item_title, i.menu_item_category, i.menu_item_icon, ";
+		$sql .= "i.menu_item_icon_color, i.menu_item_uuid, i.menu_item_parent_uuid ";
+		$sql .= "from v_menu_items as i, v_menu_languages as l ";
+		$sql .= "where i.menu_item_uuid = l.menu_item_uuid ";
+		$sql .= "and l.menu_language = :menu_language ";
+		$sql .= "and l.menu_uuid = :menu_uuid ";
+		$sql .= "and i.menu_uuid = :menu_uuid ";
+		$sql .= "and i.menu_item_parent_uuid = :menu_item_parent_uuid ";
+		$sql .= "and i.menu_item_uuid in ";
+		$sql .= "( ";
+		$sql .= "select menu_item_uuid ";
+		$sql .= "from v_menu_item_groups ";
+		$sql .= "where menu_uuid = :menu_uuid ";
+		$x = 0;
+		foreach ($_SESSION['groups'] as $row) {
+			$sql_where_or[] = "group_name = :group_name_" . $x;
+			$parameters['group_name_' . $x] = $row['group_name'];
+			$x++;
+		}
+		if (is_array($sql_where_or) && @sizeof($sql_where_or) != 0) {
+			$sql .= "and ( ";
+			$sql .= implode(' or ', $sql_where_or);
+			$sql .= ") ";
+		}
+		$sql .= ") ";
+		$sql .= "order by l.menu_item_title, i.menu_item_order asc ";
+		$parameters['menu_language'] = $this->settings->get('domain', 'language', 'en-us');
+		$parameters['menu_uuid'] = $this->menu_uuid;
+		$parameters['menu_item_parent_uuid'] = $menu_item_uuid;
+		$sub_result = $this->database->select($sql, $parameters, 'all');
+		unset($sql, $parameters);
+
+		//save the child menu into an array
+		$x = 0;
+		$a = [];
+		if (is_array($sub_result) && @sizeof($sub_result) != 0) {
+			foreach ($sub_result as $row) {
+				//set the variables
+				$menu_item_link = $row['menu_item_link'];
+				$menu_item_category = $row['menu_item_category'];
+				$menu_item_icon = $row['menu_item_icon'];
+				$menu_item_icon_color = $row['menu_item_icon_color'];
+				$menu_item_uuid = $row['menu_item_uuid'];
+				$menu_item_parent_uuid = $row['menu_item_parent_uuid'];
+
+				//add the row to the array
+				$a[$x] = $row;
+
+				//prepare the menus
+				//if ($row['menu_item_protected'] == "true") {
+				//	$a[$x]['menu_item_title'] = $row['menu_item_title'];
+				//}
+				//else {
+				$a[$x]['menu_item_title'] = $row['menu_language_title'];
+				//}
+
+				//get sub menu for children
+				if (!empty($menu_item_uuid)) {
+					$a[$x]['menu_items'] = $this->menu_child_array($menu_item_level, $menu_item_uuid);
+				}
+
+				//increment the row
+				$x++;
+			}
+		}
+		unset($sub_result, $row);
+
+		//return the array
+		return $a;
+	}
+
+	/**
+	 * Build the HTML for child menu items.
+	 *
+	 * @param int   $menu_item_level The current level of menu item.
+	 * @param array $submenu_array   An array of submenu fields.
+	 *
+	 * @return string The HTML for child menu items.
+	 */
+	private function build_child_html($menu_item_level, $submenu_array) {
+
+		$menu_item_level = $menu_item_level + 1;
+
+		if (count($_SESSION['groups']) == 0) {
+			$_SESSION['groups'][0]['group_name'] = 'public';
+		}
+
+		if (is_array($submenu_array)) {
+			//child menu found
+			$submenu_html = "<ul class='menu_sub'>\n";
+
+			foreach ($submenu_array as $submenu_field) {
+				//set the variables
+				$menu_item_link = $submenu_field['menu_item_link'];
+				$menu_item_category = $submenu_field['menu_item_category'];
+				$menu_items = $submenu_field['menu_items'];
+
+				//prepare the protected menus
+				//$menu_item_title = ($submenu_field['menu_item_protected'] == "true") ? $submenu_field['menu_item_title'] : $submenu_field['menu_language_title'];
+				$menu_item_title = $submenu_field['menu_language_title'];
+
+				//prepare the menu_tags according to the category
+				switch ($menu_item_category) {
+					case "internal":
+						$menu_tags = "href='" . PROJECT_PATH . $menu_item_link . "'";
+						break;
+					case "external":
+						if (substr($menu_item_link, 0, 1) == "/") {
+							$menu_item_link = PROJECT_PATH . $menu_item_link;
+						}
+						$menu_tags = "href='" . $menu_item_link . "' target='_blank'";
+						break;
+					case "email":
+						$menu_tags = "href='mailto:" . $menu_item_link . "'";
+						break;
+				}
+
+				$submenu_html .= "<li>";
+
+				//get sub menu for children
+				if (is_array($menu_items) && count($menu_items) > 0) {
+					$str_child_menu = $this->build_child_html($menu_item_level, $menu_items);
+				}
+
+				if (strlen($str_child_menu) > 1) {
+					$submenu_html .= "<a " . $menu_tags . ">" . $menu_item_title . "</a>";
+					$submenu_html .= $str_child_menu;
+					unset($str_child_menu);
+				} else {
+					$submenu_html .= "<a " . $menu_tags . ">" . $menu_item_title . "</a>";
+				}
+				$submenu_html .= "</li>\n";
+			}
+			unset($submenu_array);
+
+			$submenu_html .= "</ul>\n";
+
+			return $submenu_html;
+		}
+	}
+
+	/**
+	 * Sets and validates the default menu UUID, creating a new default menu if none exists.
+	 *
+	 * @return void
+	 */
+	public function menu_default() {
+		//set the default menu_uuid
+		$this->menu_uuid = 'b4750c3f-2a86-b00d-b7d0-345c14eca286';
+		//check to see if any menu exists
+		$sql = "select count(*) as count from v_menus ";
+		$sql .= "where menu_uuid = :menu_uuid ";
+		$parameters['menu_uuid'] = $this->menu_uuid;
+		$num_rows = $this->database->select($sql, $parameters, 'column');
+		if ($num_rows == 0) {
+			//built insert array
+			$array['menus'][0]['menu_uuid'] = $this->menu_uuid;
+			$array['menus'][0]['menu_name'] = 'default';
+			$array['menus'][0]['menu_language'] = 'en-us';
+			$array['menus'][0]['menu_description'] = 'Default Menu';
+
+			//grant temporary permissions
+			$p = permissions::new();
+			$p->add('menu_add', 'temp');
+
+			//execute insert
+			$this->database->save($array);
+			unset($array);
+
+			//revoke temporary permissions
+			$p->delete('menu_add', 'temp');
+
+			//add the menu items
+			$this->restore_default();
+		}
+	}
+
+	/**
+	 * Restore the default menu and menu items.
+	 *
+	 * This method is used to restore the default menu and menu items when no menu exists in the database.
+	 * It also ensures that the default user groups exist and are properly set up.
+	 *
+	 * This method will exit if an exception is thrown
+	 */
+	public function restore_default() {
+
+		//get the $apps array from the installed apps from the core and mod directories
+		$config_list = glob(dirname(__DIR__, 2) . "/*/*/app_menu.php");
+		$x = 0;
+		if (is_array($config_list)) {
+			foreach ($config_list as $config_path) {
+				$app_path = dirname($config_path);
+				$app_path = preg_replace('/\A.*(\/.*\/.*)\z/', '$1', $app_path);
+				$y = 0;
+				try {
+					//echo "[".$x ."] ".$config_path."\n";
+					include($config_path);
+					$x++;
+				} catch (Exception $e) {
+					echo 'exception caught: ' . $e->getMessage() . "\n";
+					exit;
+				}
+			}
+		}
+
+		//get the list of languages
+		$language = new text;
+
+		//create a uuid array of the original uuid used as the key and new uuid as the value
+		if (is_array($apps)) {
+			$x = 0;
+			foreach ($apps as $row) {
+				if (is_array($row['menu'])) {
+					foreach ($row['menu'] as $menu) {
+						$uuid_array[$menu['uuid']] = uuid();
+					}
+				}
+			}
+		}
+
+		//if the item uuid is not currently in the db then add it
+		$sql = "select * from v_menu_items ";
+		$sql .= "where menu_uuid = :menu_uuid ";
+		$parameters['menu_uuid'] = $this->menu_uuid;
+		$menu_items = $this->database->select($sql, $parameters, 'all');
+
+		//use the app array to restore the default menu
+		if (is_array($apps)) {
+			$x = 0;
+			foreach ($apps as $row) {
+				if (is_array($row['menu'])) {
+					foreach ($row['menu'] as $menu) {
+						//set the variables
+						if (!empty($menu['title'][$this->menu_language])) {
+							$menu_item_title = $menu['title'][$this->menu_language];
+						} else {
+							$menu_item_title = $menu['title']['en-us'];
+						}
+						$uuid = $menu['uuid'];
+						$menu_item_uuid = $uuid_array[$menu['uuid']];
+						$menu_item_parent_uuid = $uuid_array[$menu['parent_uuid']] ?? null;
+						$menu_item_category = $menu['category'];
+						$menu_item_icon = $menu['icon'] ?? null;
+						$menu_item_icon_color = $menu['icon_color'] ?? null;
+						$menu_item_path = $menu['path'];
+						$menu_item_order = $menu['order'] ?? null;
+						$menu_item_description = $menu['desc'] ?? null;
+
+						//sanitize the menu link
+						$menu_item_path = preg_replace('#[^a-zA-Z0-9_:\-\.\&\=\?\/]#', '', $menu_item_path);
+
+						//check if the menu item exists and if it does set the row array
+						$menu_item_exists = false;
+						foreach ($menu_items as $item) {
+							if ($item['uuid'] == $menu['uuid']) {
+								$menu_item_exists = true;
+								$row = $item;
+							}
+						}
+
+						//item exists in the database
+						if ($menu_item_exists) {
+							$parent_menu_item_protected = 'false';
+							//get parent_menu_item_protected
+							foreach ($menu_items as $item) {
+								if ($item['uuid'] == $menu['parent_uuid']) {
+									$parent_menu_item_protected = $item['menu_item_protected'];
+								}
+							}
+
+							//parent is not protected so the parent uuid needs to be updated
+							if (is_uuid($menu_item_parent_uuid) && $menu_item_parent_uuid != $row['menu_item_parent_uuid'] && $parent_menu_item_protected != 'true') {
+								$array['menu_items'][$x]['menu_item_uuid'] = $row['menu_item_uuid'];
+								$array['menu_items'][$x]['menu_item_parent_uuid'] = $menu_item_parent_uuid;
+								$x++;
+							}
+						}
+
+						//item does not exist in the database
+						if (!$menu_item_exists) {
+							if ($menu_item_uuid != $menu_item_parent_uuid) {
+								$array['menu_items'][$x]['menu_item_uuid'] = $menu_item_uuid;
+								$array['menu_items'][$x]['menu_uuid'] = $this->menu_uuid;
+								$array['menu_items'][$x]['uuid'] = $uuid;
+								$array['menu_items'][$x]['menu_item_title'] = $menu_item_title;
+								$array['menu_items'][$x]['menu_item_link'] = $menu_item_path;
+								$array['menu_items'][$x]['menu_item_category'] = $menu_item_category;
+								$array['menu_items'][$x]['menu_item_icon'] = $menu_item_icon;
+								$array['menu_items'][$x]['menu_item_icon_color'] = $menu_item_icon_color;
+								if (!empty($menu_item_order)) {
+									$array['menu_items'][$x]['menu_item_order'] = $menu_item_order;
+								}
+								if (is_uuid($menu_item_parent_uuid)) {
+									$array['menu_items'][$x]['menu_item_parent_uuid'] = $menu_item_parent_uuid;
+								}
+								$array['menu_items'][$x]['menu_item_description'] = $menu_item_description;
+								$x++;
+							}
+						}
+						unset($field, $parameters, $num_rows);
+
+						//set the menu languages
+						if (!$menu_item_exists && is_array($language->languages)) {
+							foreach ($language->languages as $menu_language) {
+								//set the menu item title
+								if (!empty($menu["title"][$menu_language])) {
+									$menu_item_title = $menu["title"][$menu_language];
+								} else {
+									$menu_item_title = $menu["title"]['en-us'];
+								}
+
+								//build insert array
+								$array['menu_languages'][$x]['menu_language_uuid'] = uuid();
+								$array['menu_languages'][$x]['menu_item_uuid'] = $menu_item_uuid;
+								$array['menu_languages'][$x]['menu_uuid'] = $this->menu_uuid;
+								$array['menu_languages'][$x]['menu_language'] = $menu_language;
+								$array['menu_languages'][$x]['menu_item_title'] = $menu_item_title;
+								$x++;
+							}
+						}
+					}
+				}
+			}
+			if (is_array($array) && @sizeof($array) != 0) {
+				//grant temporary permissions
+				$p = permissions::new();
+				$p->add('menu_item_add', 'temp');
+				$p->add('menu_language_add', 'temp');
+				//execute insert
+				$this->database->save($array);
+				unset($array);
+				//revoke temporary permissions
+				$p->delete('menu_item_add', 'temp');
+				$p->delete('menu_language_add', 'temp');
+			}
+		}
+
+		//make sure the default user groups exist
+		$group = new groups;
+		$group->defaults();
+
+		//get default global group_uuids
+		$sql = "select group_uuid, group_name from v_groups ";
+		$sql .= "where domain_uuid is null ";
+		$result = $this->database->select($sql, null, 'all');
+		if (is_array($result) && @sizeof($result) != 0) {
+			foreach ($result as $row) {
+				$group_uuids[$row['group_name']] = $row['group_uuid'];
+			}
+		}
+		unset($sql, $result, $row);
+
+		//if there are no groups listed in v_menu_item_groups under menu_item_uuid then add the default groups
+		if (is_array($apps)) {
+			$x = 0;
+			foreach ($apps as $app) {
 				if (is_array($apps)) {
 					$x = 0;
 					foreach ($apps as $row) {

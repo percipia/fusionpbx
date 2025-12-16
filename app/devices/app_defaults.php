@@ -26,14 +26,14 @@
 if ($domains_processed == 1) {
 
 	//set all lines to enabled (true) where null or empty string
-		$sql = "select device_line_uuid from v_device_lines ";
-		$sql .= "where enabled is null or enabled = '' ";
+		$sql = "select device_line_uuid ";
+		$sql .= "from v_device_lines ";
+		$sql .= "where enabled is null ";
 		$device_lines = $database->select($sql, null, 'all');
 		if (!empty($device_lines)) {
 			$sql = "update v_device_lines set ";
 			$sql .= "enabled = 'true' ";
 			$sql .= "where enabled is null ";
-			$sql .= "or enabled = '' ";
 			$database->execute($sql);
 			unset($sql);
 		}
@@ -162,7 +162,7 @@ if ($domains_processed == 1) {
 		if ($num_rows == 0) {
 
 			//get the vendor array
-				require_once $_SERVER["DOCUMENT_ROOT"].'/'.PROJECT_PATH.'/app/devices/app_config.php';
+				require_once dirname(__DIR__, 2).'/'.PROJECT_PATH.'/app/devices/app_config.php';
 
 			//get the groups and create an array to use the name to get the uuid
 				$sql = "select * from v_groups ";

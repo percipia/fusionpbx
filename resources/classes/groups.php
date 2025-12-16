@@ -458,16 +458,100 @@
 				}
 				unset($result);
 
-			//if there are no permissions listed in v_group_permissions then set the default permissions
-				$sql = "select count(*) from v_group_permissions ";
-				$sql .= "where domain_uuid is null ";
-				$num_rows = $this->database->select($sql, null, 'column');
-				if ($num_rows == 0) {
-					//build the apps array
-					$config_list = glob($_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/*/*/app_config.php");
-					$x = 0;
-					foreach ($config_list as $config_path) {
-						include($config_path);
+	/**
+	 * Set default groups and permissions if none are set.
+	 *
+	 * This method checks for the presence of groups and group permissions in the database.
+	 * If no groups or group permissions exist, it sets default values.
+	 */
+	public function defaults() {
+
+		//if the are no groups add the default groups
+		$sql = "select * from v_groups ";
+		$sql .= "where domain_uuid is null ";
+		$result = $this->database->select($sql, null, 'all');
+		if (count($result) == 0) {
+			$x = 0;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'superadmin';
+			$array['groups'][$x]['group_level'] = '80';
+			$array['groups'][$x]['group_description'] = 'Super Administrator Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+			$x++;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'admin';
+			$array['groups'][$x]['group_level'] = '50';
+			$array['groups'][$x]['group_description'] = 'Administrator Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+			$x++;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'user';
+			$array['groups'][$x]['group_level'] = '30';
+			$array['groups'][$x]['group_description'] = 'User Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+			$x++;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'agent';
+			$array['groups'][$x]['group_level'] = '20';
+			$array['groups'][$x]['group_description'] = 'Call Center Agent Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+			$x++;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'fax';
+			$array['groups'][$x]['group_level'] = '20';
+			$array['groups'][$x]['group_description'] = 'Fax User Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+			$x++;
+			$array['groups'][$x]['group_uuid'] = uuid();
+			$array['groups'][$x]['domain_uuid'] = null;
+			$array['groups'][$x]['group_name'] = 'public';
+			$array['groups'][$x]['group_level'] = '10';
+			$array['groups'][$x]['group_description'] = 'Public Group';
+			$array['groups'][$x]['group_protected'] = 'false';
+			$group_uuids[$array['groups'][$x]['group_name']] = $array['groups'][$x]['group_uuid'];
+
+			//add the temporary permissions
+			$p = permissions::new();
+			$p->add("group_add", "temp");
+			$p->add("group_edit", "temp");
+
+			//save the data to the database
+			$this->database->save($array);
+			unset($array);
+
+			//remove the temporary permission
+			$p->delete("group_add", "temp");
+			$p->delete("group_edit", "temp");
+		}
+		unset($result);
+
+		//if there are no permissions listed in v_group_permissions then set the default permissions
+		$sql = "select count(*) from v_group_permissions ";
+		$sql .= "where domain_uuid is null ";
+		$num_rows = $this->database->select($sql, null, 'column');
+		if ($num_rows == 0) {
+			//build the apps array
+			$config_list = glob(dirname(__DIR__, 2) . "/*/*/app_config.php");
+			$x = 0;
+			foreach ($config_list as $config_path) {
+				include($config_path);
+				$x++;
+			}
+
+			//no permissions found add the defaults
+			foreach ($apps as $app) {
+				if (is_array($app['permissions'])) foreach ($app['permissions'] as $row) {
+					if (is_array($row['groups'])) foreach ($row['groups'] as $group) {
 						$x++;
 					}
 

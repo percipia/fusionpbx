@@ -109,23 +109,183 @@ class plugin_totp {
 				$language = new text;
 				$text = $language->get(null, '/core/authentication');
 
-				//initialize a template object
-				$view = new template();
-				$view->engine = 'smarty';
-				$view->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/authentication/resources/views/';
-				$view->cache_dir = sys_get_temp_dir();
-				$view->init();
+			//initialize a template object
+			$view               = new template();
+			$view->engine       = 'smarty';
+			$view->template_dir = dirname(__DIR__, 5) . '/core/authentication/resources/views/';
+			$view->cache_dir    = sys_get_temp_dir();
+			$view->init();
 
-				//assign default values to the template
-				$view->assign("project_path", PROJECT_PATH);
-				$view->assign("login_destination_url", $login_destination);
-				$view->assign("favicon", $theme_favicon);
-				$view->assign("login_title", $text['label-username']);
-				$view->assign("login_username", $text['label-username']);
-				$view->assign("login_logo_width", $theme_login_logo_width);
-				$view->assign("login_logo_height", $theme_login_logo_height);
-				$view->assign("login_logo_source", $theme_logo);
-				$view->assign("button_login", $text['button-login']);
+			//assign default values to the template
+			$view->assign("project_path", PROJECT_PATH);
+			$view->assign("login_destination_url", $login_destination);
+			$view->assign("favicon", $theme_favicon);
+			$view->assign("login_title", $text['label-username']);
+			$view->assign("login_username", $text['label-username']);
+			$view->assign("login_logo_width", $theme_login_logo_width);
+			$view->assign("login_logo_height", $theme_login_logo_height);
+			$view->assign("login_logo_source", $theme_logo);
+			$view->assign("button_login", $text['button-login']);
+			$view->assign("favicon", $theme_favicon);
+			$view->assign("message_delay", $theme_message_delay);
+
+			//messages
+			$view->assign('messages', message::html(true, '		'));
+
+			//show the views
+			$content = $view->render('username.htm');
+			echo $content;
+			exit;
+		}
+
+		//show the authentication code view
+		if (!isset($_POST['authentication_code'])) {
+
+			//get the username
+			if (!isset($this->username) && isset($_REQUEST['username'])) {
+				$this->username       = $_REQUEST['username'];
+				$_SESSION['username'] = $this->username;
+			}
+
+			//get the domain name
+			if (!empty($_SESSION['username'])) {
+				$auth = new authentication;
+				$auth->get_domain();
+				$this->domain_uuid = $_SESSION['domain_uuid'];
+				$this->domain_name = $_SESSION['domain_name'];
+				$this->username    = $_SESSION['username'];
+			}
+
+			//get the user details
+			$sql = "select user_uuid, username, user_email, contact_uuid, user_totp_secret\n";
+			$sql .= "from v_users\n";
+			$sql .= "where (\n";
+			$sql .= "	username = :username\n";
+			$sql .= "	or user_email = :username\n";
+			$sql .= ")\n";
+			if (empty($_SESSION["users"]["unique"]["text"]) || $_SESSION["users"]["unique"]["text"] != "global") {
+				//unique username per domain (not globally unique across system - example: email address)
+				$sql                       .= "and domain_uuid = :domain_uuid ";
+				$parameters['domain_uuid'] = $this->domain_uuid;
+			}
+			$sql                    .= "and (user_type = 'default' or user_type is null) ";
+			$parameters['username'] = $this->username;
+			$row                    = $this->database->select($sql, $parameters, 'row');
+			if (empty($row) || !is_array($row) || @sizeof($row) == 0) {
+				//clear submitted usernames
+				unset($this->username, $_SESSION['username'], $_REQUEST['username'], $_POST['username']);
+
+				//build the result array
+				$result["plugin"]      = "totp";
+				$result["domain_uuid"] = $_SESSION["domain_uuid"];
+				$result["domain_name"] = $_SESSION["domain_name"];
+				$result["authorized"]  = false;
+
+				//retun the array
+				return $result;
+			}
+			unset($parameters);
+
+			//set class variables
+			$this->user_uuid        = $row['user_uuid'];
+			$this->user_email       = $row['user_email'];
+			$this->contact_uuid     = $row['contact_uuid'];
+			$this->user_totp_secret = $row['user_totp_secret'];
+
+			//set a few session variables
+			$_SESSION["user_uuid"]    = $row['user_uuid'];
+			$_SESSION["username"]     = $row['username'];
+			$_SESSION["user_email"]   = $row['user_email'];
+			$_SESSION["contact_uuid"] = $row["contact_uuid"];
+
+			//get the domain
+			$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
+			$domain_name  = $domain_array[0];
+
+			//create token
+			//$object = new token;
+			//$token = $object->create('login');
+
+			//add multi-lingual support
+			$language = new text;
+			$text     = $language->get(null, '/core/authentication');
+
+			//initialize a template object
+			$view               = new template();
+			$view->engine       = 'smarty';
+			$view->template_dir = dirname(__DIR__, 5) . '/core/authentication/resources/views/';
+			$view->cache_dir    = sys_get_temp_dir();
+			$view->init();
+
+			//assign values to the template
+			$view->assign("project_path", PROJECT_PATH);
+			$view->assign("login_destination_url", $login_destination);
+			$view->assign("favicon", $theme_favicon);
+			$view->assign("login_title", $text['label-verify']);
+			$view->assign("login_totp_description", $text['label-totp_description']);
+			$view->assign("login_authentication_code", $text['label-authentication_code']);
+			$view->assign("login_logo_width", $theme_login_logo_width);
+			$view->assign("login_logo_height", $theme_login_logo_height);
+			$view->assign("login_logo_source", $theme_logo);
+			$view->assign("favicon", $theme_favicon);
+			$view->assign("background_video", $theme_background_video);
+			if (!empty($_SESSION['username'])) {
+				$view->assign("username", $_SESSION['username']);
+				$view->assign("button_cancel", $text['button-cancel']);
+			}
+
+			//show the views
+			if (!empty($_SESSION['authentication']['plugin']['database']['authorized']) && empty($this->user_totp_secret)) {
+
+				//create the totp secret
+				$base32                 = new base2n(5, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', false, true, true);
+				$user_totp_secret       = $base32->encode(generate_password(20, 3));
+				$this->user_totp_secret = $user_totp_secret;
+
+				//add user setting to array for update
+				$x                                      = 0;
+				$array['users'][$x]['user_uuid']        = $this->user_uuid;
+				$array['users'][$x]['domain_uuid']      = $this->domain_uuid;
+				$array['users'][$x]['user_totp_secret'] = $this->user_totp_secret;
+
+				//add the user_edit permission
+				$p = permissions::new();
+				$p->add("user_edit", "temp");
+
+				//save the data
+				$this->database->save($array);
+
+				//remove the temporary permission
+				$p->delete("user_edit", "temp");
+
+				//qr code includes
+				require_once 'resources/qr_code/QRErrorCorrectLevel.php';
+				require_once 'resources/qr_code/QRCode.php';
+				require_once 'resources/qr_code/QRCodeImage.php';
+
+				//build the otp authentication url
+				$otpauth = "otpauth://totp/" . $this->username;
+				$otpauth .= "?secret=" . $this->user_totp_secret;
+				$otpauth .= "&issuer=" . $_SESSION['domain_name'];
+
+				//build the qr code image
+				try {
+					$code = new QRCode (-1, QRErrorCorrectLevel::H);
+					$code->addData($otpauth);
+					$code->make();
+					$img = new QRCodeImage ($code, $width = 210, $height = 210, $quality = 50);
+					$img->draw();
+					$image = $img->getImage();
+					$img->finish();
+				} catch (Exception $error) {
+					echo $error;
+				}
+
+				//assign values to the template
+				$view->assign("totp_secret", $this->user_totp_secret);
+				$view->assign("totp_image", base64_encode($image));
+				$view->assign("totp_description", $text['description-totp']);
+				$view->assign("button_next", $text['button-next']);
 				$view->assign("favicon", $theme_favicon);
 				$view->assign("message_delay", $theme_message_delay);
 
@@ -314,13 +474,65 @@ class plugin_totp {
 		//if authorized then verify
 			if (isset($_POST['authentication_code'])) {
 
-				//get the user details
-				$sql = "select user_uuid, user_email, contact_uuid, user_totp_secret\n";
-				$sql .= "from v_users\n";
-				$sql .= "where (\n";
-				$sql .= "	username = :username\n";
-				$sql .= "	or user_email = :username\n";
-				$sql .= ")\n";
+			//get the user details
+			$sql = "select user_uuid, user_email, contact_uuid, user_totp_secret\n";
+			$sql .= "from v_users\n";
+			$sql .= "where (\n";
+			$sql .= "	username = :username\n";
+			$sql .= "	or user_email = :username\n";
+			$sql .= ")\n";
+			if ($users_unique != "global") {
+				//unique username per domain (not globally unique across system - example: email address)
+				$sql                       .= "and domain_uuid = :domain_uuid ";
+				$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
+			}
+			$parameters['username'] = $_SESSION["username"];
+			$row                    = $this->database->select($sql, $parameters, 'row');
+			$this->user_uuid        = $row['user_uuid'];
+			$this->user_email       = $row['user_email'];
+			$this->contact_uuid     = $row['contact_uuid'];
+			$this->user_totp_secret = $row['user_totp_secret'];
+			unset($parameters);
+
+			//create the authenticator object
+			$totp = new google_authenticator;
+
+			//validate the code
+			if ($totp->checkCode($this->user_totp_secret, $_POST['authentication_code'])) {
+				$auth_valid = true;
+			} else {
+				$auth_valid = false;
+			}
+
+			//clear posted authentication code
+			unset($_POST['authentication_code']);
+
+			//check if contacts app exists
+			$contacts_exists = file_exists(dirname(__DIR__, 5) . '/core/contacts/') ? true : false;
+
+			//get the user details
+			if ($auth_valid) {
+				//get user data from the database
+				$sql = "select ";
+				$sql .= "	u.user_uuid, ";
+				$sql .= "	u.username, ";
+				$sql .= "	u.user_email, ";
+				$sql .= "	u.contact_uuid ";
+				if ($contacts_exists) {
+					$sql .= ",";
+					$sql .= "c.contact_organization, ";
+					$sql .= "c.contact_name_given, ";
+					$sql .= "c.contact_name_family, ";
+					$sql .= "a.contact_attachment_uuid ";
+				}
+				$sql .= "from ";
+				$sql .= "	v_users as u ";
+				if ($contacts_exists) {
+					$sql .= "left join v_contacts as c on u.contact_uuid = c.contact_uuid and u.contact_uuid is not null ";
+					$sql .= "left join v_contact_attachments as a on u.contact_uuid = a.contact_uuid and u.contact_uuid is not null and a.attachment_primary = true and a.attachment_filename is not null and a.attachment_content is not null ";
+				}
+				$sql .= "where ";
+				$sql .= "	u.user_uuid = :user_uuid ";
 				if ($users_unique != "global") {
 					//unique username per domain (not globally unique across system - example: email address)
 					$sql .= "and domain_uuid = :domain_uuid ";

@@ -82,9 +82,9 @@ class text {
 			}
 
 		//get the global app_languages.php so we can get the list of languages
-			if (file_exists($_SERVER["PROJECT_ROOT"]."/resources/app_languages.php")) {
-				include $_SERVER["PROJECT_ROOT"]."/resources/app_languages.php";
-			}
+		if (file_exists(dirname(__DIR__, 2) . "/resources/app_languages.php")) {
+			include dirname(__DIR__, 2) . "/resources/app_languages.php";
+		}
 
 		//get the list of languages, remove en-us, sort it then put en-us in front
 			unset($text['language-name']['en-us']);
@@ -109,12 +109,39 @@ class text {
 	public function get($language_code = null, $app_path = null, $exclude_global = false) {
 
 		//define the text array
-			$text = array();
+		$text = [];
+
+		//check the session language
+		if ($language_code == null) {
+			$language_code = $this->settings->get('domain', 'language', 'en-us');
+		}
+
+		//check the language code
+		if (strlen($language_code) == 2 && array_key_exists($language_code, $this->legacy_map)) {
+			$language_code = $this->legacy_map[$language_code];
+		}
+
+		//get the app_languages.php
+		if ($app_path != null) {
+			$lang_path = dirname(__DIR__, 2) . "/" . $app_path;
+		} else {
+			$lang_path = getcwd();
+		}
+
+		//check the class cache
+		$cache_key = "text_{$language_code}_{$lang_path}";
+		if ($this->apcu_enabled && apcu_exists($cache_key)) {
+			return apcu_fetch($cache_key);
+
+		}
+		if (isset(self::$tanslated[$cache_key])) {
+			return self::$tanslated[$cache_key];
+		}
 
 		//get the global app_languages.php
-			if (!$exclude_global && file_exists($_SERVER["PROJECT_ROOT"]."/resources/app_languages.php")) {
-				require $_SERVER["PROJECT_ROOT"]."/resources/app_languages.php";
-			}
+		if (!$exclude_global && file_exists(dirname(__DIR__, 2) . "/resources/app_languages.php")) {
+			require dirname(__DIR__, 2) . "/resources/app_languages.php";
+		}
 
 		//get the app_languages.php
 			if ($app_path != null) {
@@ -145,20 +172,57 @@ class text {
 			}
 
 		//reduce to specific language
-			if ($language_code != 'all') {
-				if (is_array($text)) {
-					foreach ($text as $key => $value) {
-						if (isset($value[$language_code]) && !empty($value[$language_code])) {
-							//use the selected language
-							$text[$key] = $value[$language_code];
-						}
-						elseif (isset($value['en-us'])) {
-							//fallback to en-us
-							$text[$key] = $value['en-us'];
-						}
-						else {
-							$text[$key] = '';
-						}
+		if ($language_code != 'all' && is_array($text)) {
+			foreach ($text as $key => $value) {
+				if (isset($value[$language_code]) && !empty($value[$language_code])) {
+					//use the selected language
+					$text[$key] = $value[$language_code];
+				} elseif (isset($value['en-us'])) {
+					//fallback to en-us
+					$text[$key] = $value['en-us'];
+				} else {
+					$text[$key] = '';
+				}
+			}
+		}
+
+		//cache the reduced language using the file as a key
+		if ($this->apcu_enabled) {
+			apcu_store($cache_key, $text);
+		} else {
+			self::$tanslated[$cache_key] = $text;
+		}
+
+		//return the array of translations
+		return $text;
+	}
+
+	/**
+	 * Detect all languages from the application and session language settings.
+	 *
+	 * @param bool $no_sort Flag to prevent sorting of detected languages.
+	 *
+	 * @return void
+	 */
+	public function detect_all_languages($no_sort = false) {
+
+		//clear $text ready for the import
+		$text = [];
+		$languages = [];
+
+		//retrieve all the languages
+		$files = glob(dirname(__DIR__, 2) . "/*/*/app_languages.php");
+		foreach ($files as $file) {
+			include $file;
+		}
+		include dirname(__DIR__, 2) . "/resources/app_languages.php";
+
+		//check every tag
+		foreach ($text as $lang_codes) {
+			foreach ($lang_codes as $language_code => $value) {
+				if (strlen($language_code) == 2) {
+					if (array_key_exists($language_code, $this->legacy_map)) {
+						$language_code = $this->legacy_map[$language_code];
 					}
 				}
 			}
@@ -178,14 +242,14 @@ class text {
 			$text = array();
 
 		//get the app_languages.php
-			if ($app_path == null) {
-				throw new Exception("\$app_path must be specified");
-			}
-			$lang_path = $_SERVER["PROJECT_ROOT"]."/$app_path/app_languages.php";
-			if (!file_exists($lang_path)) {
-				throw new Exception("could not find app_languages for '$app_path'");
-			}
-			require $lang_path;
+		if ($app_path == null) {
+			throw new Exception("\$app_path must be specified");
+		}
+		$lang_path = dirname(__DIR__, 2) . "/$app_path/app_languages.php";
+		if (!file_exists($lang_path)) {
+			throw new Exception("could not find app_languages for '$app_path'");
+		}
+		require $lang_path;
 
 			if (!is_array($text)) {
 				throw new Exception("failed to import text data from '$app_path'");
@@ -360,12 +424,12 @@ class text {
 			}
 
 		//retrieve all the languages
-			$text = array();
-			$files = glob($_SERVER["PROJECT_ROOT"] . "/*/*/app_languages.php");
-			foreach($files as $file) {
-				include $file;
-			}
-			include $_SERVER["PROJECT_ROOT"] . "/resources/app_languages.php";
+		$text = [];
+		$files = glob(dirname(__DIR__, 2) . "/*/*/app_languages.php");
+		foreach ($files as $file) {
+			include $file;
+		}
+		include dirname(__DIR__, 2) . "/resources/app_languages.php";
 
 		//check every tag
 			foreach($text as $label_name => $values) {
@@ -378,15 +442,15 @@ class text {
 			unset($text);
 
 		//retrieve all the menus
-			$x = 0;
-			$files = glob($_SERVER["PROJECT_ROOT"] . "/*/*");
-			foreach($files as $file) {
-				if (file_exists($file . "/app_menu.php"))
-					include $file . "/app_menu.php";
-				if (file_exists($file . "/app_config.php"))
-					include $file . "/app_config.php";
-				$x++;
-			}
+		$x = 0;
+		$files = glob(dirname(__DIR__, 2) . "/*/*");
+		foreach ($files as $file) {
+			if (file_exists($file . "/app_menu.php"))
+				include $file . "/app_menu.php";
+			if (file_exists($file . "/app_config.php"))
+				include $file . "/app_config.php";
+			$x++;
+		}
 
 		//check every tag
 			foreach ($apps as $app) {

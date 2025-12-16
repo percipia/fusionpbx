@@ -1541,30 +1541,21 @@
 			}
 			unset($sql, $parameters, $row);
 
-			$result = '';
-			if (!empty($destination_array)) {
-				foreach($destination_array as $application => $row) {
-					if (!empty($row)) {
-						foreach ($row as $key => $value) {
-							//find matching destinations
-							if ($application == 'destinations') {
-								if ('+'.($value['destination_prefix'] ?? '').$value['destination_number'] == $detail_action
-									|| ($value['destination_prefix'] ?? '').$value['destination_number'] == $detail_action
-									|| $value['destination_number'] == $detail_action
-									|| ($value['destination_trunk_prefix'] ?? '').$value['destination_number'] == $detail_action
-									|| '+'.($value['destination_prefix'] ?? '').($value['destination_area_code'] ?? '').$value['destination_number'] == $detail_action
-									|| ($value['destination_prefix'] ?? '').($value['destination_area_code'] ?? '').$value['destination_number'] == $detail_action
-									|| ($value['destination_area_code'] ?? '').$value['destination_number'] == $detail_action) {
-										if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$application."/app_languages.php")) {
-											$value['application'] = $application;
-											return $value;
-										}
-								}
-							}
-
-							//find all other matching actions
-							if (!empty($value['extension']) && $value['extension'] == $detail_action || preg_match('/^'.preg_quote($value['extension'] ?? '').'$/', $detail_action)) {
-								if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$application."/app_languages.php")) {
+		$result = '';
+		if (!empty($destination_array)) {
+			foreach ($destination_array as $application => $row) {
+				if (!empty($row)) {
+					foreach ($row as $key => $value) {
+						//find matching destinations
+						if ($application == 'destinations') {
+							if ('+' . ($value['destination_prefix'] ?? '') . $value['destination_number'] == $detail_action
+								|| ($value['destination_prefix'] ?? '') . $value['destination_number'] == $detail_action
+								|| $value['destination_number'] == $detail_action
+								|| ($value['destination_trunk_prefix'] ?? '') . $value['destination_number'] == $detail_action
+								|| '+' . ($value['destination_prefix'] ?? '') . ($value['destination_area_code'] ?? '') . $value['destination_number'] == $detail_action
+								|| ($value['destination_prefix'] ?? '') . ($value['destination_area_code'] ?? '') . $value['destination_number'] == $detail_action
+								|| ($value['destination_area_code'] ?? '') . $value['destination_number'] == $detail_action) {
+								if (file_exists(dirname(__DIR__, 4) . "/app/" . $application . "/app_languages.php")) {
 									$value['application'] = $application;
 									return $value;
 								}
@@ -1575,171 +1566,11 @@
 			}
 		}
 
-		public function move_to_failed($failed_file) {
-			if (!file_exists($this->xml_cdr_dir.'/failed')) {
-				mkdir($this->xml_cdr_dir.'/failed', 0770, true);
-				//echo "Failed to create ".$this->xml_cdr_dir."/failed\n";
-			}
-			rename($this->xml_cdr_dir.'/'.$failed_file, $this->xml_cdr_dir.'/failed/'.$failed_file);
-		}
-
-		/**
-		 * get xml from the filesystem and save it to the database
-		 */
-		public function read_files() {
-			$dir_handle = opendir($this->xml_cdr_dir);
-			$x = 0;
-			while($file = readdir($dir_handle)) {
-				if ($file != '.' && $file != '..') {
-					//used to test a single file
-					//$file = 'a_aa76e0af-461e-4d46-be23-433260307ede.cdr.xml';
-
-					//process the XML files
-					if (!is_dir($this->xml_cdr_dir . '/' . $file)) {
-						//get the leg of the call and the file prefix
-							if (substr($file, 0, 2) == "a_") {
-								$leg = "a";
-								$file_prefix = substr($file, 2, 1);
-							}
-							else {
-								$leg = "b";
-								$file_prefix = substr($file, 0, 1);
-							}
-
-						//set the limit
-							if (isset($_SERVER["argv"][1]) && is_numeric((int)$_SERVER["argv"][1])) {
-								$limit = $_SERVER["argv"][1];
-							}
-							else {
-								$limit = 1;
-							}
-
-						//filter for specific files based on the file prefix
-							if (isset($_SERVER["argv"][2])) {
-								if (strpos($_SERVER["argv"][2], $file_prefix) !== FALSE) {
-									$import = true;
-								}
-								else {
-									$import = false;
-								}
-							}
-							else {
-								$import = true;
-							}
-
-						//move the files that are too large or zero file size to the failed directory
-							if ($import && (filesize($this->xml_cdr_dir.'/'.$file) >= 3000000 || filesize($this->xml_cdr_dir.'/'.$file) == 0)) {
-								//echo "WARNING: File too large or zero file size. Moving $file to failed\n";
-								if (!file_exists($this->xml_cdr_dir.'/failed')) {
-									mkdir($this->xml_cdr_dir.'/failed', 0770, true);
-									//echo "Failed to create ".$this->xml_cdr_dir."/failed\n";
-								}
-								if (rename($this->xml_cdr_dir.'/'.$file, $this->xml_cdr_dir.'/failed/'.$file)) {
-									//echo "Moved $file successfully\n";
-								}
-							}
-
-						//import the call detail files are less than 3 mb - 3 million bytes
-							if ($import) {
-								//get the xml cdr string
-									$call_details = file_get_contents($this->xml_cdr_dir.'/'.$file);
-
-								//set the file
-									$this->file = $file;
-
-								//decode the xml string
-									if (substr($call_details, 0, 1) == '%') {
-										$call_details = urldecode($call_details);
-									}
-
-								//parse the xml and insert the data into the db
-									$this->xml_array($x, $leg, $call_details);
-
-								//increment the value
-									$x++;
-							}
-
-						//if limit exceeded exit the loop
-							if ($limit == $x) {
-								//echo "limit: $limit count: $x if\n";
-								break;
-							}
-					}
-				}
-			}
-			//close the directory handle
-			closedir($dir_handle);
-		}
-		//$this->read_files();
-
-		/**
-		 * read the call detail records from the http post
-		 */
-		public function post() {
-			if (isset($_POST["cdr"])) {
-
-				//debug method
-					//$this->log($_POST["cdr"]);
-
-				//authentication for xml cdr http post
-					if (!defined('STDIN')) {
-						if ($this->settings->get('cdr', 'http_enabled', false)) {
-							//get the contents of xml_cdr.conf.xml
-								$conf_xml_string = file_get_contents($this->settings->get('switch', 'conf').'/autoload_configs/xml_cdr.conf.xml');
-
-							//parse the xml to get the call detail record info
-								try {
-									//disable xml entities
-									libxml_disable_entity_loader(true);
-
-									//load the string into an xml object
-									$conf_xml = simplexml_load_string($conf_xml_string, 'SimpleXMLElement', LIBXML_NOCDATA);
-								}
-								catch(Exception $e) {
-									echo $e->getMessage();
-								}
-								if (isset($conf_xml->settings->param)) {
-									foreach ($conf_xml->settings->param as $row) {
-										if ($row->attributes()->name == "cred") {
-											$auth_array = explode(":", $row->attributes()->value);
-											//echo "username: ".$auth_array[0]."<br />\n";
-											//echo "password: ".$auth_array[1]."<br />\n";
-										}
-										if ($row->attributes()->name == "url") {
-											//check name is equal to url
-										}
-									}
-								}
-						}
-					}
-
-				//if http enabled is set to false then deny access
-					if (!defined('STDIN')) {
-						if (!$this->settings->get('cdr', 'http_enabled', false)) {
-							openlog('FusionPBX', LOG_NDELAY, LOG_AUTH);
-							syslog(LOG_WARNING, '['.$_SERVER['REMOTE_ADDR'].'] XML CDR import default setting http_enabled is not enabled. Line: '.__line__);
-							closelog();
-
-							echo "access denied\n";
-							return;
-						}
-					}
-
-				//check for the correct username and password
-					if (!defined('STDIN')) {
-						if ($this->settings->get('cdr', 'http_enabled', false)) {
-							if ($auth_array[0] == $_SERVER["PHP_AUTH_USER"] && $auth_array[1] == $_SERVER["PHP_AUTH_PW"]) {
-								//echo "access granted\n";
-								$this->username = $auth_array[0];
-								$this->password = $auth_array[1];
-							}
-							else {
-								openlog('FusionPBX', LOG_NDELAY, LOG_AUTH);
-								syslog(LOG_WARNING, '['.$_SERVER['REMOTE_ADDR'].'] XML CDR import username or password failed. Line: '.__line__);
-								closelog();
-
-								echo "access denied\n";
-								return;
+						//find all other matching actions
+						if (!empty($value['extension']) && $value['extension'] == $detail_action || preg_match('/^' . preg_quote($value['extension'] ?? '') . '$/', $detail_action)) {
+							if (file_exists(dirname(__DIR__, 4) . "/app/" . $application . "/app_languages.php")) {
+								$value['application'] = $application;
+								return $value;
 							}
 						}
 					}

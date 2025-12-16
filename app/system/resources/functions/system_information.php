@@ -148,6 +148,7 @@
 			}
 
 			$system_information['php']['version'] = phpversion();
+			$system_information['php']['apcu'] = (function_exists('apcu_enabled') && apcu_enabled()) ? 'true' : 'false';
 
 			if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
 				$data = explode("\n", shell_exec('systeminfo /FO CSV 2> nul'));
@@ -180,6 +181,7 @@
 			$system_information['os']['version'] = 'permission denied';
 		}
 
+		$system_information['os']['hostname'] = gethostname();
 		$system_information['os']['date'] = date('r');
 		$system_information['os']['type'] = PHP_OS;
 
@@ -251,7 +253,7 @@
 				//disk_free_space returns the number of bytes available on the drive;
 				//1 kilobyte = 1024 byte
 				//1 megabyte = 1024 kilobyte
-				$drive_letter = substr($_SERVER["DOCUMENT_ROOT"], 0, 2);
+				$drive_letter = substr(dirname(__DIR__, 4), 0, 2);
 				$disk_size = round(disk_total_space($drive_letter) / 1024 / 1024, 2);
 				$disk_size_free = round(disk_free_space($drive_letter) / 1024 / 1024, 2);
 				$disk_percent_available = round(($disk_size_free / $disk_size) * 100, 2);
@@ -299,7 +301,7 @@
 		}
 
 		//memcache information
-		if (permission_exists("system_view_memcache") && file_exists($_SERVER["PROJECT_ROOT"] . "/app/sip_status/app_config.php")) {
+		if (permission_exists("system_view_memcache") && file_exists(dirname(__DIR__, 4) . "/app/sip_status/app_config.php")) {
 			$memcache_fail = true;
 			$mod = new modules;
 			if ($mod->active("mod_memcache")) {

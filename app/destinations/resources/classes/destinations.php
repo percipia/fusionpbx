@@ -191,8 +191,9 @@
 		* @var string $destination_type can be ivr, dialplan, call_center_contact or bridge
 		* @var string $destination_name - current name
 		* @var string $destination_value - current value
+		* @var string $placeholder - descriptive text
 		*/
-		public function select($destination_type, $destination_name, $destination_value) {
+		public function select($destination_type, $destination_name, $destination_value, $placeholder = null) {
 
 			//set the global variables
 			global $db_type;
@@ -371,7 +372,7 @@
 				$select_found = false;
 
 				$response .= "	<select name='".$destination_name."' id='".$destination_id."' class='formfld' style='".$select_style."' onchange=\"".$onchange."\">\n";
-				$response .= "			<option value=''></option>\n";
+				$response .= "		<option value='' ".(!empty($placeholder) ? "selected='selected' disabled='disabled'" : null).">".(!empty($placeholder) ? $placeholder : null)."</option>\n";
 				foreach ($this->destinations as $row) {
 
 					$name = $row['name'];
@@ -379,9 +380,8 @@
 					$destination = $row['field']['destination'] ?? '';
 
 					//add multi-lingual support
-					if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$name."/app_languages.php")) {
-						$language2 = new text;
-						$text2 = $language2->get($this->settings->get('domain', 'language'), 'app/'.$name);
+					if (file_exists(dirname(__DIR__, 4)."/app/".$name."/app_languages.php")) {
+						$text2 = $language2->get($this->language, 'app/'.$name);
 					}
 
 					if (!empty($row['result']['data']) && !empty($row['select_value'][$destination_type])) {
@@ -515,9 +515,8 @@
 						$selected = (isset($destination_key) && $key == $destination_key) ? "selected='selected'" : '';
 
 						//add multi-lingual support
-						if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$key."/app_languages.php")) {
-							$language2 = new text;
-							$text2 = $language2->get($this->settings->get('domain', 'language'), 'app/'.$key);
+						if (file_exists(dirname(__DIR__, 4)."/app/".$key."/app_languages.php")) {
+							$text2 = $language2->get($this->language, 'app/'.$key);
 							$found = 'true';
 						}
 						if ($key == 'other') {
@@ -692,7 +691,7 @@
 				$destination = $row['field']['destination'] ?? '';
 
 				//add multi-lingual support
-				if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$name."/app_languages.php")) {
+				if (file_exists(dirname(__DIR__, 4)."/app/".$name."/app_languages.php")) {
 					$language2 = new text;
 					$text2 = $language2->get($this->settings->get('domain', 'language'), 'app/'.$name);
 				}
@@ -907,7 +906,7 @@
 				$destination = $row['field']['destination'] ?? null;
 
 				//add multi-lingual support
-				if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$name."/app_languages.php")) {
+				if (file_exists(dirname(__DIR__, 4)."/app/".$name."/app_languages.php")) {
 					$language2 = new text;
 					$text2 = $language2->get($this->settings->get('domain', 'language'), 'app/'.$name);
 				}
