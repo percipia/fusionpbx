@@ -2,31 +2,36 @@
 
 /**
  * sounds class
- *
- * @method string get
  */
 class sounds {
 
 	/**
-	 * Domain UUID set in the constructor. This can be passed in through the $settings_array associative array or set in the session global array
+	 * Domain UUID set in the constructor. This can be passed in through the $settings_array associative array or set
+	 * in the session global array
+	 *
 	 * @var string
 	 */
 	public $domain_uuid;
 
 	/**
-	* Additional public variables
-	*/
+	 * Additional public variables
+	 */
 	public $sound_types;
 	public $full_path;
 
 	/**
 	 * Set in the constructor. Must be a database object and cannot be null.
+	 *
 	 * @var database Database Object
 	 */
 	private $database;
 
 	/**
-	 * Called when the object is created
+	 * Constructor for the class.
+	 *
+	 * This method initializes the object with setting_array and session data.
+	 *
+	 * @param array $setting_array An optional array of settings to override default values. Defaults to [].
 	 */
 	public function __construct(array $setting_array = []) {
 		//set domain and user UUIDs
@@ -37,23 +42,24 @@ class sounds {
 	}
 
 	/**
-	 * Add a specific item in the cache
-	 * @var array $array
-	 * @var string $value	string to be cached
+	 * Retrieves a list of sound files based on the specified types.
+	 *
+	 * @return array A multidimensional array containing the sound files, where each sub-array has two keys: 'name' and
+	 *               'value'.
 	 */
 	public function get() {
 
 		//miscellaneous
-			if (empty($this->sound_types) || (is_array($this->sound_types) && in_array('miscellaneous', $this->sound_types))) {
-				$x = 0;
-				if (if_group("superadmin")) {
-					$array['miscellaneous'][$x]['name'] = "say";
-					$array['miscellaneous'][$x]['value'] = "say:";
-					$x++;
-					$array['miscellaneous'][$x]['name'] = "tone_stream";
-					$array['miscellaneous'][$x]['value'] = "tone_stream:";
-				}
+		if (empty($this->sound_types) || (is_array($this->sound_types) && in_array('miscellaneous', $this->sound_types))) {
+			$x = 0;
+			if (if_group("superadmin")) {
+				$array['miscellaneous'][$x]['name'] = "say";
+				$array['miscellaneous'][$x]['value'] = "say:";
+				$x++;
+				$array['miscellaneous'][$x]['name'] = "tone_stream";
+				$array['miscellaneous'][$x]['value'] = "tone_stream:";
 			}
+		}
 		//recordings
 		if ((empty($this->sound_types) || (is_array($this->sound_types) && in_array('recordings', $this->sound_types))) && file_exists(dirname(__DIR__, 2) . "/app/recordings/app_config.php")) {
 			$sql = "select recording_name, recording_filename from v_recordings ";
@@ -96,13 +102,15 @@ class sounds {
 					if (substr($value, 0, 71) == "\$\${sounds_dir}/\${default_language}/\${default_dialect}/\${default_voice}/") {
 						$value = substr($value, 71);
 					}
+					$array['sounds'][$x]['name'] = $value;
+					$array['sounds'][$x]['value'] = $value;
+					$x++;
 				}
 			}
+		}
 		//send the results
-			return $array;
+		return $array;
 
 	}
 
 }
-
-?>
