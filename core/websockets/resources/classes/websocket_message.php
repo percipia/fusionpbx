@@ -98,7 +98,8 @@ class websocket_message extends base_message {
 	 * If no parameters are provided then the service_name is returned. If the service name is provided, then the
 	 * service_name is set to the value provided.
 	 * @param string $service_name
-	 * @return $this
+	 *
+	 * @return $this|string
 	 */
 	public function service_name($service_name = null) {
 		if (func_num_args() > 0) {
@@ -111,13 +112,23 @@ class websocket_message extends base_message {
 	/**
 	 * Gets or sets the permissions array
 	 * @param array $permissions
-	 * @return $this
+	 *
+	 * @return array|$this
 	 */
 	public function permissions($permissions = []) {
 		if (func_num_args() > 0) {
 			$this->permissions = $permissions;
 			return $this;
 		}
+		return $this->permissions;
+	}
+
+	/**
+	 * Returns the array of permissions
+	 *
+	 * @return array
+	 */
+	public function get_permissions(): array {
 		return $this->permissions;
 	}
 
