@@ -1040,6 +1040,7 @@
 
 					--record the session
 						if (record_session) then
+							session:setVariable("record_stereo", "true");
 							record_session = ",api_on_answer='uuid_record "..uuid.." start ".. record_path .. "/" .. record_name .. "',record_path='".. record_path .."',record_name="..record_name;
 							session:setVariable("record_path", record_path);
 						else
@@ -1168,14 +1169,14 @@
 								if (ring_group_strategy == "enterprise") then
 									app_data = dial_string;
 								else
-									app_data = "{ignore_early_media=true}"..dial_string;
+									app_data = "{ignore_early_media=true,instant_ringback=true}"..dial_string;
 								end
 							else
 								if (app_data == nil) then
 									if (ring_group_strategy == "enterprise") then
 										app_data = dial_string;
 									else
-										app_data = "{ignore_early_media=true}"..dial_string;
+										app_data = "{ignore_early_media=true,instant_ringback=true}"..dial_string;
 									end
 								else
 									app_data = app_data .. delimiter .. dial_string;

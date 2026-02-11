@@ -171,16 +171,16 @@ class active_conferences_service extends base_websocket_system_service implement
 	 *
 	 * @var array
 	 */
-	protected array $conference_name_cache = [];
+	protected $conference_name_cache;
 
 	/**
 	 * Builds a filter for the subscriber
 	 *
 	 * @param subscriber $subscriber
 	 *
-	 * @return filter
+	 * @return filter|null
 	 */
-	public static function create_filter_chain_for(subscriber $subscriber): filter {
+	public static function create_filter_chain_for(subscriber $subscriber): ?filter {
 		// Domain filtering for conferences
 		if ($subscriber->has_permission('conference_active_view')) {
 			return filter_chain::and_link([

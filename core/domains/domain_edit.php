@@ -84,6 +84,10 @@
 				$obj = new domains;
 				$obj->delete($array);
 
+				//reset the cache
+				$cache = new cache;
+				$cache->flush();
+
 				//redirect
 				header('Location: domains.php');
 				exit;
@@ -101,6 +105,20 @@
 			$msg = '';
 			if (empty($domain_name)) { $msg .= $text['message-required'].$text['label-name']."<br>\n"; }
 			//if (empty($domain_description)) { $msg .= $text['message-required'].$text['label-description']."<br>\n"; }
+
+		//check for a duplicate domain name
+			if ($action == 'add') {
+				$sql = "select count(*) from v_domains ";
+				$sql .= "where domain_name = :domain_name ";
+				$parameters['domain_name'] = $domain_name;
+				$num_rows = $database->select($sql, $parameters, 'column');
+				if ($num_rows > 0) {
+					$msg .= $text['message-duplicate']."<br>\n";
+				}
+				unset($sql, $parameters, $num_rows);
+			}
+
+		//show the message if it's not empty
 			if (!empty($msg) && empty($_POST["persistformvar"])) {
 				require_once "resources/header.php";
 				require_once "resources/persist_form_var.php";
@@ -119,7 +137,7 @@
 
 				//add a domain to the database
 				if ($action == "add" && permission_exists('domain_add')) {
-					$sql = "select count(*) from v_domains ";
+					$sql = "select count(domain_uuid) from v_domains ";
 					$sql .= "where lower(domain_name) = :domain_name ";
 					$parameters['domain_name'] = $domain_name;
 					$num_rows = $database->select($sql, $parameters, 'column');

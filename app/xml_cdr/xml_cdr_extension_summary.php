@@ -182,14 +182,14 @@
 		echo "			".$text['label-start_date_time']."\n";
 		echo "		</div>\n";
 		echo "		<div class='field'>\n";
-		echo "			<input type='text' class='formfld datetimepicker' data-toggle='datetimepicker' data-target='#start_stamp_begin' onblur=\"$(this).datetimepicker('hide');\" style='".($settings->get('domain', 'time_format') == '24h' ? 'min-width: 115px; width: 115px;' : 'min-width: 130px; width: 130px;')."' name='start_stamp_begin' id='start_stamp_begin' placeholder='".$text['label-from']."' value='".escape($start_stamp_begin ?? '')."'>\n";
+		echo "			<input type='text' class='formfld datetimepicker' data-toggle='datetimepicker' data-target='#start_stamp_begin' onblur=\"$(this).datetimepicker('hide');\" style='".($settings->get('domain', 'time_format') == '24h' ? 'min-width: 115px; width: 115px;' : 'min-width: 130px; width: 130px;')."' name='start_stamp_begin' id='start_stamp_begin' placeholder='".$text['label-from']."' value='".escape($start_stamp_begin ?? '')."' onchange=\"document.getElementById('quick_select').value = '';\">\n";
 		echo "		</div>\n";
 
 		echo "		<div class='label'>\n";
 		echo "			".$text['label-end_date_time']."\n";
 		echo "		</div>\n";
 		echo "		<div class='field'>\n";
-		echo "			<input type='text' class='formfld datetimepicker' data-toggle='datetimepicker' data-target='#start_stamp_end' onblur=\"$(this).datetimepicker('hide');\" style='".($settings->get('domain', 'time_format') == '24h' ? 'min-width: 115px; width: 115px;' : 'min-width: 130px; width: 130px;')."' name='start_stamp_end' id='start_stamp_end' placeholder='".$text['label-to']."' value='".escape($start_stamp_end ?? '')."'>\n";
+		echo "			<input type='text' class='formfld datetimepicker' data-toggle='datetimepicker' data-target='#start_stamp_end' onblur=\"$(this).datetimepicker('hide');\" style='".($settings->get('domain', 'time_format') == '24h' ? 'min-width: 115px; width: 115px;' : 'min-width: 130px; width: 130px;')."' name='start_stamp_end' id='start_stamp_end' placeholder='".$text['label-to']."' value='".escape($start_stamp_end ?? '')."' onchange=\"document.getElementById('quick_select').value = '';\">\n";
 		echo "		</div>\n";
 
 		echo "	</div>\n";
@@ -215,7 +215,15 @@
 	if (permission_exists('number_alias')) {
 		echo "		<th>".$text['label-number_alias']."</th>\n";
 	}
-	echo "		<th class='center'>".$text['label-answered']."</th>\n";
+	if (permission_exists('xml_cdr_answered')) {
+		echo "		<th class='center'>".$text['label-answered']."</th>\n";
+	}
+	if (permission_exists('xml_cdr_answered_inbound')) {
+		echo "		<th class='center'>".$text['label-answered_inbound']."</th>\n";
+	}
+	if (permission_exists('xml_cdr_answered_outbound')) {
+		echo "		<th class='center'>".$text['label-answered_outbound']."</th>\n";
+	}
 	echo "		<th class='center'>".$text['label-missed']."</th>\n";
 	echo "		<th class='center'>".$text['label-voicemail']."</th>\n";
 	echo "		<th class='center'>".$text['label-no_answer']."</th>\n";
@@ -238,7 +246,15 @@
 			if (permission_exists('number_alias')) {
 				echo "	<td>".escape($row['number_alias'])."&nbsp;</td>\n";
 			}
-			echo "	<td class='center'>".escape($row['answered'])."&nbsp;</td>\n";
+			if (permission_exists('xml_cdr_answered')) {
+				echo "	<td class='center'>".escape($row['answered'])."&nbsp;</td>\n";
+			}
+			if (permission_exists('xml_cdr_answered_inbound')) {
+				echo "	<td class='center'>".escape($row['answered_inbound'])."&nbsp;</td>\n";
+			}
+			if (permission_exists('xml_cdr_answered_outbound')) {
+				echo "	<td class='center'>".escape($row['answered_outbound'])."&nbsp;</td>\n";
+			}
 			echo "	<td class='center'>".escape($row['missed'])."&nbsp;</td>\n";
 			echo "	<td class='center'>".escape($row['voicemail'])."&nbsp;</td>\n";
 			echo "	<td class='center'>".escape($row['no_answer'])."&nbsp;</td>\n";

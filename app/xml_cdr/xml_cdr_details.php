@@ -38,8 +38,12 @@
 	$language = new text;
 	$text = $language->get();
 
+//get variables from the session
+	$domain_uuid = $_SESSION['domain_uuid'];
+	$user_uuid = $_SESSION['user_uuid'];
+
 //add the settings object
-	$settings = new settings(["database" => $database, "domain_uuid" => $_SESSION['domain_uuid'], "user_uuid" => $_SESSION['user_uuid']]);
+	$settings = new settings(["database" => $database, "domain_uuid" => $domain_uuid, "user_uuid" => $user_uuid]);
 	$transcribe_enabled = $settings->get('transcribe', 'enabled', false);
 	$transcribe_engine = $settings->get('transcribe', 'engine', '');
 	$call_log_enabled = $settings->get('cdr', 'call_log_enabled', false);
@@ -79,6 +83,7 @@
 		$record_path = trim($row["record_path"] ?? '');
 		$record_name = trim($row["record_name"] ?? '');
 		$record_transcription = trim($row["record_transcription"] ?? '');
+		$call_disposition = trim($row["call_disposition"] ?? '');
 		$status = trim($row["status"] ?? '');
 	}
 	unset($sql, $parameters, $row);
@@ -90,13 +95,13 @@
 		file_exists($record_path.'/'.$record_name)) {
 
 			//prepare the params
-			$params['domain_uuid'] = $_SESSION['domain_uuid'];
+			$params['domain_uuid'] = $domain_uuid;
 			$params['xml_cdr_uuid'] = $uuid;
 			$params['call_direction'] = $call_direction;
 
 			//add the recording to the transcribe queue
 			$array['transcribe_queue'][$x]['transcribe_queue_uuid'] = uuid();
-			$array['transcribe_queue'][$x]['domain_uuid'] = $_SESSION['domain_uuid'];
+			$array['transcribe_queue'][$x]['domain_uuid'] = $domain_uuid;
 			$array['transcribe_queue'][$x]['hostname'] = gethostname();
 			$array['transcribe_queue'][$x]['transcribe_status'] = 'pending';
 			$array['transcribe_queue'][$x]['transcribe_app_class'] = 'call_recordings';
@@ -177,7 +182,6 @@
 			$parameters['domain_uuid'] = $domain_uuid;
 		}
 		$parameters['xml_cdr_uuid'] = $uuid;
-
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row) && is_array($row) && @sizeof($row) != 0) {
 			$log_content = $row["log_content"];
@@ -185,8 +189,8 @@
 		unset($sql, $parameters, $row);
 	}
 
-//get the cdr transcript from the database
-	//if (permission_exists('xml_cdr_call_log') && $call_log_enabled) {
+//get the transcript from the database
+	if ($transcribe_enabled) {
 		$sql = "select * from v_xml_cdr_transcripts ";
 		if (permission_exists('xml_cdr_all')) {
 			$sql .= "where xml_cdr_uuid  = :xml_cdr_uuid ";
@@ -200,9 +204,22 @@
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row) && is_array($row) && @sizeof($row) != 0) {
 			$transcript_json = trim($row["transcript_json"] ?? '');
+			$transcript_summary = trim($row["transcript_summary"] ?? '');
 		}
 		unset($sql, $parameters, $row);
-	//}
+	}
+
+//format the call recording transcript text
+	$transcription_array = json_decode($transcript_json, true);
+	$call_transcript = conversational_html($transcription_array['segments']);
+
+//format the call recording transcript summary
+	require_once "resources/classes/parsedown.php";
+	$parsedown = new Parsedown();
+	$parsedown->setSafeMode(true);
+	$parsedown->setMarkupEscaped(true);
+	$call_summary = str_replace('###', '', $transcript_summary);
+	$call_summary = str_replace('&amp;', '&', $parsedown->text($call_summary));
 
 //get the format
 	if (!empty($xml_string)) {
@@ -277,7 +294,7 @@
 
 //build the call flow summary array
 	$xml_cdr = new xml_cdr(["database" => $database, "settings" => $settings, "destinations" => $destinations]);
-	$xml_cdr->domain_uuid = $_SESSION['domain_uuid'];
+	$xml_cdr->domain_uuid = $domain_uuid;
 	$xml_cdr->call_direction = $call_direction; //used to determine when the call is outbound
 	$xml_cdr->status = $status; //used to determine when the call is outbound
 	if (empty($call_flow)) {
@@ -388,6 +405,9 @@
 	$summary_array['start'] = escape($start_stamp);
 	$summary_array['end'] = escape($end_stamp);
 	$summary_array['duration'] = escape(gmdate("G:i:s", (int)$duration));
+	if (permission_exists('xml_cdr_call_disposition')) {
+		$summary_array['call_disposition'] = escape($call_disposition);
+	}
 	if (isset($status)) {
 		$summary_array['status'] = escape($status);
 	}
@@ -613,7 +633,7 @@
 		//controls
 		if (!empty($record_path) || !empty($record_name)) {
 			echo "<audio id='recording_audio_".escape($xml_cdr_uuid)."' style='display: none;' preload='none' ontimeupdate=\"update_progress('".escape($xml_cdr_uuid)."')\" onended=\"recording_reset('".escape($xml_cdr_uuid)."');\" src=\"download.php?id=".escape($xml_cdr_uuid)."\" type='".escape($record_type)."'></audio>";
-			echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$settings->get('theme', 'button_icon_play'),'label'=>$text['label-play'],'id'=>'recording_button_'.escape($xml_cdr_uuid),'onclick'=>"recording_play('".escape($xml_cdr_uuid)."', null, null, 'true')",'style'=>'margin-bottom: 8px; margin-top: -8px;']);
+			echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$settings->get('theme', 'button_icon_play'),'label'=>$text['label-play'],'id'=>'recording_button_'.escape($xml_cdr_uuid),'onclick'=>"recording_play('".escape($xml_cdr_uuid)."', null, null, '".$text['label-play']."')",'style'=>'margin-bottom: 8px; margin-top: -8px;']);
 			if (permission_exists('xml_cdr_recording_download')) {
 				echo button::create(['type'=>'button','title'=>$text['label-download'],'icon'=>$settings->get('theme', 'button_icon_download'),'label'=>$text['label-download'],'onclick'=>"window.location.href='download.php?id=".urlencode($xml_cdr_uuid)."&t=bin';",'style'=>'margin-bottom: 8px; margin-top: -8px;']);
 			}
@@ -673,15 +693,13 @@
 	echo "</style>\n";
 
 //transcription, if enabled
-	$transcription_array = json_decode($transcript_json, true);
-	$record_transcription = $transcription_array['segments'];
-	$record_transcription_html = conversational_html($record_transcription);
-	if ($transcribe_enabled == 'true' && !empty($transcribe_engine) && !empty($record_transcription)) {
+	if ($transcribe_enabled && !empty($transcribe_engine) && !empty($call_transcript)) {
 		echo "<b>".$text['label-transcription']."</b><br>\n";
 		echo "<div class='card'>\n";
 		echo "	<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 		echo "	<tr >\n";
-		echo "		<td valign='top' class='".$row_style[0]."'><div style='width: 80%; min-width: 200px; max-width: 800px;'>".$record_transcription_html."</div></td>\n";
+		echo "		<td valign='top' style='width: 50%;'><div style='min-width: 200px; max-width: 800px;' margin: 0px;>".$call_transcript."</div></td>\n";
+		echo "		<td valign='top' style='width: 50%;'><div style='min-width: 200px; max-width: 800px; margin: 15px;'>".$call_summary."</div></td>\n";
 		echo "	</tr>\n";
 		echo "	</table>";
 		echo "</div>\n";

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2025
+	Portions created by the Initial Developer are Copyright (C) 2008-2026
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -33,7 +33,6 @@
 		echo "access denied";
 		exit;
 	}
-
 //add multi-lingual support
 	$language = new text;
 	$text = $language->get();
@@ -69,20 +68,16 @@
 	$record_extension = $settings->get('call_recordings', 'record_extension', 'mp3');
 
 //get total destination count from the database, check limit, if defined
-	if (!permission_exists('destination_domain')) {
-		if ($action == 'add') {
-			if (!empty($settings->get('limit', 'destinations', ''))) {
-				$sql = "select count(*) from v_destinations where domain_uuid = :domain_uuid ";
-				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-				$total_destinations = $database->select($sql, $parameters, 'column');
-				unset($sql, $parameters);
+	if ($action == 'add' && $settings->get('limit', 'destinations', '') != '' && !permission_exists('destination_domain')) {
+		$sql = "select count(*) from v_destinations where domain_uuid = :domain_uuid ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$total_destinations = $database->select($sql, $parameters, 'column');
+		unset($sql, $parameters);
 
-				if ($total_destinations >= $settings->get('limit', 'destinations', '')) {
-					message::add($text['message-maximum_destinations'].' '.$settings->get('limit', 'destinations', ''), 'negative');
-					header('Location: destinations.php');
-					exit;
-				}
-			}
+		if ($total_destinations >= $settings->get('limit', 'destinations', '')) {
+			message::add($text['message-maximum_destinations'].' '.$settings->get('limit', 'destinations', ''), 'negative');
+			header('Location: destinations.php');
+			exit;
 		}
 	}
 
@@ -203,7 +198,7 @@
 			if (empty($destination_context)) { $msg .= $text['message-required']." ".$text['label-destination_context']."<br>\n"; }
 
 		//check for duplicates
-			if ($destination_type == 'inbound' && $destination_number != $db_destination_number && $settings->get('destinations', 'unique', false)) {
+			if ($action == 'add' && $destination_type == 'inbound' && $settings->get('destinations', 'unique', false)) {
 				$sql = "select count(*) from v_destinations ";
 				$sql .= "where (destination_number = :destination_number or destination_prefix || destination_number = :destination_number) ";
 				$sql .= "and destination_type = 'inbound' ";
@@ -471,8 +466,33 @@
 									$dialplan_detail_type = xml::sanitize($dialplan_detail_type);
 								}
 
-							//set the last destination_app and destination_data variables
+							//process the destination actions
+								$bridge_exists = false;
+								$phrase_exists = false;
 								if (!empty($destination_actions)) {
+									//check if the application bridge exists
+									foreach($destination_actions as $destination_action) {
+										$action_array = explode(":", $destination_action, 2);
+										if (isset($action_array[0]) && !empty($action_array[0])) {
+											if ($action_array[0] == 'bridge') {
+												$bridge_exists = true;
+												break;
+											}
+										}
+									}
+
+									//check if the application bridge exists
+									foreach($destination_actions as $destination_action) {
+										$action_array = explode(":", $destination_action, 2);
+										if (isset($action_array[0]) && !empty($action_array[0])) {
+											if ($action_array[0] == 'phrase') {
+												$phrase_exists = true;
+												break;
+											}
+										}
+									}
+
+									//last app and data
 									foreach($destination_actions as $destination_action) {
 										$action_array = explode(":", $destination_action, 2);
 										if (isset($action_array[0]) && !empty($action_array[0])) {
@@ -526,10 +546,15 @@
 								}
 
 								//add this only if using application bridge
-								if (!empty($destination_app) && $destination_app == 'bridge') {
-										$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"presence_id=\$1@".$_SESSION['domain_name']."\" inline=\"true\"/>\n";
-										$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"hangup_after_bridge=true\" inline=\"true\"/>\n";
-										$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"continue_on_fail=true\" inline=\"true\"/>\n";
+								if ($bridge_exists) {
+									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"presence_id=\$1@".$_SESSION['domain_name']."\" inline=\"true\"/>\n";
+									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"hangup_after_bridge=true\" inline=\"true\"/>\n";
+									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"continue_on_fail=true\" inline=\"true\"/>\n";
+								}
+
+								//add this only if using application phrase
+								if ($phrase_exists) {
+									$dialplan["dialplan_xml"] .= "		<action application=\"answer\" data=\"\"/>\n";
 								}
 
 								if (!empty($destination_cid_name_prefix)) {
@@ -720,7 +745,7 @@
 										$dialplan_detail_order = $dialplan_detail_order + 10;
 
 									//add this only if using application bridge
-										if (!empty($destination_app) && $destination_app == 'bridge') {
+										if ($bridge_exists) {
 											//add presence_id
 												$dialplan["dialplan_details"][$y]["domain_uuid"] = $domain_uuid;
 												$dialplan["dialplan_details"][$y]["dialplan_uuid"] = $dialplan_uuid;
@@ -758,6 +783,21 @@
 												$dialplan["dialplan_details"][$y]["dialplan_detail_group"] = $dialplan_detail_group;
 												$dialplan["dialplan_details"][$y]["dialplan_detail_order"] = $dialplan_detail_order;
 											$dialplan["dialplan_details"][$y]["dialplan_detail_enabled"] = "true";
+												$y++;
+										}
+
+									//add this only if using application phrase
+										if ($phrase_exists) {
+											//add answer
+												$dialplan["dialplan_details"][$y]["domain_uuid"] = $domain_uuid;
+												$dialplan["dialplan_details"][$y]["dialplan_uuid"] = $dialplan_uuid;
+												$dialplan["dialplan_details"][$y]["dialplan_detail_tag"] = "action";
+												$dialplan["dialplan_details"][$y]["dialplan_detail_type"] = "answer";
+												$dialplan["dialplan_details"][$y]["dialplan_detail_data"] = "";
+												$dialplan["dialplan_details"][$y]["dialplan_detail_inline"] = "";
+												$dialplan["dialplan_details"][$y]["dialplan_detail_group"] = $dialplan_detail_group;
+												$dialplan["dialplan_details"][$y]["dialplan_detail_order"] = $dialplan_detail_order;
+												$dialplan["dialplan_details"][$y]["dialplan_detail_enabled"] = "true";
 												$y++;
 										}
 

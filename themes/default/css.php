@@ -23,7 +23,6 @@ $menu_main_background_color = $settings->get('theme', 'menu_main_background_colo
 $menu_main_shadow_color = !empty($settings->get('theme', 'menu_main_shadow_color', '')) ? '0 0 5px '.$settings->get('theme', 'menu_main_shadow_color') : 'none';
 $menu_main_border_color = $settings->get('theme', 'menu_main_border_color', 'transparent');
 $menu_main_border_size = $settings->get('theme', 'menu_main_border_size', 0);
-$menu_position = $settings->get('theme', 'menu_position', 'top');
 $menu_style = $settings->get('theme', 'menu_style', 'fixed');
 switch ($menu_style) {
 	case 'inline': $menu_main_border_radius_default = '4px'; break;
@@ -655,6 +654,15 @@ else { //default: white
 		-khtml-border-radius: <?=$menu_main_border_radius?>;
 		border-radius: <?=$menu_main_border_radius?>;
 		padding: 0;
+		z-index: 1030;
+		<?php if ($menu_style == 'fixed') { ?>
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		<?php } else { ?>
+		position: relative;
+		<?php } ?>
 		}
 
 	/* main menu logo */
@@ -720,6 +728,8 @@ else { //default: white
 		-webkit-box-shadow: <?=$menu_sub_shadow_color?>;
 		-moz-box-shadow: <?=$menu_sub_shadow_color?>;
 		box-shadow: <?=$menu_sub_shadow_color?>;
+		z-index: 1040;
+		position: absolute;
 		<?php $br = format_border_radius($menu_sub_border_radius, '0 0 4px 4px'); ?>
 		-moz-border-radius: <?php echo $br['tl']['n'].$br['tl']['u']; ?> <?php echo $br['tr']['n'].$br['tr']['u']; ?> <?php echo $br['br']['n'].$br['br']['u']; ?> <?php echo $br['bl']['n'].$br['bl']['u']; ?>;
 		-webkit-border-radius: <?php echo $br['tl']['n'].$br['tl']['u']; ?> <?php echo $br['tr']['n'].$br['tr']['u']; ?> <?php echo $br['br']['n'].$br['br']['u']; ?> <?php echo $br['bl']['n'].$br['bl']['u']; ?>;
@@ -1096,6 +1106,7 @@ else { //default: white
 		div#body_header {
 			position: relative;
 			z-index: 1;
+			isolation: isolate;
 			padding: 17px 10px 13px 10px;
 			height: 60px;
 			background-color: <?=$body_header_background_color?>;
@@ -1698,12 +1709,7 @@ else { //default: white
 		switch ($menu_style) {
 			case 'inline': $body_top_style = "margin-top: -8px;"; break;
 			case 'static': $body_top_style = "margin-top: -5px;"; break;
-			case 'fixed':
-				switch ($menu_position) {
-					case 'bottom': $body_top_style = "margin-top: 30px;"; break;
-					case 'top':
-					default: $body_top_style = "margin-top: 65px;"; break;
-				}
+			case 'fixed': $body_top_style = "margin-top: 65px;"; break;
 		}
 	?>
 
@@ -1741,6 +1747,9 @@ else { //default: white
 	/* default body padding */
 	.container-fluid {
 		width: <?=$body_width?>;
+		<?php if ($menu_style == 'fixed') { ?>
+		padding-top: 49px;
+		<?php } ?>
 		}
 
 	/* maximize viewport usage on xs displays */
@@ -3436,6 +3445,7 @@ else { //default: white
 
 	div.action_bar {
 		z-index: 5;
+		isolation: isolate;
 		<?php
 		switch ($menu_style) {
 			case 'side':

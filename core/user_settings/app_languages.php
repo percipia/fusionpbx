@@ -352,6 +352,33 @@ $text['message-password_reset']['zh-cn'] = "重设密码";
 $text['message-password_reset']['ja-jp'] = "パスワードリセット";
 $text['message-password_reset']['ko-kr'] = "비밀번호 재설정";
 
+$text['message-password_reset_link_invalid']['en-us'] = "Password Reset Link is Invalid";
+$text['message-password_reset_link_invalid']['en-gb'] = "Password Reset Link is Invalid";
+$text['message-password_reset_link_invalid']['ar-eg'] = "رابط إعادة تعيين كلمة السر غير صالحة";
+$text['message-password_reset_link_invalid']['de-at'] = "Passwort-Rücksetzungslink ist ungültig";
+$text['message-password_reset_link_invalid']['de-ch'] = "Passwort-Rücksetzungslink ist ungültig";
+$text['message-password_reset_link_invalid']['de-de'] = "Passwort-Rücksetzungslink ist ungültig";
+$text['message-password_reset_link_invalid']['el-gr'] = "Η σύνδεση επαναφοράς κωδικού είναι άκυρη";
+$text['message-password_reset_link_invalid']['es-cl'] = "El enlace de restablecimiento de contraseña no es válido";
+$text['message-password_reset_link_invalid']['es-mx'] = "El enlace de restablecimiento de contraseña no es válido";
+$text['message-password_reset_link_invalid']['fr-ca'] = "Le lien de réinitialisation du mot de passe n'est pas valide";
+$text['message-password_reset_link_invalid']['fr-fr'] = "Le lien de réinitialisation du mot de passe n'est pas valide";
+$text['message-password_reset_link_invalid']['he-il'] = "הקישור לאיפוס הסיסמה אינו תקין";
+$text['message-password_reset_link_invalid']['it-it'] = "Il collegamento per il reset della password non è valido";
+$text['message-password_reset_link_invalid']['ka-ge'] = "პაროლის ჩამოყრის ბმული  недействителен";
+$text['message-password_reset_link_invalid']['nl-nl'] = "Het wachtwoordherstelkoppeling is ongeldig";
+$text['message-password_reset_link_invalid']['pl-pl'] = "Link do resetowania hasła jest nieprawidłowy";
+$text['message-password_reset_link_invalid']['pt-br'] = "O link de redefinição de senha não é válido";
+$text['message-password_reset_link_invalid']['pt-pt'] = "A ligação de redefinição de password não é válida";
+$text['message-password_reset_link_invalid']['ro-ro'] = "Link-ul pentru resetarea parolei nu este valid";
+$text['message-password_reset_link_invalid']['ru-ru'] = "Ссылка для сброса пароля недействительна";
+$text['message-password_reset_link_invalid']['sv-se'] = "Länken för återställning av lösenord är ogiltig";
+$text['message-password_reset_link_invalid']['tr-tr'] = "Parola sıfırlama bağlantısı geçerli değil";
+$text['message-password_reset_link_invalid']['uk-ua'] = "Посилання для скидання пароля недійсне";
+$text['message-password_reset_link_invalid']['zh-cn'] = "密码重置链接无效";
+$text['message-password_reset_link_invalid']['ja-jp'] = "パスワードリセットリンクが無効です";
+$text['message-password_reset_link_invalid']['ko-kr'] = "비밀번호 재설정 링크가 유효하지 않습니다";
+
 $text['message-password_requirements']['en-us'] = "Password Requirements";
 $text['message-password_requirements']['en-gb'] = "Password Requirements";
 $text['message-password_requirements']['ar-eg'] = "متطلبات كلمة السر";
@@ -3427,7 +3454,7 @@ $text['label-email_sent']['zh-cn'] = "电子邮件已发送";
 $text['label-email_sent']['ja-jp'] = "メールが送信されました";
 $text['label-email_sent']['ko-kr'] = "이메일이 전송되었습니다";
 
-$text['description-email_sent']['en-us'] = "An email has been sent to with instructions to reset your password.<br />Please check your email.";
+$text['description-email_sent']['en-us'] = "An email has been sent to you with instructions to reset your password.<br />Please check your email.";
 $text['description-email_sent']['en-gb'] = "An email has been sent to you with instructions to reset your password.<br />Please check your email.";
 $text['description-email_sent']['ar-eg'] = "تم إرسال بريد إلكتروني إليك تحتوي على تعليمات لإعادة تعيين كلمة المرور الخاصة بك.<br />رجاءً قم بمراجعة بريدك الإلكتروني.";
 $text['description-email_sent']['de-at'] = "Eine E-Mail mit Anweisungen zum Zurücksetzen Ihres Passworts wurde an Sie gesendet.<br />Bitte überprüfen Sie Ihre E-Mails.";
@@ -3534,5 +3561,3 @@ $text['label-password_reset']['tr-tr'] = "Şifre Sıfırlama";
 $text['label-password_reset']['zh-cn'] = "重置密码";
 $text['label-password_reset']['ja-jp'] = "パスワードのリセット";
 $text['label-password_reset']['ko-kr'] = "비밀번호 재설정";
-
-?>

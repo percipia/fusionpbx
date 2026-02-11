@@ -1303,9 +1303,10 @@ function tail(string $file, int $num_to_get = 10): string {
 /**
  * Generates a random password of specified length and strength.
  *
- * @param int $length   The desired length of the password. Defaults to default settings if not provided or zero.
- * @param int $strength The desired strength level of the password. Defaults to default settings if not provided or
- *                      zero.
+ * @param int $length   The desired length of the password. Defaults to 0 if not provided.
+ * @param int $strength The desired strength level of the password.
+ *                      This defaults to 3 if not provided. The higher level includes the previous levels.
+ *                      If the password_strength was set to 3, this would include numeric, lowercase, and uppercase letters.
  *                      - Level 1: Numeric
  *                      - Level 2: Lowercase letters
  *                      - Level 3: Uppercase letters
@@ -1314,16 +1315,13 @@ function tail(string $file, int $num_to_get = 10): string {
  * @return string The generated password.
  * @throws \Random\RandomException
  */
-function generate_password(int $length = 0, int $strength = 0): string {
+function generate_password(int $length = 0, int $strength = 3): string {
 	//define the global variables
 	global $settings;
 
 	$password = '';
 	$chars = '';
-	if ($length === 0 && $strength === 0) { //set length and strenth if specified in default settings and strength isn't numeric-only
-		$length = (is_numeric($settings->get('users', 'password_length'))) ? $settings->get('users', 'password_length') : 20;
-		$strength = (is_numeric($settings->get('users', 'password_strength'))) ? $settings->get('users', 'password_strength') : 4;
-	}
+
 	if ($strength >= 1) {
 		$chars .= "0123456789";
 	}
@@ -3274,5 +3272,59 @@ if (!function_exists('get_memory_details')) {
 		}
 
 		return false;
+	}
+}
+
+if (!function_exists('array_type')) {
+	/**
+	 * Determines if the array is single or multi-dimensional array. 
+	 *
+	 * @return string Options: single, multi
+	 */
+	function array_type(array $array): string {
+		$result = count($array, COUNT_RECURSIVE) > count($array);
+		if ($result) {
+			return 'multi';
+		}
+		return 'single';
+	}
+}
+
+if (!function_exists('mb_convert_encoding')) {
+	function mb_convert_encoding($str, $to_encoding, $from_encoding = null) {
+		// if no from_encoding specified, try to detect it
+		if ($from_encoding === null) {
+			// try to detect encoding using iconv
+			$encodings = array(
+				'UTF-8', 'ISO-8859-1', 'ASCII', 'UTF-16', 'UTF-16BE', 'UTF-16LE',
+				'Windows-1252', 'CP1252', 'ISO-8859-15', 'KOI8-R', 'CP866',
+				'Windows-1251', 'CP1251', 'ISO-8859-2', 'ISO-8859-3', 'ISO-8859-4',
+				'ISO-8859-5', 'ISO-8859-6', 'ISO-8859-7', 'ISO-8859-8', 'ISO-8859-9',
+				'ISO-8859-10', 'ISO-8859-13', 'ISO-8859-14', 'ISO-8859-16'
+			);
+
+			foreach ($encodings as $enc) {
+				$test = @iconv($enc, $enc, $str);
+				if ($test !== false) {
+					$from_encoding = $enc;
+					break;
+				}
+			}
+
+			// if still not detected, assume UTF-8
+			if ($from_encoding === null) {
+				$from_encoding = 'UTF-8';
+			}
+		}
+
+		// convert encoding using iconv
+		$result = @iconv($from_encoding, $to_encoding . '//IGNORE', $str);
+
+		// if conversion failed, try with '//' as fallback
+		if ($result === false) {
+			$result = @iconv($from_encoding, $to_encoding, $str);
+		}
+
+		return $result;
 	}
 }

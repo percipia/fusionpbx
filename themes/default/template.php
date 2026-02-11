@@ -50,6 +50,9 @@
 		<script language='JavaScript' type='text/javascript' src='{$project_path}/resources/fonts/web_font_loader.php?v={$settings.theme.font_loader_version}'></script>
 	{/if}
 
+{*//javascript functions *}
+	<script language='JavaScript' type='text/javascript' src='{$project_path}/resources/javascript/select_group_option.js'></script>
+
 {*//local javascript *}
 	<script language='JavaScript' type='text/javascript'>
 
@@ -738,7 +741,7 @@
 
 	//audio playback functions
 		{literal}
-		var recording_audio, audio_clock, recording_id_playing;
+		var recording_audio, audio_clock, recording_id_playing, label_play;
 
 		function recording_load(player_id, data, audio_type) {
 			{/literal}
@@ -777,8 +780,14 @@
 			}
 			recording_audio = document.getElementById('recording_audio_' + player_id);
 
-			var label_play = "{/literal}{if $php_self == 'xml_cdr_details.php'}{literal}<span class='button-label pad'>{/literal}{$text.label_play}{literal}</span>{/literal}{/if}{literal}";
-			var label_pause = "{/literal}{if $php_self == 'xml_cdr_details.php'}{literal}<span class='button-label pad'>{/literal}{$text.label_pause}{literal}</span>{/literal}{/if}{literal}";
+			if (label !== undefined) {
+				label_play = "<span class='button-label pad'>" + label + "</span>";
+				var label_pause = "<span class='button-label pad'>" + label + "</span>";
+			}
+			else {
+				label_play = "{/literal}{if $php_self == 'xml_cdr_details.php'}{literal}<span class='button-label pad'>{/literal}{$text.label_play}{literal}</span>{/literal}{/if}{literal}";
+				var label_pause = "{/literal}{if $php_self == 'xml_cdr_details.php'}{literal}<span class='button-label pad'>{/literal}{$text.label_pause}{literal}</span>{/literal}{/if}{literal}";
+			}
 
 			if (recording_audio.paused) {
 				recording_load(player_id, data, audio_type);
@@ -834,7 +843,7 @@
 				document.getElementById('recording_button_' + player_id).innerHTML = "<span class='{/literal}{$settings.theme.button_icon_comment}{literal} fa-fw'></span>";
 			}
 			else {
-				document.getElementById('recording_button_' + player_id).innerHTML = "<span class='{/literal}{$settings.theme.button_icon_play}{literal} fa-fw'></span>";
+				document.getElementById('recording_button_' + player_id).innerHTML = "<span class='{/literal}{$settings.theme.button_icon_play}{literal} fa-fw'></span>" + (label_play ?? '');
 			}
 			clearInterval(audio_clock);
 		}
@@ -1007,12 +1016,12 @@
 		}
 
 		function list_self_check(checkbox_id) {
-			var inputs = document.getElementsByTagName('input');
-			for (var i = 0, max = inputs.length; i < max; i++) {
-				if (inputs[i].type === 'checkbox' && inputs[i].name.search['enabled'] == -1) {
-					inputs[i].checked = false;
-				}
-			}
+			//unchecks each selected checkbox
+			document.querySelectorAll('input[type="checkbox"]:not([name*="enabled"])').forEach(checkbox => {
+				checkbox.checked = false;
+			});
+
+			//select the checkbox with the specified id
 			document.getElementById(checkbox_id).checked = true;
 		}
 
@@ -1084,6 +1093,40 @@
 				}
 			}
 			document.activeElement.blur();
+		}
+
+		function modal_display_selected(modal_id) {
+			const selected_items = [];
+			const modal_message_element = document.querySelector(`#${modal_id} .modal-message`);
+
+			if (!modal_message_element.hasAttribute('data-message')) {
+				modal_message_element.setAttribute('data-message', modal_message_element.innerHTML);
+				modal_message_element.style.cssText += 'max-height: 50vh; overflow: scroll;';
+			}
+			const message = modal_message_element.getAttribute('data-message');
+
+			document.querySelectorAll('input[type="checkbox"]:checked:not(#checkbox_all)').forEach(checkbox => {
+				selected_items.push({
+					name: checkbox.dataset.itemName,
+					domain: checkbox.dataset.itemDomain
+				});
+			});
+
+			if (selected_items.length > 0) {
+				content = message;
+				content += '<table style="margin: 20px 40px; min-width: 70%;">';
+				content += '	<tbody>';
+				selected_items.forEach(item => {
+					content += '	<tr>';
+					content += `		<td style="display: list-item;">${item.name}</td>`;
+					content += `		<td>${item.domain || ''}</td>`;
+					content += '	</tr>';
+				});
+				content += '	</tbody>';
+				content += '</table>';
+
+				modal_message_element.innerHTML = content;
+			}
 		}
 		{/literal}
 
