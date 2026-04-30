@@ -34,6 +34,7 @@ class xml_cdr {
 	 */
 	const app_name = 'xml_cdr';
 	const app_uuid = '4a085c51-7635-ff03-f67b-86e834422848';
+	const app_category = 'switch';
 
 	/**
 	 * Domain UUID set in the constructor. This can be passed in through the $settings_array associative array or set
@@ -152,6 +153,15 @@ class xml_cdr {
 		$this->list_page = 'xml_cdr.php';
 		$this->table = 'xml_cdr';
 		$this->uuid_prefix = 'xml_cdr_';
+	}
+
+	/**
+	 * Get the category of this class.
+	 *
+	 * @return string The constant category value.
+	 */
+	public static function get_category(): string {
+		return self::app_category;
 	}
 
 	/**
