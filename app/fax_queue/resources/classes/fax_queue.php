@@ -55,6 +55,7 @@ class fax_queue {
 	 */
 	private $name;
 	private $table;
+	private $category;
 	private $toggle_field;
 	private $toggle_values;
 	private $location;
@@ -77,6 +78,7 @@ class fax_queue {
 		//assign the variables
 		$this->name          = 'fax_queue';
 		$this->table         = 'fax_queue';
+		$this->category      = 'queue';
 		$this->toggle_field  = '';
 		$this->toggle_values = ['true', 'false'];
 		$this->location      = 'fax_queue.php';
