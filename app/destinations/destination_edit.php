@@ -396,7 +396,7 @@
 								if (isset($destination_prefix) && !empty($destination_prefix)) {
 									$destination_numbers['destination_prefix'] = $destination_prefix;
 								}
-								if (isset($destination_trunk_prefix) && !empty($destination_trunk_prefix)) {
+								if (isset($destination_trunk_prefix)) {
 									$destination_numbers['destination_trunk_prefix'] = $destination_trunk_prefix;
 								}
 								if (isset($destination_area_code) && !empty($destination_area_code)) {
@@ -560,7 +560,7 @@
 								if (!empty($destination_cid_name_prefix)) {
 									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"effective_caller_id_name=".xml::sanitize($destination_cid_name_prefix)."#\${caller_id_name}\" inline=\"true\"/>\n";
 								}
-								if (!empty($destination_record) && $destination_record === true) {
+								if (!empty($destination_record) && $destination_record == 'true') {
 									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"record_path=\${recordings_dir}/\${domain_name}/archive/\${strftime(%Y)}/\${strftime(%b)}/\${strftime(%d)}\" inline=\"true\"/>\n";
 									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"record_name=\${uuid}.".$record_extension."\" inline=\"true\"/>\n";
 									$dialplan["dialplan_xml"] .= "		<action application=\"set\" data=\"record_append=true\" inline=\"true\"/>\n";
@@ -986,7 +986,7 @@
 										}
 
 									//add option record to the dialplan
-										if ($destination_record === true) {
+										if (!empty($destination_record) && $destination_record == 'true') {
 
 											//add a variable
 												$dialplan["dialplan_details"][$y]["domain_uuid"] = $domain_uuid;
@@ -1817,7 +1817,7 @@
 		echo "</tr>\n";
 	}
 
-	//caler id number
+	//caller id number
 	if (permission_exists('destination_caller_id_number')) {
 		echo "<tr id='tr_caller_id_number'>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";

@@ -48,6 +48,7 @@
 	$order_by = preg_replace('#[^a-zA-Z0-9_\-]#', '', ($_REQUEST["order_by"] ?? 'extension'));
 	$order = $_REQUEST["order"] ?? 'asc';
 	$page = isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $_REQUEST['page'] : 0;
+	$search = $_REQUEST['search'] ?? null;
 
 //return the first item if data type = array, returns value if data type = text
 	function get_first_item($value) {
@@ -116,7 +117,7 @@
 
 		if ($total_extensions >= $limit_extensions) {
 			message::add($text['message-maximum_extensions'].' '.$limit_extensions, 'negative');
-			header('Location: extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
+			header('Location: extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 			exit;
 		}
 	}
@@ -319,7 +320,7 @@
 			$p->delete('extension_user_delete', 'temp');
 
 		//redirect
-			header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
+			header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 			exit;
 	}
 
@@ -344,7 +345,7 @@
 				$p->delete('device_line_delete', 'temp');
 
 			//redirect
-				header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
+				header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 				exit;
 		}
 	}
@@ -361,7 +362,7 @@
 			$token = new token;
 			if (!$token->validate($_SERVER['PHP_SELF'])) {
 				message::add($text['message-invalid_token'],'negative');
-				header('Location: extensions.php');
+				header('Location: extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 				exit;
 			}
 
@@ -404,7 +405,7 @@
 			if (message::count() != 0 || !empty($invalid)) {
 				if ($invalid) { message::add($text['message-required'].implode(', ', $invalid), 'negative', 7500); }
 				persistent_form_values('store', $_POST);
-				header("Location: extension_edit.php?".(permission_exists('extension_edit') && $action != 'add' ? "&id=".urlencode($extension_uuid) : null).(!empty($order_by) ? '&order_by='.$order_by : null).(!empty($order) ? '&order='.$order : null).(!empty($page) ? '&page='.$page : null));
+				header("Location: extension_edit.php?".(permission_exists('extension_edit') && $action != 'add' ? "&id=".urlencode($extension_uuid) : null).(!empty($order_by) ? '&order_by='.$order_by : null).(!empty($order) ? '&order='.$order : null).(!empty($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 				exit;
 			}
 			else {
@@ -892,9 +893,9 @@
 								$user_context = $database->select($sql, $parameters, 'column');
 							}
 							$cache = new cache;
-							$cache->delete(gethostname().":directory:".$extension."@".$user_context);
+							$cache->delete("directory:".$extension."@".$user_context);
 							if (permission_exists('number_alias') && !empty($number_alias)) {
-								$cache->delete(gethostname().":directory:".$number_alias."@".$user_context);
+								$cache->delete("directory:".$number_alias."@".$user_context);
 							}
 
 						//clear the destinations session array
@@ -912,10 +913,10 @@
 						message::add($text['message-update']);
 					}
 					if ($range > 1) {
-						header("Location: extensions.php?".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
+						header("Location: extensions.php?".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 					}
 					else {
-						header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null));
+						header("Location: extension_edit.php?id=".$extension_uuid.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null));
 					}
 					exit;
 			}
@@ -1044,11 +1045,12 @@
 	$device_vendors = $database->select($sql, null, 'all');
 	unset($sql);
 
-//get assigned users
+//get the assigned users
 	if (!empty($extension_uuid) && is_uuid($extension_uuid)) {
 		$sql = "select u.username, e.user_uuid ";
-		$sql .= "from v_extension_users as e, v_users as u ";
-		$sql .= "where e.user_uuid = u.user_uuid  ";
+		$sql .= "from v_extension_users as e ";
+		$sql .= "join v_users u on e.user_uuid = u.user_uuid ";
+		$sql .= "where u.domain_uuid = :domain_uuid ";
 		$sql .= "and u.user_enabled = true ";
 		$sql .= "and e.domain_uuid = :domain_uuid ";
 		$sql .= "and e.extension_uuid = :extension_uuid ";
@@ -1121,7 +1123,7 @@
 	if (empty($user_context)) { $user_context = $domain_name; }
 	if (empty($max_registrations)) { $max_registrations = $extension_max_registrations ?? ''; }
 	if (empty($accountcode)) { $accountcode = get_accountcode(); }
-	if (empty($limit_max)) { $limit_max = $extension_limit_max; }
+	if (!isset($limit_max)) { $limit_max = $extension_limit_max; }
 	if (empty($limit_destination)) { $limit_destination = '!USER_BUSY'; }
 	if (empty($call_timeout)) { $call_timeout = $extension_call_timeout; }
 	if (empty($user_record)) { $user_record = $extension_user_record_default; }
@@ -1157,31 +1159,33 @@
 
 	echo "<script type=\"text/javascript\" language=\"JavaScript\">\n";
 	echo "\n";
-	echo "function enable_change(enable_over) {\n";
-	echo "	var endis;\n";
-	echo "	endis = !(document.iform.enable.checked || enable_over);\n";
-	echo "	document.iform.range_from.disabled = endis;\n";
-	echo "	document.iform.range_to.disabled = endis;\n";
-	echo "}\n";
+	echo "	function enable_change(enable_over) {\n";
+	echo "		var endis;\n";
+	echo "		endis = !(document.iform.enable.checked || enable_over);\n";
+	echo "		document.iform.range_from.disabled = endis;\n";
+	echo "		document.iform.range_to.disabled = endis;\n";
+	echo "	}\n";
 	echo "\n";
 	if (permission_exists('extension_advanced')) {
-		echo "function show_advanced_config() {\n";
-		echo "	$('#show_advanced_box').slideToggle();\n";
-		echo "	$('#show_advanced').slideToggle();\n";
-		echo "}\n";
+		echo "	function show_advanced_config() {\n";
+		echo "		const rows = document.querySelectorAll('.advanced-row');\n";
+		echo "		rows.forEach(row => {\n";
+		echo "			row.style.display = row.style.display == 'none' ? 'table-row' : 'none';\n";
+		echo "		});\n";
+		echo "	}\n";
 		echo "\n";
 	}
 	echo "function copy_extension() {\n";
 	echo "	var new_ext = prompt('".$text['message-extension']."');\n";
 	echo "	if (new_ext != null) {\n";
 	echo "		if (!isNaN(new_ext)) {\n";
-	echo "			document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null)."';\n";
+	echo "			document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null)."';\n";
 	echo "		}\n";
 	echo "		else {\n";
 	echo "			var new_number_alias = prompt('".$text['message-number_alias']."');\n";
 	echo "			if (new_number_alias != null) {\n";
 	echo "				if (!isNaN(new_number_alias)) {\n";
-	echo "					document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '&alias=' + new_number_alias + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null)."';\n";
+	echo "					document.location.href='extension_copy.php?id=".escape($extension_uuid ?? '')."&ext=' + new_ext + '&alias=' + new_number_alias + '".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(!empty($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null)."';\n";
 	echo "				}\n";
 	echo "			}\n";
 	echo "		}\n";
@@ -1201,7 +1205,7 @@
 	}
 	echo 	"</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null)]);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'extensions.php?'.(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(isset($page) && is_numeric($page) ? '&page='.$page : null).(!empty($search) ? '&search='.urlencode($search) : null)]);
 	if ($action == 'update') {
 		$button_margin = 'margin-left: 15px;';
 		if (permission_exists('xml_cdr_view')) {
@@ -2158,51 +2162,41 @@
 		echo "</tr>\n";
 	}
 
-	//--- begin: show_advanced -----------------------
-
 	if (permission_exists("extension_advanced")) {
-		echo "<tr>\n";
-		echo "<td style='padding: 0px;' colspan='2' class='' valign='top' align='left' nowrap>\n";
-
-		echo "	<div id=\"show_advanced_box\">\n";
-		echo "		<table width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n";
-		echo "		<tr>\n";
-		echo "		<td width=\"30%\" valign=\"top\" class=\"vncell\">&nbsp;</td>\n";
-		echo "		<td width=\"70%\" class=\"vtable\">\n";
-		echo button::create(['type'=>'button','label'=>$text['button-advanced'],'icon'=>'tools','onclick'=>'show_advanced_config();']);
-		echo "		</td>\n";
-		echo "		</tr>\n";
-		echo "		</table>\n";
-		echo "	</div>\n";
-
-		echo "	<div id=\"show_advanced\" style=\"display:none\">\n";
-		echo "	<table width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n";
 
 		echo "<tr>\n";
-		echo "<td width=\"30%\" class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
+		echo "	<td valign=\"top\" class=\"vncell\">&nbsp;</td>\n";
+		echo "	<td class=\"vtable\">\n";
+		echo "		".button::create(['type'=>'button','label'=>$text['button-advanced'],'icon'=>'tools','onclick'=>'show_advanced_config();']);
+		echo "	</td>\n";
+		echo "</tr>\n";
+
+
+		echo "<tr class='advanced-row' style='display: none;'>\n";
+		echo "	<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-auth_acl']."\n";
-		echo "</td>\n";
-		echo "<td width=\"70%\" class='vtable' align='left'>\n";
-		echo "   <input class='formfld' type='text' name='auth_acl' maxlength='255' value=\"".escape($auth_acl ?? '')."\">\n";
-		echo "   <br />\n";
-		echo $text['description-auth_acl']."\n";
-		echo "</td>\n";
+		echo "	</td>\n";
+		echo "	<td class='vtable' align='left'>\n";
+		echo " 	  <input class='formfld' type='text' name='auth_acl' maxlength='255' value=\"".escape($auth_acl ?? '')."\">\n";
+		echo " 	  <br />\n";
+		echo "		".$text['description-auth_acl']."\n";
+		echo "	</td>\n";
 		echo "</tr>\n";
 
 		if (permission_exists("extension_cidr")) {
-			echo "<tr>\n";
-			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
+			echo "<tr class='advanced-row' style='display: none;'>\n";
+			echo "	<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-cidr']."\n";
-			echo "</td>\n";
-			echo "<td class='vtable' align='left'>\n";
+			echo "	</td>\n";
+			echo "	<td class='vtable' align='left'>\n";
 			echo "    <input class='formfld' type='text' name='cidr' maxlength='255' value=\"".escape($cidr ?? '')."\">\n";
-			echo "<br />\n";
-			echo $text['description-cidr']."\n";
-			echo "</td>\n";
+			echo "		<br />\n";
+			echo "		".$text['description-cidr']."\n";
+			echo "	</td>\n";
 			echo "</tr>\n";
 		}
 
-		echo "<tr>\n";
+		echo "<tr class='advanced-row' style='display: none;'>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-sip_force_contact']."\n";
 		echo "</td>\n";
@@ -2224,7 +2218,7 @@
 		echo "</td>\n";
 		echo "</tr>\n";
 
-		echo "<tr>\n";
+		echo "<tr class='advanced-row' style='display: none;'>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-sip_force_expires']."\n";
 		echo "</td>\n";
@@ -2236,7 +2230,7 @@
 		echo "</tr>\n";
 
 		if (permission_exists('extension_nibble_account')) {
-			echo "<tr>\n";
+			echo "<tr class='advanced-row' style='display: none;'>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-nibble_account']."\n";
 			echo "</td>\n";
@@ -2248,7 +2242,7 @@
 			echo "</tr>\n";
 		}
 
-		echo "<tr>\n";
+		echo "<tr class='advanced-row' style='display: none;'>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-mwi_account']."\n";
 		echo "</td>\n";
@@ -2259,7 +2253,7 @@
 		echo "</td>\n";
 		echo "</tr>\n";
 
-		echo "<tr>\n";
+		echo "<tr class='advanced-row' style='display: none;'>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 		echo "    ".$text['label-sip_bypass_media']."\n";
 		echo "</td>\n";
@@ -2282,7 +2276,7 @@
 		echo "</tr>\n";
 
 		if (permission_exists('extension_absolute_codec_string')) {
-			echo "<tr>\n";
+			echo "<tr class='advanced-row' style='display: none;'>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-absolute_codec_string']."\n";
 			echo "</td>\n";
@@ -2295,7 +2289,7 @@
 		}
 
 		if (permission_exists('extension_force_ping')) {
-			echo "<tr>\n";
+			echo "<tr class='advanced-row' style='display: none;'>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-force_ping']."\n";
 			echo "</td>\n";
@@ -2318,7 +2312,7 @@
 		}
 
 		if (permission_exists('extension_dial_string')) {
-			echo "<tr>\n";
+			echo "<tr class='advanced-row' style='display: none;'>\n";
 			echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>\n";
 			echo "    ".$text['label-dial_string']."\n";
 			echo "</td>\n";
@@ -2330,14 +2324,8 @@
 			echo "</tr>\n";
 		}
 
-		echo "	</table>\n";
-		echo "	</div>";
-
-		echo "</td>\n";
-		echo "</tr>\n";
-
 	}
-	//--- end: show_advanced -----------------------
+
 
 	if (permission_exists('extension_enabled')) {
 		echo "<tr>\n";
@@ -2393,6 +2381,7 @@
 		echo "<input type='hidden' name='delete_type' id='delete_type' value=''>";
 		echo "<input type='hidden' name='delete_uuid' id='delete_uuid' value=''>";
 	}
+	echo "<input type='hidden' name='search' id='search' value=\"".escape($search ?? '')."\" />\n";
 	echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
 
 	echo "</form>";

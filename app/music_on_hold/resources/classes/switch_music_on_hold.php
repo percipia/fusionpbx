@@ -128,7 +128,7 @@ class switch_music_on_hold {
 	public function select($name, $selected, $options) {
 		//add multi-lingual support
 		$language = new text;
-		$text     = $language->get();
+		$text = $language->get();
 
 		//start the select
 		$select = "<select class='formfld' name='" . $name . "' id='" . $name . "' style='width: auto;'>\n";
@@ -136,8 +136,8 @@ class switch_music_on_hold {
 		//music on hold
 		$music_list = $this->get();
 		if (count($music_list) > 0) {
-			$select        .= "	<option value=''>\n";
-			$select        .= "	<optgroup label='" . $text['label-music_on_hold'] . "'>\n";
+			$select .= "	<option value=''>\n";
+			$select .= "	<optgroup label='" . $text['label-music_on_hold'] . "'>\n";
 			$previous_name = '';
 			foreach ($music_list as $row) {
 				if ($previous_name != $row['music_on_hold_name']) {
@@ -166,12 +166,12 @@ class switch_music_on_hold {
 		}
 		//streams
 		if (is_dir(dirname(__DIR__, 4) . '/app/streams')) {
-			$sql                       = "select * from v_streams ";
-			$sql                       .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
-			$sql                       .= "and stream_enabled = 'true' ";
-			$sql                       .= "order by stream_name asc ";
+			$sql = "select * from v_streams ";
+			$sql .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
+			$sql .= "and stream_enabled = 'true' ";
+			$sql .= "order by stream_name asc ";
 			$parameters['domain_uuid'] = $this->domain_uuid;
-			$streams                   = $this->database->select($sql, $parameters, 'all');
+			$streams = $this->database->select($sql, $parameters, 'all');
 			if (is_array($streams) && @sizeof($streams) != 0) {
 				$select .= "	<optgroup label='" . $text['label-streams'] . "'>";
 				foreach ($streams as $row) {
@@ -200,13 +200,13 @@ class switch_music_on_hold {
 	 */
 	public function get() {
 		//get moh records, build array
-		$sql                       = "select ";
-		$sql                       .= "d.domain_name, ";
-		$sql                       .= "m.* ";
-		$sql                       .= "from v_music_on_hold as m ";
-		$sql                       .= "left join v_domains as d on d.domain_uuid = m.domain_uuid ";
-		$sql                       .= "where (m.domain_uuid = :domain_uuid or m.domain_uuid is null) ";
-		$sql                       .= "order by m.domain_uuid desc, music_on_hold_name asc, music_on_hold_rate asc ";
+		$sql = "select ";
+		$sql .= "d.domain_name, ";
+		$sql .= "m.* ";
+		$sql .= "from v_music_on_hold as m ";
+		$sql .= "left join v_domains as d on d.domain_uuid = m.domain_uuid ";
+		$sql .= "where (m.domain_uuid = :domain_uuid or m.domain_uuid is null) ";
+		$sql .= "order by m.domain_uuid desc, music_on_hold_name asc, music_on_hold_rate asc ";
 		$parameters['domain_uuid'] = $this->domain_uuid;
 		return $this->database->select($sql, $parameters, 'all');
 	}
@@ -214,24 +214,28 @@ class switch_music_on_hold {
 	/**
 	 * Reloads the module and establishes a connection to the Event Socket.
 	 */
-	public function reload() {
+	public function reload($stream_name) {
 		//add multi-lingual support
 		$language = new text;
-		$text     = $language->get();
+		$text = $language->get();
 
 		//if the handle does not exist create it
 		$esl = event_socket::create();
 
-		//if the handle still does not exist show an error message
+		//if the handle still does not exist
 		if (!$esl->is_connected()) {
-			$msg = "<div align='center'>" . $text['message-event-socket'] . "<br /></div>";
+			return;
 		}
 
 		//send the api command to check if the module exists
 		if ($esl->is_connected()) {
-			$cmd           = "reload mod_local_stream";
-			$switch_result = event_socket::api($cmd);
-			unset($cmd);
+			$switch_command = "local_stream start ".escapeshellarg($stream_name);
+			$switch_result = event_socket::api($switch_command);
+			unset($switch_result, $switch_command);
+
+			$switch_command = "local_stream reload ".escapeshellarg($stream_name);
+			$switch_result = event_socket::api($switch_command);
+			unset($switch_result, $switch_command);
 		}
 	}
 
@@ -263,7 +267,7 @@ class switch_music_on_hold {
 		fclose($fout);
 
 		//reload the XML
-		$this->reload();
+		//$this->reload();
 	}
 
 	/**
@@ -274,13 +278,13 @@ class switch_music_on_hold {
 	 */
 	public function import() {
 		//get the domains
-		$sql     = "select * from v_domains ";
+		$sql = "select * from v_domains ";
 		$domains = $this->database->select($sql, null, 'all');
 		unset($sql);
 
 		//get the music_on_hold array
-		$sql           = "select * from v_music_on_hold ";
-		$sql           .= "order by domain_uuid desc, music_on_hold_name asc, music_on_hold_rate asc";
+		$sql = "select * from v_music_on_hold ";
+		$sql .= "order by domain_uuid desc, music_on_hold_name asc, music_on_hold_rate asc";
 		$music_on_hold = $this->database->select($sql, null, 'all');
 		unset($sql);
 
@@ -292,9 +296,9 @@ class switch_music_on_hold {
 
 		//build a new file array
 		foreach ($files as $file) {
-			$path                                                       = substr($file, strlen($music_directory . '/'));
-			$path                                                       = str_replace("\\", "/", $path);
-			$path_array                                                 = explode("/", $path);
+			$path = substr($file, strlen($music_directory . '/'));
+			$path = str_replace("\\", "/", $path);
+			$path_array = explode("/", $path);
 			$file_array[$path_array[0]][$path_array[1]][$path_array[2]] = dirname($file);
 			//echo "domain_name ".$path_array[0]."<br />\n";
 			//echo "category_name ".$path_array[1]."<br />\n";
@@ -341,8 +345,6 @@ class switch_music_on_hold {
 		$p = permissions::new();
 		$p->add('music_on_hold_add', 'temp');
 
-		$this->database->app_name = 'music_on_hold';
-		$this->database->app_uuid = '1dafe0f8-c08a-289b-0312-15baf4f20f81';
 		$this->database->save($array);
 		//echo $this->database->message;
 		unset($array);
@@ -364,7 +366,7 @@ class switch_music_on_hold {
 
 			//add multi-lingual support
 			$language = new text;
-			$text     = $language->get();
+			$text = $language->get();
 
 			//validate the token
 			$token = new token;
@@ -473,7 +475,7 @@ class switch_music_on_hold {
 					$cache->delete("configuration:local_stream.conf");
 
 					//reload moh
-					$this->reload();
+					//$this->reload();
 
 					//set message
 					message::add($text['message-delete']);

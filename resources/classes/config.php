@@ -296,8 +296,38 @@ final class config {
 	}
 
 	/**
-	 * Returns if the config class has a loaded configuration or not
-	 * @return bool True if configuration has loaded and false if it is empty
+	 * Returns a singleton instance of the configuration object.
+	 *
+	 * If the current singleton has no loaded settings, it is replaced with an
+	 * instance using the supplied file (or the default configuration file).
+	 *
+	 * @param string $file Optional configuration file path.
+	 * @return config The loaded configuration object.
+	 */
+	public static function load(string $file = ''): config {
+		if (self::$config === null || self::$config->is_empty()) {
+			self::$config = new config($file);
+		}
+		return self::$config;
+	}
+
+	/**
+	 * Returns the string representation of the configuration file.
+	 *
+	 * @return string configuration
+	 */
+	public function __toString(): string {
+		$string_builder = "";
+		foreach ($this->configuration as $key => $value) {
+			$string_builder .= "$key = '$value'\n";
+		}
+		return $string_builder;
+	}
+
+	/**
+	 * Checks if the configuration is empty.
+	 *
+	 * @return bool true if the configuration is empty, false otherwise
 	 */
 	public function is_empty(): bool {
 		return count($this->configuration) === 0;
@@ -311,16 +341,6 @@ final class config {
 		return $this->configuration;
 	}
 
-	/**
-	 * Ensures the configuration file is loaded only once
-	 * @return config
-	 */
-	public static function load(string $file = ''): config {
-		if (self::$config === null) {
-			self::$config = new config($file);
-		}
-		return self::$config;
-	}
 }
 
 /*

@@ -48,6 +48,22 @@ class ws_client {
 
 			if (status === 'ok' && code >= 200 && code < 300) {
 				resolve({service, topic, payload, code, message});
+
+				// Some services stream event payloads while also echoing the request_id.
+				// Dispatch to event handlers so the first streamed event is not swallowed.
+				if (topic && this._eventHandlers.has(topic)) {
+					let event_message = message;
+					if (payload !== null && typeof payload === 'object' && !Array.isArray(payload)) {
+						event_message = {
+							...message,
+							payload: {
+								...payload,
+								__from_request: true
+							}
+						};
+					}
+					this._dispatchEvent(event_message);
+				}
 			} else {
 				const err = new Error(message || `Error ${code}`);
 				err.code = code;
@@ -101,8 +117,20 @@ class ws_client {
 	 * @param {object} env
 	 */
 	_dispatchEvent(message) {
+		if (message === null || typeof message !== 'object') {
+			return;
+		}
+
 		const service = message.service_name;
 		const topic = message.topic;
+		if (!topic) {
+			return;
+		}
+
+		if (message.payload === null || typeof message.payload !== 'object') {
+			return;
+		}
+
 		const handlers = this._eventHandlers.get(topic) || [];
 		for (const fn of handlers) {
 			try {

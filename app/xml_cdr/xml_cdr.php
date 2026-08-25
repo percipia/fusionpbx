@@ -140,7 +140,7 @@
 	if ($permission['xml_cdr_search_extension']) {
 		$sql = "select extension_uuid, extension, number_alias from v_extensions ";
 		$sql .= "where domain_uuid = :domain_uuid ";
-		if (!$permission['xml_cdr_domain'] && is_array($extension_uuids) && @sizeof($extension_uuids != 0)) {
+		if (!$permission['xml_cdr_domain'] && is_array($extension_uuids) && @sizeof($extension_uuids) != 0) {
 			$sql .= "and extension_uuid in ('".implode("','",$extension_uuids)."') "; //only show the user their extensions
 		}
 		$sql .= "order by extension asc, number_alias asc ";
@@ -205,7 +205,7 @@
 	echo "		}\n";
 	echo "		xmlhttp.open(\"GET\",url,true);\n";
 	echo "		xmlhttp.send(null);\n";
-	echo "		document.getElementById('cmd_reponse').innerHTML=xmlhttp.responseText;\n";
+	// echo "		document.getElementById('cmd_response').innerHTML=xmlhttp.responseText;\n";
 	echo "	}\n";
 	echo "</script>\n";
 
@@ -397,7 +397,7 @@
 			if (is_array($extensions) && @sizeof($extensions) != 0) {
 				foreach ($extensions as $row) {
 					$selected = ($row['extension_uuid'] == $extension_uuid) ? "selected" : null;
-					echo "		<option value='".escape($row['extension_uuid'])."' ".escape($selected).">".((is_numeric($row['extension'])) ? escape($row['extension']) : escape($row['number_alias'])." (".escape($row['extension']).")")."</option>";
+					echo "		<option value='".escape($row['extension_uuid'])."' $selected>".((is_numeric($row['extension'])) ? escape($row['extension']) : escape($row['number_alias'])." (".escape($row['extension']).")")."</option>";
 				}
 			}
 			echo "			</select>\n";
@@ -535,7 +535,7 @@
 			foreach ($cdr_status_options as $cdr_status) {
 				$selected = ($hangup_cause == $cdr_status) ? "selected='selected'" : null;
 				$cdr_status_label = ucwords(strtolower(str_replace("_", " ", $cdr_status)));
-				echo "			<option value='".escape($cdr_status)."' ".escape($selected).">".escape($cdr_status_label)."</option>\n";
+				echo "			<option value='".escape($cdr_status)."' $selected>".escape($cdr_status_label)."</option>\n";
 			}
 			echo "			</select>\n";
 			echo "		</div>\n";
@@ -635,7 +635,7 @@
 				echo "				<option value=''></option>";
 				foreach ($call_center_queues as $row) {
 					$selected = ($row['call_center_queue_uuid'] == $call_center_queue_uuid) ? "selected" : null;
-					echo "		<option value='".escape($row['call_center_queue_uuid'])."' ".escape($selected).">".((is_numeric($row['queue_extension'])) ? escape($row['queue_extension']." (".$row['queue_name'].")") : escape($row['queue_extension'])." (".escape($row['queue_extension']).")")."</option>";
+					echo "		<option value='".escape($row['call_center_queue_uuid'])."' $selected>".((is_numeric($row['queue_extension'])) ? escape($row['queue_extension']." (".$row['queue_name'].")") : escape($row['queue_extension'])." (".escape($row['queue_extension']).")")."</option>";
 				}
 				echo "			</select>\n";
 				echo "		</div>\n";
@@ -653,7 +653,7 @@
 				echo "				<option value=''></option>";
 				foreach ($ring_groups as $row) {
 					$selected = ($row['ring_group_uuid'] == $ring_group_uuid) ? "selected" : null;
-					echo "		<option value='".escape($row['ring_group_uuid'])."' ".escape($selected).">".((is_numeric($row['ring_group_extension'])) ? escape($row['ring_group_extension']." (".$row['ring_group_name'].")") : escape($row['ring_group_extension'])." (".escape($row['ring_group_extension']).")")."</option>";
+					echo "		<option value='".escape($row['ring_group_uuid'])."' $selected>".((is_numeric($row['ring_group_extension'])) ? escape($row['ring_group_extension']." (".$row['ring_group_name'].")") : escape($row['ring_group_extension'])." (".escape($row['ring_group_extension']).")")."</option>";
 				}
 				echo "			</select>\n";
 				echo "		</div>\n";
@@ -672,7 +672,7 @@
 			echo "				<option value=''></option>";
 			foreach ($ivr_menus as $row) {
 				$selected = ($row['ivr_menu_uuid'] == $ivr_menu_uuid) ? "selected" : null;
-				echo "		<option value='".escape($row['ivr_menu_uuid'])."' ".escape($selected).">".((is_numeric($row['ivr_menu_extension'])) ? escape($row['ivr_menu_extension']." (".$row['ivr_menu_name'].")") : escape($row['ivr_menu_extension'])." (".escape($row['ivr_menu_extension']).")")."</option>";
+				echo "		<option value='".escape($row['ivr_menu_uuid'])."' $selected>".((is_numeric($row['ivr_menu_extension'])) ? escape($row['ivr_menu_extension']." (".$row['ivr_menu_name'].")") : escape($row['ivr_menu_extension'])." (".escape($row['ivr_menu_extension']).")")."</option>";
 			}
 			echo "			</select>\n";
 			echo "		</div>\n";
@@ -763,7 +763,7 @@
 		$col_count++;
 	}
 	if ($permission['xml_cdr_recording'] && ($permission['xml_cdr_recording_play'] || $permission['xml_cdr_recording_download'])) {
-		echo "<th class='center'>".$text['label-recording']."</th>\n";
+		echo "<th class='center hide-md-dn'>".$text['label-recording']."</th>\n";
 		$col_count++;
 	}
 	if ($permission['xml_cdr_account_code']) {
@@ -990,7 +990,7 @@
 				//source
 					if ($permission['xml_cdr_caller_id_number']) {
 						$content .= "	<td class='middle no-link no-wrap'>";
-						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode(escape($row['caller_id_name']))."&src_cid_number=".urlencode(escape($row['caller_id_number']))."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode(escape($row['caller_id_number']))."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
+						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode($row['caller_id_name'])."&src_cid_number=".urlencode($row['caller_id_number'])."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode($row['caller_id_number'])."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
 						if (is_numeric($row['caller_id_number'])) {
 							$content .= "		".escape(format_phone(substr($row['caller_id_number'], 0, 20))).' ';
 						}
@@ -1003,7 +1003,7 @@
 				//caller destination
 					if ($permission['xml_cdr_caller_destination']) {
 						$content .= "	<td class='middle no-link no-wrap'>";
-						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode(escape($row['caller_id_name']))."&src_cid_number=".urlencode(escape($row['caller_id_number']))."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode(escape($row['caller_destination']))."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
+						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode($row['caller_id_name'])."&src_cid_number=".urlencode($row['caller_id_number'])."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode($row['caller_destination'])."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
 						if (is_numeric($row['caller_destination'])) {
 							$content .= "		".escape(format_phone(substr($row['caller_destination'], 0, 20))).' ';
 						}
@@ -1016,7 +1016,7 @@
 				//destination
 					if ($permission['xml_cdr_destination']) {
 						$content .= "	<td class='hide-md-dn middle no-link no-wrap'>";
-						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode(escape($row['destination_number']))."&src_cid_number=".urlencode(escape($row['destination_number']))."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode(escape($row['destination_number']))."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
+						$content .= "		<a href=\"javascript:void(0)\" onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php?src_cid_name=".urlencode($row['destination_number'])."&src_cid_number=".urlencode($row['destination_number'])."&dest_cid_name=".urlencode($outbound_caller_id_name)."&dest_cid_number=".urlencode($outbound_caller_id_number)."&src=".urlencode($user_extension)."&dest=".urlencode($row['destination_number'])."&rec=false&ringback=us-ring&auto_answer=true');\">\n";
 						if (is_numeric($row['destination_number'])) {
 							$content .= escape(format_phone(substr($row['destination_number'], 0, 20)))."\n";
 						}
@@ -1028,8 +1028,8 @@
 					}
 				//recording
 					if ($permission['xml_cdr_recording'] && ($permission['xml_cdr_recording_play'] || $permission['xml_cdr_recording_download'])) {
-						if (!empty($record_path) || !empty($record_name)) {
-							$content .= "	<td class='middle button center no-link no-wrap'>";
+						if ((!empty($record_path) || !empty($record_name)) && $duration > 1) {
+							$content .= "	<td class='middle button center no-link no-wrap hide-md-dn'>";
 							if ($permission['xml_cdr_recording_play']) {
 								$content .= 	"<audio id='recording_audio_".escape($row['xml_cdr_uuid'])."' style='display: none;' preload='none' ontimeupdate=\"update_progress('".escape($row['xml_cdr_uuid'])."')\" onended=\"recording_reset('".escape($row['xml_cdr_uuid'])."');\" src=\"download.php?id=".escape($row['xml_cdr_uuid'])."\" type='".escape($record_type)."'></audio>";
 								$content .= button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$settings->get('theme', 'button_icon_play'),'id'=>'recording_button_'.escape($row['xml_cdr_uuid']),'onclick'=>"recording_play('".escape($row['xml_cdr_uuid'])."')"]);
@@ -1040,7 +1040,7 @@
 							$content .= 	"</td>\n";
 						}
 						else {
-							$content .= "	<td>&nbsp;</td>\n";
+							$content .= "	<td class='hide-md-dn'>&nbsp;</td>\n";
 						}
 					}
 				//account code

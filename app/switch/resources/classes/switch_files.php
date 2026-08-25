@@ -90,20 +90,21 @@ class switch_files {
 		//get the destination directory
 		if (file_exists($this->config->get('switch.scripts.dir'))) {
 			$destination_directory = $this->config->get('switch.scripts.dir');
-		} elseif (file_exists('/etc/freeswitch/scripts')) {
-			$destination_directory = '/etc/freeswitch/scripts';
+		} elseif (file_exists('/usr/share/freeswitch/scripts/')) {
+			$destination_directory = '/usr/share/freeswitch/scripts';
 		} elseif (file_exists('/usr/local/freeswitch/scripts')) {
 			$destination_directory = '/usr/local/freeswitch/scripts';
 		}
 
 		//copy the scripts directory
-		if (!empty($source_directory) && is_readable($source_directory)) {
+		if (!empty($source_directory) && !empty($destination_directory) 
+			&& is_readable($source_directory) && is_writable($destination_directory)) {
 			//copy the main scripts
 			recursive_copy($source_directory, $destination_directory);
 			unset($source_directory);
 
-			//copy the app/*/resource/install/scripts
-			$app_scripts = glob(dirname(__DIR__, 4) . 'app/*/resource/scripts');
+			//copy the app/*/resources/install/scripts
+			$app_scripts = glob(dirname(__DIR__, 4) . 'app/*/resources/scripts');
 			foreach ($app_scripts as $app_script) {
 				recursive_copy($app_script, $destination_directory);
 			}

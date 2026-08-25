@@ -27,19 +27,19 @@
 
 --get the variables
 	if (session:ready()) then
-		domain_name = session:getVariable("domain_name");
-		domain_uuid = session:getVariable("domain_uuid");
-		uuid = session:getVariable("uuid");
-		destination_number = session:getVariable("destination_number");
-		caller_id_name = session:getVariable("caller_id_name");
-		caller_id_number = session:getVariable("caller_id_number");
-		outbound_caller_id_name = session:getVariable("outbound_caller_id_name");
-		outbound_caller_id_number = session:getVariable("outbound_caller_id_number");
-		call_direction = session:getVariable("call_direction");
-		original_destination_number = session:getVariable("destination_number");
-		missed_call_app = session:getVariable("missed_call_app");
-		missed_call_data = session:getVariable("missed_call_data");
-		sip_to_user = session:getVariable("sip_to_user");
+		domain_name = session:getVariable("domain_name") or '';
+		domain_uuid = session:getVariable("domain_uuid") or '';
+		uuid = session:getVariable("uuid") or '';
+		destination_number = session:getVariable("destination_number") or '';
+		caller_id_name = session:getVariable("caller_id_name") or '';
+		caller_id_number = session:getVariable("caller_id_number") or '';
+		outbound_caller_id_name = session:getVariable("outbound_caller_id_name") or '';
+		outbound_caller_id_number = session:getVariable("outbound_caller_id_number") or '';
+		call_direction = session:getVariable("call_direction") or '';
+		original_destination_number = session:getVariable("destination_number") or '';
+		missed_call_app = session:getVariable("missed_call_app") or '';
+		missed_call_data = session:getVariable("missed_call_data") or '';
+		sip_to_user = session:getVariable("sip_to_user") or '';
 		dialed_user = session:getVariable("dialed_user") or '';
 		verto_enabled = session:getVariable("verto_enabled") or '';
 	end
@@ -429,8 +429,7 @@
 						local record_ext = session:getVariable("record_ext") or "wav";
 						local record_name = uuid.."."..record_ext;
 						local record_path = recordings_dir .. "/" .. domain_name .. "/archive/" .. os.date("%Y/%b/%d");
-						record_session = ",api_on_answer='uuid_record "..uuid.." start ".. record_path .. "/" .. record_name .. "',record_path='".. record_path .."',record_name="..record_name;
-					end
+						record_session = ",uuid_record_result='${uuid_record "..uuid.." start ".. record_path .. "/" .. record_name .. "}',record_path='".. record_path .."',record_name="..record_name;					end
 				end
 
 				--send to user

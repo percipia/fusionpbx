@@ -402,10 +402,38 @@
 						$array['contacts'][0]['contact_phones'][$y]['phone_primary'] = $row["phone_primary"];
 						$array['contacts'][0]['contact_phones'][$y]['phone_description'] = $row["phone_description"];
 
-						//clear the cache
+						// clear the speed dial cache only if speed dial is set
 						if (!empty($row["phone_speed_dial"])) {
 							$cache = new cache;
+
+							// clear the cache for the submitted speed dial number
 							$cache->delete("app.dialplan.speed_dial.".$row["phone_speed_dial"]."@".$_SESSION['domain_name']);
+
+							// clear the cache for the old speed dial number if it exists and is different from the submitted speed dial number
+							if ($action == "update" && is_uuid($row["contact_phone_uuid"])) {
+								// original speed dial number is not available so we have to get it from the database
+								$sql = "select phone_speed_dial from v_contact_phones ";
+								$sql .= "where contact_phone_uuid = :contact_phone_uuid ";
+								$parameters['contact_phone_uuid'] = $row["contact_phone_uuid"];
+								$old_phone_speed_dial = $database->execute($sql, $parameters, 'column');
+								unset($sql, $parameters);
+
+								// compare the original speed dial number to the newly submitted one
+								if (!empty($old_phone_speed_dial) && $old_phone_speed_dial != $row["phone_speed_dial"]) {
+									// they are different so we clear the old stale value from the cache
+									$cache->delete("app.dialplan.speed_dial.".$old_phone_speed_dial."@".$_SESSION['domain_name']);
+								}
+							}
+						}
+
+						// always clear caller ID lookup cache when a phone number is saved
+						if (!empty($row["phone_number"])) {
+							$cache = $cache ?? new cache;
+							$cache->delete("app:caller_id:lookup:domain_name:" . $_SESSION['domain_name'] . ":" . $row["phone_number"]);
+							if (!empty($row["phone_country_code"])) {
+								$cache->delete("app:caller_id:lookup:domain_name:" . $_SESSION['domain_name'] . ":" . $row["phone_country_code"] . $row["phone_number"]);
+								$cache->delete("app:caller_id:lookup:domain_name:" . $_SESSION['domain_name'] . ":+" . $row["phone_country_code"] . $row["phone_number"]);
+							}
 						}
 
 						//increment the row id
@@ -1214,11 +1242,14 @@
 	}
 
 input[type=text], select, textarea {
-	width: 100%;
+	max-width: 100%;
 	padding: 12px;
 	border: 1px solid #ccc;
 	border-radius: 4px;
-	resize: vertical;
+	}
+
+input[type=text] {
+	width: 100%;
 	}
 
 label {
@@ -1670,7 +1701,7 @@ if (permission_exists('contact_phone_view')) {
 	echo "	}\n";
 	echo "	xmlhttp.open(\"GET\",url,true);\n";
 	echo "	xmlhttp.send(null);\n";
-	echo "	document.getElementById('cmd_reponse').innerHTML=xmlhttp.responseText;\n";
+	// echo "	document.getElementById('cmd_response').innerHTML=xmlhttp.responseText;\n";
 	echo "}\n";
 	echo "</script>\n";
 

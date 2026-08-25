@@ -21,16 +21,9 @@ class cache {
 
 		//get the settings
 		$this->settings = $settings;
-		$this->method = $this->setting('method');
-		$this->syslog = $this->setting('syslog');
-		$this->location = $this->setting('location');
-		$this->method = 'file';
-		$this->syslog = 'false';
-		$this->location = '/var/cache/fusionpbx';
-	}
-
-	private function setting($subcategory) {
-		return $this->settings->get('cache', $subcategory);
+		$this->method = $this->settings->get('cache', 'method', 'file');
+		$this->syslog = $this->settings->get('cache', 'syslog', false);
+		$this->location = $this->settings->get('cache', 'location', '/var/cache/fusionpbx');
 	}
 
 	/**
@@ -109,11 +102,16 @@ class cache {
 	public function delete($key) {
 
 		//debug information
-			if ($this->syslog === "true") {
-				openlog("fusionpbx", LOG_PID | LOG_PERROR, LOG_USER);
-				syslog(LOG_WARNING, "debug: cache: [key: ".$key.", script: ".$_SERVER['SCRIPT_NAME'].", line: ".__line__."]");
-				closelog();
-			}
+		if ($this->syslog == true) {
+			openlog("fusionpbx", LOG_PID | LOG_PERROR, LOG_USER);
+			syslog(LOG_WARNING, "debug: cache: [key: " . $key . ", script: " . $_SERVER['SCRIPT_NAME'] . ", line: " . __line__ . "]");
+			closelog();
+		}
+
+		//key is required return false if empty
+		if (empty($key)) {
+			return false;
+		}
 
 		//cache method memcache
 			if ($this->method === "memcache") {
@@ -175,11 +173,11 @@ class cache {
 	public function flush() {
 
 		//debug information
-			if ($this->syslog === "true") {
-				openlog("fusionpbx", LOG_PID | LOG_PERROR, LOG_USER);
-				syslog(LOG_WARNING, "debug: cache: [flush: all, script: ".$_SERVER['SCRIPT_NAME'].", line: ".__line__."]");
-				closelog();
-			}
+		if ($this->syslog == true) {
+			openlog("fusionpbx", LOG_PID | LOG_PERROR, LOG_USER);
+			syslog(LOG_WARNING, "debug: cache: [flush: all, script: " . $_SERVER['SCRIPT_NAME'] . ", line: " . __line__ . "]");
+			closelog();
+		}
 
 		//check for apcu extension
 			if (function_exists('apcu_enabled') && apcu_enabled()) {

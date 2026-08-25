@@ -87,6 +87,7 @@
 				or session:getVariable("originate_disposition") == "failure"
 				or session:getVariable("originate_disposition") == "ORIGINATOR_CANCEL"
 				or session:getVariable("originate_disposition") == "UNALLOCATED_NUMBER"
+				or session:getVariable("originate_disposition") == "CALL_REJECTED"
 			) then
 				--set the status
 					status = 'missed'
@@ -322,14 +323,14 @@
 	end
 
 --set exit key action
-	if (ring_group_timeout_app and ring_group_timeout_data) then
-		if (ring_group_exit_key) then
-			--use the user defined exit key
-			session:execute("bind_digit_action", "exit_key,"..ring_group_exit_key..",exec:"..ring_group_timeout_app..","..ring_group_timeout_data..",both,self");
-		else
+	if (ring_group_timeout_app and #ring_group_timeout_app > 0 and ring_group_timeout_data and #ring_group_timeout_data > 0) then
+		if (not ring_group_exit_key or #ring_group_exit_key == 0) then
 			--use a default exit key of 9
-			session:execute("bind_digit_action", "exit_key,9,exec:"..ring_group_timeout_app..","..ring_group_timeout_data..",both,self");
+			ring_group_exit_key = "9";
 		end
+
+		--use the user defined or default exit key
+		session:execute("bind_digit_action", "local,"..ring_group_exit_key..",exec:"..ring_group_timeout_app..","..ring_group_timeout_data..",both,self");
 	end
 
 --play the greeting
@@ -1041,7 +1042,7 @@
 					--record the session
 						if (record_session) then
 							session:setVariable("record_stereo", "true");
-							record_session = ",api_on_answer='uuid_record "..uuid.." start ".. record_path .. "/" .. record_name .. "',record_path='".. record_path .."',record_name="..record_name;
+						record_session = ",uuid_record_result='${uuid_record "..uuid.." start ".. record_path .. "/" .. record_name .. "}',record_path='".. record_path .."',record_name="..record_name;
 							session:setVariable("record_path", record_path);
 						else
 							record_session = '';
@@ -1084,6 +1085,7 @@
 
 							--send to user
 							local dial_string_user = "[sip_invite_domain="..domain_name..",call_direction="..call_direction..",";
+							dial_string_user = dial_string_user .. "domain_name="..domain_name..",domain_uuid="..domain_uuid..",";
 							dial_string_user = dial_string_user .. group_confirm..","..timeout_name.."="..destination_timeout..",";
 							dial_string_user = dial_string_user .. delay_name.."="..destination_delay..",";
 							dial_string_user = dial_string_user .. "dialed_extension=" .. row.destination_number .. ",";
@@ -1104,7 +1106,7 @@
 							end
 						elseif (tonumber(destination_number) == nil) then
 							--sip uri
-							dial_string = "[sip_invite_domain="..domain_name..",domain_name="..domain_name..",call_direction="..call_direction..","..group_confirm..""..timeout_name.."="..destination_timeout..","..delay_name.."="..destination_delay.."]" .. row.destination_number;
+							dial_string = "[sip_invite_domain="..domain_name..",domain_name="..domain_name..",domain_uuid="..domain_uuid..",call_direction="..call_direction..","..group_confirm..""..timeout_name.."="..destination_timeout..","..delay_name.."="..destination_delay.."]" .. row.destination_number;
 						else
 							--external number
 								-- have to double destination_delay here due a FS bug requiring a 50% delay value for internal externsions, but not external calls.
@@ -1222,7 +1224,6 @@
 					for _, str in ipairs(bindings) do
 						session:execute("bind_digit_action", str .. "," .. bind_target)
 					end
-					session:execute("digit_action_set_realm", "local");
 
 				--if the user is busy rollover to the next destination
 					if (ring_group_strategy == "rollover") then
@@ -1315,6 +1316,7 @@
 							or session:getVariable("originate_disposition") == "USER_BUSY"
 							or session:getVariable("originate_disposition") == "RECOVERY_ON_TIMER_EXPIRE"
 							or session:getVariable("originate_disposition") == "failure"
+							or session:getVariable("originate_disposition") == "CALL_REJECTED"
 						) then
 							--execute the time out action
 								if ring_group_timeout_app and #ring_group_timeout_app > 0 then

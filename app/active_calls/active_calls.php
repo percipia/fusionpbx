@@ -282,6 +282,17 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 		INACTIVE: 'black'
 	}
 
+	const arrowColorKey = {
+		[colors.RINGING]: 'blue',
+		[colors.CONNECTED]: 'green',
+		[colors.HANGUP]: 'red',
+		[colors.INACTIVE]: 'black',
+		blue: 'blue',
+		green: 'green',
+		red: 'red',
+		black: 'black'
+	};
+
 	const truncate_application_data_length = <?php echo $settings->get('active_calls', 'truncate_application_data_length', 80); ?>;
 	const truncate_application_data = truncate_application_data_length > 0;
 
@@ -386,10 +397,13 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 			}
 		})
 
-		// wire up “select all” checkbox
-		document.getElementById("checkbox_all").addEventListener("change", e => {
-			document.querySelectorAll("#calls_active_body input[type=checkbox]").forEach(cb => cb.checked = e.target.checked);
-		});
+		// wire up "select all" checkbox only when hangup permission renders it
+		const checkboxAll = document.getElementById("checkbox_all");
+		if (checkboxAll) {
+			checkboxAll.addEventListener("change", e => {
+				document.querySelectorAll("#calls_active_body input[type=checkbox]").forEach(cb => cb.checked = e.target.checked);
+			});
+		}
 
 <?php if (permission_exists('call_active_all')): ?>
 		// Show all listener
@@ -461,7 +475,8 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 
 	// Ringing, Answer, Hangup
 	function channel_callstate_event(call) {
-		const state = call.answer_state;
+		const state = normalize_answer_state(call);
+		call.answer_state = state;
 		//update color
 		const uuid = call.unique_id;
 		//console.log(call.event_name, call.unique_id, state, call);
@@ -469,6 +484,7 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 		//create a row for the call
 		if (row === null) {
 			new_call(call);
+			row = document.getElementById(uuid) || null;
 		}
 		const other_leg_rdnis = call.other_leg_rdnis ?? '';
 		const other_leg_unique_id = call.other_leg_unique_id ?? '';
@@ -487,7 +503,7 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 				} else {
 					if (other_leg_unique_id !== '') {
 						const matched_call = document.getElementById(other_leg_unique_id);
-						if (matched_call.dataset.forced_direction) {
+						if (matched_call && matched_call.dataset.forced_direction) {
 							replace_arrow_icon(uuid, matched_call.dataset.forced_direction);
 						}
 					} else {
@@ -508,6 +524,21 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 				hangup_call(call);
 				break;
 		}
+	}
+
+	function normalize_answer_state(call) {
+		const answer_state = String(call.answer_state ?? '').toLowerCase();
+		if (answer_state !== 'ringing') {
+			return answer_state;
+		}
+
+		// The in.progress bootstrap payload is currently synthesized as "ringing"
+		// even when a call is already established. Mark those request-seeded rows as answered.
+		if (call.__from_request === true) {
+			return 'answered';
+		}
+
+		return answer_state;
 	}
 
 	function channel_execute_event(call) {
@@ -602,9 +633,9 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 	//update the application cell
 	function channel_application_event(call) {
 		//console.log(call.event_name, call.unique_id, call);
-		const tbody = document.getElementById("calls_active_body");
-		if (!callsMap.has(call.unique_id)) {
-			update_call_element(`application_${uuid}`, call.application_name);
+		if (callsMap.has(call.unique_id)) {
+			const uuid = call.unique_id;
+			update_call_element(`application_${uuid}`, call.application_name ?? '');
 		}
 	}
 <?php endif; ?>
@@ -655,18 +686,19 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 		//get the table cell
 		const span = document.getElementById(`arrow_${uuid}`) ?? null;
 		if (!span) { return; }
-		const icon = span.dataset.icon ?? 'local';
+		const icon = (span.dataset.icon && arrows[span.dataset.icon]) ? span.dataset.icon : 'local';
+		const normalizedColor = arrowColorKey[color] ?? 'blue';
 
 		//nothing to do
-		if (color === span.dataset.color) {
+		if (normalizedColor === (arrowColorKey[span.dataset.color] ?? span.dataset.color)) {
 			return;
 		}
 
 		span.dataset.icon = icon;
-		span.dataset.color = color;
+		span.dataset.color = normalizedColor;
 
 		//copy the cached arrow
-		const cached_arrow = arrows[icon][color];
+		const cached_arrow = arrows[icon]?.[normalizedColor] ?? arrows.local.blue;
 		const arrow = cached_arrow.cloneNode(true);
 
 		//check for exiting arrow and add or replace
@@ -686,23 +718,19 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 		//get the table cell
 		const span = document.getElementById(`arrow_${uuid}`) ?? null;
 		if (!span) { return; }
-		const color = span.dataset.color ?? colors.RINGING;
-
-
-		if (span.dataset.icon === null) {
-			throw Exception('icon empty');
-		}
+		const color = arrowColorKey[span.dataset.color] ?? 'blue';
+		const normalizedIcon = arrows[icon] ? icon : 'local';
 
 		//nothing to do
-		if (icon === span.dataset.icon) {
+		if (normalizedIcon === span.dataset.icon) {
 			return;
 		}
 
-		span.dataset.icon = icon;
+		span.dataset.icon = normalizedIcon;
 		span.dataset.color = color;
 
 		//copy the cached arrow
-		const cached_arrow = arrows[icon][color];
+		const cached_arrow = arrows[normalizedIcon]?.[color] ?? arrows.local.blue;
 		const arrow = cached_arrow.cloneNode(true);
 
 		const span_arrow = span.firstChild ?? null;
@@ -799,7 +827,14 @@ echo "<script src='resources/javascript/arrows.js?v=$version'></script>\n";
 
 			// Hide/show domain column
 			const domain = document.getElementById('th_domain');
-			document.getElementById(`caller_context_${call.unique_id}`).style.display = domain.style.display;
+			const callerContext = document.getElementById(`caller_context_${call.unique_id}`);
+			//console.debug('CONTEXT: ', domain, callerContext);
+			if (domain && callerContext) {
+				callerContext.style.display = domain.style.display;
+			} else {
+				console.warn('Domain column or caller context cell not found', uuid);
+				callerContext.style.display = 'none';
+			}
 
 			// start the timer
 			start_duration_timer(call.unique_id, call.caller_channel_created_time);

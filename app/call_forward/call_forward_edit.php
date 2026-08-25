@@ -416,9 +416,9 @@
 
 		//clear the cache
 			$cache = new cache;
-			$cache->delete(gethostname().":directory:".$extension."@".$_SESSION['domain_name']);
+			$cache->delete("directory:".$extension."@".$_SESSION['domain_name']);
 			if (!empty($number_alias)) {
-				$cache->delete(gethostname().":directory:".$number_alias."@".$_SESSION['domain_name']);
+				$cache->delete("directory:".$number_alias."@".$_SESSION['domain_name']);
 			}
 
 		//add the message
@@ -565,7 +565,7 @@
 		echo "	</span>\n";
 		echo "&nbsp;";
 	}
-	echo "	<input class='formfld' type='text' name='forward_all_destination' id='forward_all_destination' ".($input_toggle_style_switch ? "style='margin-top: -21px;'" : null)." maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_all_destination)."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_all_destination' id='forward_all_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_all_destination)."\">\n";
 	echo "	<br />".$text['description-call_forward']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -595,7 +595,7 @@
 		echo "	</span>\n";
 		echo "&nbsp;";
 	}
-	echo "	<input class='formfld' type='text' name='forward_busy_destination' id='forward_busy_destination' ".($input_toggle_style_switch ? "style='margin-top: -21px;'" : null)." maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_busy_destination)."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_busy_destination' id='forward_busy_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_busy_destination)."\">\n";
 	echo "	<br />".$text['description-on-busy']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -625,7 +625,7 @@
 		echo "	</span>\n";
 		echo "&nbsp;";
 	}
-	echo "	<input class='formfld' type='text' name='forward_no_answer_destination' id='forward_no_answer_destination' ".($input_toggle_style_switch ? "style='margin-top: -21px;'" : null)." maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_no_answer_destination)."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_no_answer_destination' id='forward_no_answer_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_no_answer_destination)."\">\n";
 	echo "	<br />".$text['description-no_answer']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -654,7 +654,7 @@
 		echo "	</span>\n";
 		echo "&nbsp;";
 	}
-	echo "	<input class='formfld' type='text' name='forward_user_not_registered_destination' id='forward_user_not_registered_destination' ".($input_toggle_style_switch ? "style='margin-top: -21px;'" : null)." maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_user_not_registered_destination)."\">\n";
+	echo "	<input class='formfld' type='text' name='forward_user_not_registered_destination' id='forward_user_not_registered_destination' maxlength='255' placeholder=\"".$text['label-destination']."\" value=\"".escape($forward_user_not_registered_destination)."\">\n";
 	echo "	<br />".$text['description-not_registered']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";

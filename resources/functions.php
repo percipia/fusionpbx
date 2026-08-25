@@ -273,135 +273,96 @@ if (!function_exists('is_xml')) {
 }
 
 if (!function_exists('recursive_copy')) {
-	if (file_exists('/bin/cp')) {
-
-		/**
-		 * Recursively copies the source directory or file to the destination location.
-		 *
-		 * @param string $source      The path of the source directory or file to copy.
-		 * @param string $destination The path where the source will be copied.
-		 * @param string $options     Optional command-line options for the 'cp' command. Defaults to an empty string.
-		 *
-		 * @return void
-		 */
-		function recursive_copy($source, $destination, $options = '') {
-			if (strtoupper(substr(PHP_OS, 0, 3)) === 'SUN') {
-				//copy -R recursive, preserve attributes for SUN
-				$cmd = 'cp -Rp ' . $source . '/* ' . $destination;
+	/**
+	 * Recursively copies a source directory to a destination directory.
+	 *
+	 * @param string $source      The path of the source directory.
+	 * @param string $destination The path where the copy will be created.
+	 * @param array  $options     An associative array of options. Currently not used.
+	 *
+	 * @return void
+	 * @throws Exception If the source directory does not exist or if it fails to create the destination directory.
+	 */
+	function recursive_copy($source, $destination, $options = '') {
+		$dir = opendir($source);
+		// Source must exist
+		if (!$dir) {
+			throw new Exception("recursive_copy() source directory '" . $source . "' does not exist.");
+		}
+		if (!is_dir($destination)) {
+			// Make directory with permissions set to 02770 so that the group can write to the directory and new files will inherit the group
+			if (!mkdir($destination, 02770, true)) {
+				throw new Exception("recursive_copy() failed to create destination directory '" . $destination . "'");
+			}
+		}
+		while (false !== ( $file = readdir($dir))) {
+			// Skip directory pointers
+			if ($file == '.' || $file == '..' ) {
+				continue;
+			}
+			// Check for directory or file and copy accordingly
+			if (is_dir($source . DIRECTORY_SEPARATOR . $file)) {
+				// Call this function to copy files in a subdirectory
+				recursive_copy($source . DIRECTORY_SEPARATOR . $file, $destination . DIRECTORY_SEPARATOR . $file, $options);
 			} else {
-				//copy -R recursive, -L follow symbolic links, -p preserve attributes for other Posix systemss
-				$cmd = 'cp -RLp ' . $options . ' ' . $source . '/* ' . $destination;
+				// Copy the file
+				copy($source . DIRECTORY_SEPARATOR . $file, $destination . DIRECTORY_SEPARATOR . $file);
 			}
-			exec($cmd);
 		}
-
-	} elseif (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-
-		/**
-		 * Recursively copies a source directory to a destination directory.
-		 *
-		 * @param string $source      The path of the source directory to copy.
-		 * @param string $destination The path of the destination directory where the source will be copied.
-		 * @param array  $options     An associative array of options:
-		 *                            - overwrite (bool) Whether to overwrite existing files. Default is false.
-		 *                            - preserve_permissions (bool) Whether to preserve file permissions. Default is true.
-		 *
-		 * @return bool True if the copy was successful, false otherwise.
-		 */
-		function recursive_copy($source, $destination, $options = '') {
-			$source = normalize_path_to_os($source);
-			$destination = normalize_path_to_os($destination);
-			exec("xcopy /E /Y \"$source\" \"$destination\"");
-		}
-
-	} else {
-
-		/**
-		 * Recursively copies a source directory to a destination directory.
-		 *
-		 * @param string $source      The path of the source directory.
-		 * @param string $destination The path where the copy will be created.
-		 * @param array  $options     An associative array of options. Currently not used.
-		 *
-		 * @return void
-		 * @throws Exception If the source directory does not exist or if it fails to create the destination directory.
-		 */
-		function recursive_copy($source, $destination, $options = '') {
-			$dir = opendir($source);
-			if (!$dir) {
-				throw new Exception("recursive_copy() source directory '" . $source . "' does not exist.");
-			}
-			if (!is_dir($destination)) {
-				if (!mkdir($destination, 02770, true)) {
-					throw new Exception("recursive_copy() failed to create destination directory '" . $destination . "'");
-				}
-			}
-			while (false !== ( $file = readdir($dir))) {
-				if (( $file != '.' ) && ( $file != '..' )) {
-					if (is_dir($source . '/' . $file)) {
-						recursive_copy($source . '/' . $file, $destination . '/' . $file);
-					} else {
-						copy($source . '/' . $file, $destination . '/' . $file);
-					}
-				}
-			}
-			closedir($dir);
-		}
-
+		closedir($dir);
 	}
 }
 
 if (!function_exists('recursive_delete')) {
-	if (file_exists('/usr/bin/find')) {
-		/**
-		 * Recursively deletes all files and directories within the given directory.
-		 *
-		 * @param string $directory The directory path to delete files from.
-		 *
-		 * @return void This function does not return a value.
-		 */
-		function recursive_delete($directory) {
-			if (isset($directory) && strlen($directory) > 8) {
-				exec('/usr/bin/find ' . $directory . '/* -name "*" -delete');
-				//exec('rm -Rf '.$directory.'/*');
-				clearstatcache();
+	/**
+	 * Safely deletes a directory and all its contents recursively
+	 *
+	 * @param string $path The path to the directory to delete
+	 * @return bool True on success, false on failure
+	 */
+	function recursive_delete($path) {
+		// Verify the path exists and is a directory
+		if (!file_exists($path) || !is_dir($path)) {
+			return false;
+		}
+
+		// Prepare the directory handle
+		$handle = opendir($path);
+
+		// No handle, send a return
+		if (!$handle) return;
+
+		// Loop through all files and subdirectories
+		while (false !== ($file = readdir($handle))) {
+			// Skip '.' and '..' as they refer to the current and parent directory
+			if ($file == '.' || $file == '..') {
+				continue;
 			}
-		}
-	} elseif (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-		/**
-		 * Recursively deletes the given directory and all its contents.
-		 *
-		 * @param string $directory The directory to delete. If the path is not normalized, it will be converted using normalize_path_to_os().
-		 *
-		 * @return bool True if the deletion was successful, false otherwise.
-		 */
-		function recursive_delete($directory) {
-			$directory = normalize_path_to_os($directory);
-			//$this->write_debug("del /S /F /Q \"$dir\"");
-			exec("del /S /F /Q \"$directory\"");
-			clearstatcache();
-		}
-	} else {
-		/**
-		 * Recursively deletes files and directories in the given directory.
-		 *
-		 * @param string $directory The path to the directory containing files/directories to delete.
-		 *
-		 * @return bool True if all files/directories were successfully deleted, false otherwise.
-		 */
-		function recursive_delete($directory) {
-			foreach (glob($directory) as $file) {
-				if (is_dir($file)) {
-					//$this->write_debug("rm dir: ".$file);
-					recursive_delete("$file/*");
-					rmdir($file);
-				} else {
-					//$this->write_debug("delete file: ".$file);
-					unlink($file);
+
+			// Set the full path
+			$full_path = $path . DIRECTORY_SEPARATOR . $file;
+
+			// If this is a directory, recursively delete it
+			if (is_dir($full_path)) {
+				if (!recursive_delete($full_path)) {
+					closedir($handle);
+					return false;
 				}
 			}
-			clearstatcache();
+			else {
+				// If this is a file, delete it
+				if (!unlink($full_path)) {
+					closedir($handle);
+					return false;
+				}
+			}
 		}
+
+		// Close the directory handle
+		closedir($handle);
+
+		// Remove the now-empty directory
+		return rmdir($path);
 	}
 }
 
@@ -1299,14 +1260,13 @@ function tail(string $file, int $num_to_get = 10): string {
 	return $ret;
 }
 
-//generate a random password with upper, lowercase and symbols
 /**
  * Generates a random password of specified length and strength.
  *
- * @param int $length   The desired length of the password. Defaults to 0 if not provided.
+ * @param int $length   The desired length of the password. Defaults to 20 if not provided.
  * @param int $strength The desired strength level of the password.
  *                      This defaults to 3 if not provided. The higher level includes the previous levels.
- *                      If the password_strength was set to 3, this would include numeric, lowercase, and uppercase letters.
+ *                      If the password_strength were set to 3, this would include numeric, lowercase, and uppercase letters.
  *                      - Level 1: Numeric
  *                      - Level 2: Lowercase letters
  *                      - Level 3: Uppercase letters
@@ -1315,7 +1275,7 @@ function tail(string $file, int $num_to_get = 10): string {
  * @return string The generated password.
  * @throws \Random\RandomException
  */
-function generate_password(int $length = 0, int $strength = 3): string {
+function generate_password(int $length = 20, int $strength = 3): string {
 	//define the global variables
 	global $settings;
 

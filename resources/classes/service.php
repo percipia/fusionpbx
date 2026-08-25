@@ -832,8 +832,9 @@ abstract class service {
 	}
 
 	/**
-	 * Send a debug message to the log
-	 * @param string $message
+	 * Logs a message at the DEBUG level.
+	 *
+	 * @param string $message The debug message to be printed. Defaults to an empty string.
 	 * @return void
 	 */
 	protected function debug(string $message = ''): void {
@@ -949,7 +950,7 @@ abstract class service {
 //
 class simple_example extends service {
 
-	protected function reload_settings(): void {
+	public function reload_settings(): void {
 
 	}
 
@@ -1002,7 +1003,7 @@ class child_service extends service {
 	//
 	// This function is required from the base service class because it is used when the reload command line option is used
 	//
-	protected function reload_settings(): void {
+	public function reload_settings(): void {
 		//informing the user in this example is simple but can use the parent class log functions
 		echo "Reloading settings\n";
 

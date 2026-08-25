@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2008-2025
+	Copyright (C) 2008-2026
 	All Rights Reserved.
 
 	Contributor(s):
@@ -106,19 +106,6 @@
 	$document['title'] = $text['title-advanced_search'];
 	require_once "resources/header.php";
 
-//javascript to toggle input/select boxes
-	echo "<script type='text/javascript'>";
-	echo "	function toggle(field) {";
-	echo "		if (field == 'source') {";
-	echo "			document.getElementById('caller_extension_uuid').selectedIndex = 0;";
-	echo "			document.getElementById('caller_id_number').value = '';";
-	echo "			$('#caller_extension_uuid').toggle();";
-	echo "			$('#caller_id_number').toggle();";
-	echo "			if ($('#caller_id_number').is(':visible')) { $('#caller_id_number').trigger('focus'); } else { $('#caller_extension_uuid').trigger('focus'); }";
-	echo "		}";
-	echo "	}";
-	echo "</script>";
-
 //start the html form
 	if (isset($_GET['redirect']) && $_GET['redirect'] == 'xml_cdr_statistics') {
 		echo "<form method='get' action='xml_cdr_statistics.php'>\n";
@@ -180,10 +167,13 @@
 		echo "		</td>\n";
 		echo "	</tr>\n";
 
-		echo "	<tr>";
-		echo "		<td class='vncell'>".$text['label-caller_id_name']."</td>"; //source name
-		echo "		<td class='vtable'><input type='text' class='formfld' name='caller_id_name' value='".escape($caller_id_name)."'></td>";
-		echo "	</tr>";
+		echo "	<tr>\n";
+		echo "		<td class='vncell'>".$text['label-caller_id']."</td>\n"; //source name
+		echo "		<td class='vtable'>\n";
+		echo "			<input type='text' class='formfld' name='caller_id_name' style='min-width: 115px; width: 115px;' placeholder=\"".$text['label-name']."\" value='".escape($caller_id_name)."'>\n";
+		echo "			<input type='text' class='formfld' name='caller_id_number' style='min-width: 115px; width: 115px;' placeholder=\"".$text['label-number']."\" value='".escape($caller_id_number)."'>\n";
+		echo "		</td>\n";
+		echo "	</tr>\n";
 		echo "	<tr>";
 		echo "		<td class='vncell'>".$text['label-extension']."</td>"; //source number
 		echo "		<td class='vtable'>";
@@ -192,13 +182,11 @@
 		if (is_array($extensions) && @sizeof($extensions) != 0) {
 			foreach ($extensions as $row) {
 				$selected = (!empty($caller_extension_uuid) && $row['extension_uuid'] == $caller_extension_uuid) ? "selected" : null;
-				echo "			<option value='".escape($row['extension_uuid'])."' ".escape($selected).">".((is_numeric($row['extension'])) ? escape($row['extension']) : escape($row['number_alias'])." (".escape($row['extension']).")")."</option>";
+				echo "			<option value='".escape($row['extension_uuid'])."' $selected>".((is_numeric($row['extension'])) ? escape($row['extension']) : escape($row['number_alias'])." (".escape($row['extension']).")")."</option>";
 			}
 		}
 		unset($sql, $parameters, $extensions, $row, $selected);
 		echo "			</select>\n";
-		echo "			<input type='text' class='formfld' style='display: none;' name='caller_id_number' id='caller_id_number' value='".escape($caller_id_number)."'>\n";
-		echo "			<input type='button' id='btn_toggle_source' class='btn' name='' alt='".$text['button-back']."' value='&#9665;' onclick=\"toggle('source');\">\n";
 		echo "		</td>";
 		echo "	</tr>";
 		echo "	<tr>";
@@ -350,7 +338,7 @@
 			if (is_array($call_center_queues) && @sizeof($call_center_queues) != 0) {
 				foreach ($call_center_queues as $row) {
 					$selected = ($row['call_center_queue_uuid'] == $call_center_queue_uuid) ? "selected" : null;
-					echo "		<option value='".escape($row['call_center_queue_uuid'])."' ".escape($selected).">".((is_numeric($row['queue_extension'])) ? escape($row['queue_extension']." (".$row['queue_name'].")") : escape($row['queue_extension'])." (".escape($row['queue_extension']).")")."</option>";
+					echo "		<option value='".escape($row['call_center_queue_uuid'])."' $selected>".((is_numeric($row['queue_extension'])) ? escape($row['queue_extension']." (".$row['queue_name'].")") : escape($row['queue_extension'])." (".escape($row['queue_extension']).")")."</option>";
 				}
 			}
 			echo "			</select>\n";
@@ -368,7 +356,7 @@
 			if (is_array($ring_groups) && @sizeof($ring_groups) != 0) {
 				foreach ($ring_groups as $row) {
 					$selected = ($row['ring_group_uuid'] == $ring_group_uuid) ? "selected" : null;
-					echo "		<option value='".escape($row['ring_group_uuid'])."' ".escape($selected).">".((is_numeric($row['ring_group_extension'])) ? escape($row['ring_group_extension']." (".$row['ring_group_name'].")") : escape($row['ring_group_extension'])." (".escape($row['ring_group_extension']).")")."</option>";
+					echo "		<option value='".escape($row['ring_group_uuid'])."' $selected>".((is_numeric($row['ring_group_extension'])) ? escape($row['ring_group_extension']." (".$row['ring_group_name'].")") : escape($row['ring_group_extension'])." (".escape($row['ring_group_extension']).")")."</option>";
 				}
 			}
 			echo "			</select>\n";

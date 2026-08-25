@@ -67,7 +67,7 @@
 		$apps[$x]['default_settings'][$y]['default_setting_category'] = "provision";
 		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "grandstream_config_server_path";
 		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
-		$apps[$x]['default_settings'][$y]['default_setting_value'] = "https://server.yourdomain.com/app/provision";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "https://server.domain.local/app/provision";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Location to use for Grandstream provisioning configuration.";
 		$y++;
@@ -83,7 +83,7 @@
 		$apps[$x]['default_settings'][$y]['default_setting_category'] = "provision";
 		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "grandstream_firmware_path";
 		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
-		$apps[$x]['default_settings'][$y]['default_setting_value'] = "https://server.yourdomain.com/app/grandstream/resources/firmware";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "https://server.domain.local/app/grandstream/resources/firmware";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Grandstream firmware and provision.";
 		$y++;
@@ -736,9 +736,9 @@
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Enable Blind Transfer to BLF Yes=1, No=0. Default=0";
 		$y++;
-		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "82b7076b-e596-49e8-b535-af86e21e0453";
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "85007752-f9da-46ad-ad61-0bca6e736135";
 		$apps[$x]['default_settings'][$y]['default_setting_category'] = "provision";
-		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "grandstream_ip_address_mode";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "grandstream_ip_mode";
 		$apps[$x]['default_settings'][$y]['default_setting_name'] = "numeric";
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "0";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
