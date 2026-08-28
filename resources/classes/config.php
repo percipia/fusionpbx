@@ -312,19 +312,6 @@ final class config {
 	}
 
 	/**
-	 * Returns the string representation of the configuration file.
-	 *
-	 * @return string configuration
-	 */
-	public function __toString(): string {
-		$string_builder = "";
-		foreach ($this->configuration as $key => $value) {
-			$string_builder .= "$key = '$value'\n";
-		}
-		return $string_builder;
-	}
-
-	/**
 	 * Checks if the configuration is empty.
 	 *
 	 * @return bool true if the configuration is empty, false otherwise
