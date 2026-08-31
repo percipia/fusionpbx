@@ -252,9 +252,9 @@
 				$nginx_config = file_get_contents($nginx_path);
 
 				// Define the location block to add if it doesn't exist
-				$websocket_settings = "        #redirect websockets to port 8080\n";
+				$websocket_settings =  "        #redirect websockets to port 8081\n";
 				$websocket_settings .= "                location /websockets/ {\n";
-				$websocket_settings .= "                proxy_pass http://127.0.0.1:8080;\n";
+				$websocket_settings .= "                proxy_pass http://127.0.0.1:8081;\n";
 				$websocket_settings .= "                proxy_http_version 1.1;\n";
 				$websocket_settings .= "                proxy_set_header Upgrade \$http_upgrade;\n";
 				$websocket_settings .= "                proxy_set_header Connection \"upgrade\";\n";
@@ -638,7 +638,7 @@ function update_php_fpm(settings $settings) {
 		// Check if "ReadWritePaths" exists in the file contents
 		$read_write_exists = strpos($file_contents, 'ReadWritePaths') !== false;
 
-		// ReadWritePaths make sure all paths are included in the file if any are missing, then replace the line with the new one 
+		// ReadWritePaths make sure all paths are included in the file if any are missing, then replace the line with the new one
 		if ($read_write_exists && $file_writable) {
 			// Use preg_replace to find the line starting with ReadWritePaths and replace the entire line
 			$new_contents = preg_replace('/^ReadWritePaths.*$/m', trim($line_to_insert), $file_contents);
