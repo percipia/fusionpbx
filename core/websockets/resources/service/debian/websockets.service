@@ -7,6 +7,9 @@
 #
 [Unit]
 Description=Websocket Router Service
+Wants=network-online.target
+Requires=network.target local-fs.target postgresql.service
+After=network.target network-online.target local-fs.target postgresql.service
 
 [Service]
 WorkingDirectory=/var/www/fusionpbx
