@@ -595,8 +595,6 @@
 	$ring_group_forward_enabled = $ring_group_forward_enabled ?? false;
 	$ring_group_context = $ring_group_context ?? $domain_name;
 	$ring_group_enabled = $ring_group_enabled ?? true;
-	$destination_enabled = $row['destination_enabled'] ?? false;
-
 //get the ring group destination array
 	if ($action == "add") {
 		$x = 0;
@@ -925,6 +923,7 @@
 	echo "				</tr>\n";
 	$x = 0;
 	foreach ($ring_group_destinations as $row) {
+		$destination_enabled = in_array(strtolower((string)($row['destination_enabled'] ?? '')), ['1', 't', 'true', 'yes', 'on'], true);
 		if (empty($row['destination_description'])) { $row['destination_description'] = ""; }
 		if (empty($row['destination_delay'])) { $row['destination_delay'] = "0"; }
 		if (empty($row['destination_timeout'])) { $row['destination_timeout'] = "30"; }
