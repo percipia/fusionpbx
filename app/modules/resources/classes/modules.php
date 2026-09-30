@@ -122,6 +122,13 @@
 					$mod['module_enabled'] = true;
 					$mod['module_default_enabled'] = true;
 					break;
+				case "mod_audio_stream":
+					$mod['module_label'] = 'Audio Stream';
+					$mod['module_category'] = 'Applications';
+					$mod['module_description'] = 'Bidirectional audio streaming over WebSocket.';
+					$mod['module_enabled'] = true;
+					$mod['module_default_enabled'] = true;
+					break;
 				case "mod_av":
 					$mod['module_label'] = 'AV';
 					$mod['module_category'] = 'Applications';
