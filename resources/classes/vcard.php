@@ -66,6 +66,49 @@ class vcard {
 	build() method checks all the values, builds appropriate defaults for
 	missing values, generates the vcard data string.
 	*/
+
+	/**
+	 * Downloads the vCard data as a file.
+	 *
+	 * @access public
+	 * @return bool True on successful download, false otherwise.
+	 */
+	function download() {
+		$this->log .= "vcard download() called<br />";
+		if (!$this->card) {
+			$this->build();
+		}
+		if (!$this->filename) {
+			$this->filename = trim($this->data['display_name']);
+		}
+
+		//replace spaces with underscores in the filename
+		$this->filename = str_replace(" ", "_", $this->filename);
+
+		//sanitize the filename to prevent header injection
+		$this->filename = preg_replace('/[^A-Za-z0-9._-]/', '_', $this->filename);
+		if ($this->filename === false || $this->filename === '' || $this->filename === '.' || $this->filename === '..' || $this->filename[0] === '.') {
+			$this->filename = 'vcard';
+		}
+
+		//send the headers and output the vcard data
+		header("Content-type: text/directory");
+		header("Content-Disposition: attachment; filename=" . $this->filename . ".vcf");
+		header("Pragma: public");
+		echo $this->card;
+		return true;
+	}
+
+	/*
+	download() method streams the vcard to the browser client.
+	*/
+
+	/**
+	 * Builds the vCard.
+	 *
+	 * @access public
+	 * @return string The built vCard as a string.
+	 */
 	function build() {
 		$this->log .= "vcard build() called<br />";
 		/*

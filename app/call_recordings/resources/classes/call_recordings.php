@@ -299,7 +299,7 @@ class call_recordings {
 			//format the transcription variables for text and html
 			$transcribe_html = transcribe::conversation_format($params['transcribe_message'], 'html');
 
-			//get the email template
+			//get the call details
 			$sql = "SELECT ";
 			$sql .= " domain_name, ";
 			$sql .= " caller_id_name, ";
@@ -418,7 +418,7 @@ class call_recordings {
 	}
 
 	/**
-	 * Add one or more calls recordings to the transcribe queue.
+	 * Add one or more call recordings to the transcribe queue.
 	 *
 	 * @param array $records An array of records to transcribe.
 	 *
@@ -463,7 +463,7 @@ class call_recordings {
 							@sizeof($field) != 0 &&
 							file_exists($field['call_recording_path'] . '/' . $field['call_recording_name'])
 						) {
-							//prepare the paramaters
+							//prepare the parameters
 							$params['domain_uuid'] = $this->domain_uuid;
 							$params['xml_cdr_uuid'] = $record['uuid'];
 							$params['call_direction'] = $field['call_direction'];
@@ -564,6 +564,10 @@ class call_recordings {
 					}
 					$sql .= "from view_call_recordings ";
 					$sql .= "where call_recording_uuid = :call_recording_uuid ";
+					if (!permission_exists('call_recording_all')) {
+						$sql .= "and domain_uuid = :domain_uuid ";
+						$parameters['domain_uuid'] = $this->domain_uuid;
+					}
 					$parameters['call_recording_uuid'] = $this->recording_uuid;
 					$parameters['time_zone'] = $time_zone;
 					$row = $this->database->select($sql, $parameters, 'row');
@@ -705,7 +709,12 @@ class call_recordings {
 						$sql .= ", call_recording_base64 ";
 					}
 					$sql .= "from view_call_recordings ";
-					$sql .= "where call_recording_uuid in ('" . implode("','", $uuids) . "') ";
+					$uuid_placeholders = [];
+					foreach ($uuids as $call_recording_uuid_index => $call_recording_uuid_value) {
+						$uuid_placeholders[] = ':call_recording_uuid_' . $call_recording_uuid_index;
+						$parameters['call_recording_uuid_' . $call_recording_uuid_index] = $call_recording_uuid_value;
+					}
+					$sql .= "where call_recording_uuid in (" . implode(',', $uuid_placeholders) . ") ";
 					$parameters['time_zone'] = $time_zone;
 					$rows = $this->database->select($sql, $parameters, 'all');
 					if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
@@ -751,7 +760,16 @@ class call_recordings {
 									$call_recording_name_download = str_replace('${day}', $call_recording_day, $call_recording_name_download);
 									$call_recording_name_download = str_replace('${time}', $call_recording_time, $call_recording_name_download);
 
-									//create a symbolic link with custom name
+									//sanitize the download file name. sanitize the download file name. Keep only Unicode letters, digits, and safe punctuation
+									$call_recording_name_download = preg_replace('/[^\p{L}\p{N}_\-\.]/u', '', $call_recording_name_download);
+
+									//sanitize the download file name Collapse runs of dots (prevents ".." traversal)
+									$call_recording_name_download = preg_replace('/\.{2,}/', '.', $call_recording_name_download);
+
+									//sanitize the download file name Strip leading/trailing dots (hidden-file & traversal edge cases)
+									$call_recording_name_download = trim($call_recording_name_download, '.');
+
+									//create a symbolic link with custom name.
 									$command = 'ln -s ' . escapeshellarg($call_recording_path . '/' . $call_recording_name) . ' ' . escapeshellarg($call_recording_path . '/' . $call_recording_name_download);
 									system($command);
 
@@ -772,7 +790,9 @@ class call_recordings {
 					header('Content-Disposition: attachment; filename="call_recordings.zip"');
 					header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 					header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-					passthru("zip -qj - " . implode(' ', $full_recording_paths));
+					//escape each path to prevent command injection
+					$zip_paths = array_map('escapeshellarg', $full_recording_paths);
+					passthru('zip -qj - ' . implode(' ', $zip_paths));
 				}
 
 				//if base64, remove temp recording file

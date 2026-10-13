@@ -124,6 +124,44 @@ class token {
 		}
 	}
 
+	/**
+	 * validate the token
+	 *
+	 * @var string $key
+	 * @var string $value
+	 */
+	public function validate($key, $value = '') {
+
+		//allow only specific characters
+		$key = preg_replace('[^a-zA-Z0-9\-\_@.\/]', '', $key);
+
+		//get the token name
+		if (!empty($_SESSION['tokens']) && is_array($_SESSION['tokens'][$key]) && @sizeof($_SESSION['tokens'][$key]) != 0) {
+			foreach ($_SESSION['tokens'][$key] as $t => $token) {
+				$token_name = $token['name'];
+				if (isset($_REQUEST[$token_name])) {
+					$value = $_REQUEST[$token_name];
+					break;
+				}
+			}
+		}
+
+		//limit the value to specific characters
+		$value = preg_replace('[^a-zA-Z0-9]', '', $value);
+
+		//compare the hashed tokens
+		if (!empty($_SESSION['tokens']) && is_array($_SESSION['tokens'][$key]) && @sizeof($_SESSION['tokens'][$key]) != 0) {
+			foreach ($_SESSION['tokens'][$key] as $t => $token) {
+				if (hash_equals($token['hash'], $value)) {
+					$_SESSION['tokens'][$key][$t]['validated'] = true;
+					return true;
+				}
+			}
+		}
+		return false;
+
+	}
+
 }
 
 /*

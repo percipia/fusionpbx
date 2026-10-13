@@ -72,8 +72,12 @@ class captcha {
 
 		// Set the font size
 		$font_size = 16;
-		if(@$_GET['fontsize']) {
-			$font_size = $_GET['fontsize'];
+		if (@$_GET['fontsize']) {
+			$font_size = (int)$_GET['fontsize'];
+			//restrict the font size to a safe range to prevent resource exhaustion
+			if ($font_size < 8 || $font_size > 72) {
+				$font_size = 16;
+			}
 		}
 
 		// Create the image
@@ -104,7 +108,9 @@ class captcha {
 		imagepng($image);
 		$image_buffer = ob_get_clean();
 		//echo "<img src=\"data:image/png;base64, ".base64_encode($image_buffer)."\" />\n";
-		imagedestroy($image);
+		if (PHP_VERSION_ID < 80000) {
+			imagedestroy($image);
+		}
 		return $image_buffer;
 	}
 
@@ -123,7 +129,9 @@ class captcha {
 		$dummy = imagecreate(1, 1);
 		$black = imagecolorallocate($dummy, 0, 0, 0);
 		$bbox = imagettftext($dummy, $size, $angle, 0, 0, $black, $font, $text);
-		imagedestroy($dummy);
+		if (PHP_VERSION_ID < 80000) {
+			imagedestroy($dummy);
+		}
 		return $bbox;
 	}
 

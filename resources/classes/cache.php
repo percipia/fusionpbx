@@ -27,14 +27,86 @@ class cache {
 	}
 
 	/**
-	 * Add a specific item in the cache
-	 * @var string $key		the cache id
-	 * @var string $value	string to be cached
+	 * Retrieve the value associated with a given cache key.
+	 *
+	 * @param string $key The cache key to retrieve. Delimiter is automatically changed from ':' to '.'.
+	 *
+	 * @return mixed The cached value, or null if it does not exist.
+	 */
+	/**
+	 * Sanitize a cache key to prevent path traversal
+	 *
+	 * Removes empty segments, "." and ".." so the key can never escape
+	 * the cache location directory.
+	 *
+	 * @param string $key The cache key to sanitize
+	 *
+	 * @return string A safe cache key
+	 */
+	private function sanitize_key($key) {
+		$key = str_replace("\\", "/", (string)$key);
+		$clean_segments = array();
+		foreach (explode('/', $key) as $segment) {
+			if ($segment !== '' && $segment !== '.' && $segment !== '..') {
+				$clean_segments[] = $segment;
+			}
+		}
+		return implode('/', $clean_segments);
+	}
+
+	public function get($key) {
+
+		//change the delimiter
+		$key = str_replace(":", ".", $key);
+
+		//sanitize the key to prevent path traversal
+		$key = $this->sanitize_key($key);
+
+		//cache method memcache
+		if ($this->method === "memcache") {
+			// connect to event socket
+			$esl = event_socket::create();
+			if (!$esl->is_connected()) {
+				return false;
+			}
+
+			//send a custom event
+
+			//run the memcache
+			$command = "memcache get " . $key;
+			$result = event_socket::api($command);
+
+		}
+
+		//get the file cache
+		if ($this->method === "file") {
+			if (file_exists($this->location . "/" . $key)) {
+				$result = file_get_contents($this->location . "/" . $key);
+			}
+		}
+
+		//return result
+		return $result ?? null;
+	}
+
+	/**
+	 * Set a value in the cache based on the cache type in global default settings.
+	 *
+	 * Cache location is based on the global default setting for either "memcache" or "file".
+	 *
+	 * @param string $key   The key of the value to set.
+	 * @param mixed  $value The value to store.
+	 *
+	 * @return mixed When location is "file" the return value is in bytes written or null. When location is "memcache"
+	 *               return value is the return value from the switch socket response or false.
 	 */
 	public function set($key, $value) {
 
 		//change the delimiter
 			$key = str_replace(":", ".", $key);
+
+		//sanitize the key to prevent path traversal
+		$key = $this->sanitize_key($key);
 
 		//save to memcache
 			if ($this->method === "memcache") {
@@ -136,34 +208,37 @@ class cache {
 			}
 
 		//cache method file
-			if ($this->method === "file") {
-				//change the delimiter
-					$key = str_replace(":", ".", $key);
+		if ($this->method === "file") {
+			//change the delimiter
+			$key = str_replace(":", ".", $key);
 
-				//connect to event socket
-					$esl = event_socket::create();
-					if ($esl === false) {
-						return false;
-					}
+			//sanitize the key to prevent path traversal
+			$key = $this->sanitize_key($key);
 
-				//send a custom event
-					$event = "sendevent CUSTOM\n";
-					$event .= "Event-Name: CUSTOM\n";
-					$event .= "Event-Subclass: fusion::file\n";
-					$event .= "API-Command: cache\n";
-					$event .= "API-Command-Argument: delete ".$key."\n";
-					event_socket::command($event);
-
-				//remove the local files
-					foreach (glob($this->location . "/" . $key) as $file) {
-						if (file_exists($file)) {
-							unlink($file);
-						}
-						if (file_exists($file)) {
-							unlink($file . ".tmp");
-						}
-					}
+			//connect to event socket
+			$esl = event_socket::create();
+			if ($esl === false) {
+				return false;
 			}
+
+			//send a custom event
+			$event = "sendevent CUSTOM\n";
+			$event .= "Event-Name: CUSTOM\n";
+			$event .= "Event-Subclass: fusion::file\n";
+			$event .= "API-Command: cache\n";
+			$event .= "API-Command-Argument: delete " . $key . "\n";
+			event_socket::command($event);
+
+			//remove the local files
+			foreach (glob($this->location . "/" . $key) as $file) {
+				if (file_exists($file)) {
+					unlink($file);
+				}
+				if (file_exists($file)) {
+					unlink($file . ".tmp");
+				}
+			}
+		}
 
 	}
 

@@ -254,49 +254,47 @@ class plugin_database {
 			$row = $settings->database()->select($sql, $parameters, 'row');
 			if (!empty($row) && is_array($row) && @sizeof($row) != 0) {
 
-				//validate the password
-					$valid_password = false;
-					if (isset($this->key) && strlen($this->key) > 30 && $this->key === $row["api_key"]) {
+			//validate the password
+			$valid_password = false;
+			if (isset($this->key) && strlen($this->key) > 30 && hash_equals((string)$row["api_key"], (string)$this->key)) {
+				$valid_password = true;
+			} elseif (substr($row["password"], 0, 1) === '$') {
+				if (isset($this->password) && !empty($this->password)) {
+					if (password_verify($this->password, $row["password"])) {
 						$valid_password = true;
 					}
-					else if (substr($row["password"], 0, 1) === '$') {
-						if (isset($this->password) && !empty($this->password)) {
-							if (password_verify($this->password, $row["password"])) {
-								$valid_password = true;
-							}
-						}
-					}
-					else {
-						//deprecated - compare the password provided by the user with the one in the database
-						if (md5($row["salt"].$this->password) === $row["password"]) {
-							$row["password"] = crypt($this->password, '$1$'.$row['salt'].'$');
-							$valid_password = true;
-						}
-					}
+				}
+			} else {
+				//deprecated - compare the password provided by the user with the one in the database
+				if (md5($row["salt"] . $this->password) === $row["password"]) {
+					$row["password"] = crypt($this->password, '$1$' . $row['salt'] . '$');
+					$valid_password  = true;
+				}
+			}
 
-				//set the domain and user settings
-					if ($valid_password) {
-						//set the domain_uuid
-							$this->domain_uuid = $row["domain_uuid"];
-							$this->domain_name = $row["domain_name"];
+			//set the domain and user settings
+			if ($valid_password) {
+				//set the domain_uuid
+				$this->domain_uuid = $row["domain_uuid"];
+				$this->domain_name = $row["domain_name"];
 
-						//set the domain session variables
-							$_SESSION["domain_uuid"] = $this->domain_uuid;
-							$_SESSION["domain_name"] = $this->domain_name;
+				//set the domain session variables
+				$_SESSION["domain_uuid"] = $this->domain_uuid;
+				$_SESSION["domain_name"] = $this->domain_name;
 
-						//set the domain setting
-							if ($users_unique === "global" && $row["domain_uuid"] !== $this->domain_uuid) {
-								$domain = new domains();
-								$domain->set();
-							}
+				//set the domain setting
+				if ($users_unique === "global" && $row["domain_uuid"] !== $this->domain_uuid) {
+					$domain = new domains();
+					$domain->set();
+				}
 
-						//set the variables
-							$this->user_uuid = $row['user_uuid'];
-							$this->username = $row['username'];
-							$this->user_email = $row['user_email'];
-							$this->contact_uuid = $row['contact_uuid'];
+				//set the variables
+				$this->user_uuid    = $row['user_uuid'];
+				$this->username     = $row['username'];
+				$this->user_email   = $row['user_email'];
+				$this->contact_uuid = $row['contact_uuid'];
 
-							//get the user contact details
+				//get the user contact details
 							if ($contacts_exists) {
 								unset($parameters);
 								$sql = "select ";

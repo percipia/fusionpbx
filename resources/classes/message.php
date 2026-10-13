@@ -44,24 +44,35 @@
 				}
 		}
 
-		static function count() {
-			return isset($_SESSION["messages"]) && is_array($_SESSION["messages"]) ? sizeof($_SESSION["messages"]) : 0;
-		}
-
-		static function html($clear_messages = true, $spacer = "") {
-			$html = "{$spacer}//render the messages\n";
-			$spacer .="\t";
-			if (isset($_SESSION['message']) || isset($_SESSION['messages'])) {
-				if (!empty($_SESSION['message']) && !is_array($_SESSION['message'])) {
-					self::add($_SESSION['message'], $_SESSION['message_mood'] ?? null, $_SESSION['message_delay'] ?? null);
-					unset($_SESSION['message'], $_SESSION['message_mood'], $_SESSION['message_delay']);
-				}
-				if (!empty($_SESSION['messages']) && is_array($_SESSION['messages']) && @sizeof($_SESSION['messages']) != 0) {
-					foreach ($_SESSION['messages'] as $message_mood => $message) {
-						$message_text = str_replace(array("\r\n", "\n", "\r"),'\\n',addslashes(join('<br/>', $message['message'])));
-						$message_delay = array_sum($message['delay'])/count($message['delay']);
-						$html .= "{$spacer}display_message('$message_text', '$message_mood', '$message_delay');\n";
+	/**
+	 * Renders session messages into HTML.
+	 *
+	 * @param bool   $clear_messages Whether to clear the session 'messages' array after rendering. Defaults to true.
+	 * @param string $spacer         The indentation spacer for the generated HTML code.
+	 *
+	 * @return string The rendered HTML message display code.
+	 */
+	static function html($clear_messages = true, $spacer = "") {
+		$html = "{$spacer}//render the messages\n";
+		$spacer .= "\t";
+		if (isset($_SESSION['message']) || isset($_SESSION['messages'])) {
+			if (!empty($_SESSION['message']) && !is_array($_SESSION['message'])) {
+				self::add($_SESSION['message'], $_SESSION['message_mood'] ?? null, $_SESSION['message_delay'] ?? null);
+				unset($_SESSION['message'], $_SESSION['message_mood'], $_SESSION['message_delay']);
+			}
+			if (!empty($_SESSION['messages']) && is_array($_SESSION['messages']) && @sizeof($_SESSION['messages']) != 0) {
+				foreach ($_SESSION['messages'] as $message_mood => $message) {
+					//limit the mood to known values to prevent injection into the JS string
+					if (!in_array($message_mood, array('positive', 'negative', 'alert'), true)) {
+						$message_mood = 'positive';
 					}
+					//escape HTML characters in the content so it cannot break out of the script tag (e.g. </script>)
+					$message_parts = array_map(function ($message_part) {
+						return str_replace(array('<', '>'), array('&lt;', '&gt;'), (string)$message_part);
+					}, (array)($message['message'] ?? array()));
+					$message_text = str_replace(["\r\n", "\n", "\r"], '\\n', addslashes(join('<br/>', $message_parts)));
+					$message_delay = count($message['delay']) > 0 ? array_sum($message['delay']) / count($message['delay']) : 0;
+					$html .= "{$spacer}display_message('$message_text', '$message_mood', '$message_delay');\n";
 				}
 			}
 			if ($clear_messages) {

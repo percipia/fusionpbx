@@ -41,7 +41,6 @@
 		$sql .= "from v_domains ";
 		$sql .= "where domain_name = :domain_name ";
 		$parameters['domain_name'] = $_SERVER['HTTP_HOST'];
-		$parameters['email'] = $email;
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row)) {
 			$domain_uuid = $row['domain_uuid'];
@@ -277,13 +276,15 @@
 			//set the message to password reset completed
 			message::add($text['message-password_reset'], 'positive', 2500);
 
-			//unset the php session
+			//unset the PHP session
 			unset($_SESSION);
 
-			//redirect the browser
-			header('Location: //'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
-			exit;
-
+			//redirect the browser, force a relative (same-origin) redirect to prevent open-redirect via the Host header
+			$redirect_uri = $_SERVER['REQUEST_URI'] ?? '/';
+			if (strpos($redirect_uri, '//') === 0) {
+				$redirect_uri = '/' . substr($redirect_uri, 2);
+			}
+			header('Location: '.$redirect_uri);
 		}
 	}
 

@@ -25,10 +25,24 @@ class google_authenticator {
 		self::$PIN_MODULO = pow(10, self::$PASS_CODE_LENGTH);
 	}
 
-	public function checkCode($secret,$code) {
+	/**
+	 * Checks if the provided code is valid based on the secret and time.
+	 *
+	 * @param string $secret The secret to verify against.
+	 * @param string $code   The code to check for validity.
+	 *
+	 * @return bool True if the code is valid, false otherwise.
+	 */
+	public function checkCode($secret, $code) {
+		// Only accept a fixed-length numeric code to prevent loose comparison
+		// (type juggling) and reduce the search space.
+		if (!is_string($code) || !ctype_digit($code) || strlen($code) !== self::$PASS_CODE_LENGTH) {
+			return false;
+		}
 		$time = floor(time() / 30);
-		for ( $i = -1; $i <= 1; $i++) {
-			if ($this->getCode($secret,$time + $i) == $code) {
+		for ($i = -1; $i <= 1; $i++) {
+			// Use a constant-time comparison to avoid timing attacks.
+			if (hash_equals($this->getCode($secret, $time + $i), $code)) {
 				return true;
 			}
 		}
