@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * Provides an abstracted cache
  */
@@ -11,7 +10,11 @@ class cache {
 	private $method;
 
 	/**
-	 * Called when the object is created
+	 * Initializes the cache object with default settings if none are provided.
+	 *
+	 * @param settings|null $settings The settings to use for initialization. Defaults to null.
+	 *
+	 * @return void
 	 */
 	public function __construct(settings $settings = null) {
 		//set defaults
@@ -103,73 +106,40 @@ class cache {
 	public function set($key, $value) {
 
 		//change the delimiter
-			$key = str_replace(":", ".", $key);
+		$key = str_replace(":", ".", $key);
 
 		//sanitize the key to prevent path traversal
 		$key = $this->sanitize_key($key);
 
 		//save to memcache
-			if ($this->method === "memcache") {
-				//connect to event socket
-					$esl = event_socket::create();
-					if ($esl === false) {
-						return false;
-					}
-
-				//run the memcache
-					$command = "memcache set ".$key." ".$value;
-					$result = event_socket::api($command);
-
+		if ($this->method === "memcache") {
+			//connect to event socket
+			$esl = event_socket::create();
+			if ($esl === false) {
+				return false;
 			}
+
+			//run the memcache
+			$command = "memcache set " . $key . " " . $value;
+			$result = event_socket::api($command);
+
+		}
 
 		//save to the file cache
-			if ($this->method === "file") {
-				$result = file_put_contents($this->location . "/" . $key, $value);
-			}
+		if ($this->method === "file") {
+			$result = file_put_contents($this->location . "/" . $key, $value);
+		}
 
 		//return result
-			return $result;
+		return $result;
 	}
 
 	/**
-	 * Get a specific item from the cache
-	 * @var string $key		cache id
-	 */
-	public function get($key) {
-
-		//change the delimiter
-			$key = str_replace(":", ".", $key);
-
-		//cache method memcache
-			if ($this->method === "memcache") {
-				// connect to event socket
-					$esl = event_socket::create();
-					if (!$esl->is_connected()) {
-						return false;
-					}
-
-				//send a custom event
-
-				//run the memcache
-					$command = "memcache get ".$key;
-					$result = event_socket::api($command);
-
-			}
-
-		//get the file cache
-			if ($this->method === "file") {
-				if (file_exists($this->location . "/" . $key)) {
-					$result = file_get_contents($this->location . "/" . $key);
-				}
-			}
-
-		//return result
-			return $result ?? null;
-	}
-
-	/**
-	 * Delete a specific item from the cache
-	 * @var string $key		cache id
+	 * Delete a single cache key.
+	 *
+	 * @param string $key The cache key to delete
+	 *
+	 * @return bool When cache type is "memcache" false is returned on failure otherwise no value is returned
 	 */
 	public function delete($key) {
 
@@ -186,26 +156,26 @@ class cache {
 		}
 
 		//cache method memcache
-			if ($this->method === "memcache") {
-				//connect to event socket
-					$esl = event_socket::create();
-					if ($esl === false) {
-						return false;
-					}
-
-				//send a custom event
-					$event = "sendevent CUSTOM\n";
-					$event .= "Event-Name: CUSTOM\n";
-					$event .= "Event-Subclass: fusion::memcache\n";
-					$event .= "API-Command: memcache\n";
-					$event .= "API-Command-Argument: delete ".$key."\n";
-					event_socket::command($event);
-
-				//run the memcache
-					$command = "memcache delete ".$key;
-					$result = event_socket::api($command);
-
+		if ($this->method === "memcache") {
+			//connect to event socket
+			$esl = event_socket::create();
+			if ($esl === false) {
+				return false;
 			}
+
+			//send a custom event
+			$event = "sendevent CUSTOM\n";
+			$event .= "Event-Name: CUSTOM\n";
+			$event .= "Event-Subclass: fusion::memcache\n";
+			$event .= "API-Command: memcache\n";
+			$event .= "API-Command-Argument: delete " . $key . "\n";
+			event_socket::command($event);
+
+			//run the memcache
+			$command = "memcache delete " . $key;
+			$result = event_socket::api($command);
+
+		}
 
 		//cache method file
 		if ($this->method === "file") {
@@ -243,7 +213,9 @@ class cache {
 	}
 
 	/**
-	 * Delete the entire cache
+	 * Flushes the cache based on the current method setting.
+	 *
+	 * @return string|false The result of the flush operation, or false if an error occurred.
 	 */
 	public function flush() {
 
@@ -255,64 +227,62 @@ class cache {
 		}
 
 		//check for apcu extension
-			if (function_exists('apcu_enabled') && apcu_enabled()) {
-				//flush everything
-				apcu_clear_cache();
-			}
+		if (function_exists('apcu_enabled') && apcu_enabled()) {
+			//flush everything
+			apcu_clear_cache();
+		}
 
 		//remove the autoloader file cache
-			if (file_exists(sys_get_temp_dir() . '/' . auto_loader::CLASSES_FILE)) {
-				@unlink(sys_get_temp_dir() . '/' . auto_loader::CLASSES_FILE);
-			}
+		if (file_exists(sys_get_temp_dir() . '/' . auto_loader::CLASSES_FILE)) {
+			@unlink(sys_get_temp_dir() . '/' . auto_loader::CLASSES_FILE);
+		}
 
 		//cache method memcache
-			if ($this->method === "memcache") {
-				// connect to event socket
-					$esl = event_socket::create();
-					if ($esl === false) {
-						return false;
-					}
-
-				//send a custom event
-					$event = "sendevent CUSTOM\n";
-					$event .= "Event-Name: CUSTOM\n";
-					$event .= "Event-Subclass: fusion::memcache\n";
-					$event .= "API-Command: memcache\n";
-					$event .= "API-Command-Argument: flush\n";
-					event_socket::command($event);
-
-				//run the memcache
-					$command = "memcache flush";
-					$result = event_socket::api($command);
-
+		if ($this->method === "memcache") {
+			// connect to event socket
+			$esl = event_socket::create();
+			if ($esl === false) {
+				return false;
 			}
+
+			//send a custom event
+			$event = "sendevent CUSTOM\n";
+			$event .= "Event-Name: CUSTOM\n";
+			$event .= "Event-Subclass: fusion::memcache\n";
+			$event .= "API-Command: memcache\n";
+			$event .= "API-Command-Argument: flush\n";
+			event_socket::command($event);
+
+			//run the memcache
+			$command = "memcache flush";
+			$result = event_socket::api($command);
+
+		}
 
 		//cache method file
-			if ($this->method === "file") {
-				// connect to event socket
-					$esl = event_socket::create();
-					if ($esl === false) {
-						return false;
-					}
-
-				//send a custom event
-					$event = "sendevent CUSTOM\n";
-					$event .= "Event-Name: CUSTOM\n";
-					$event .= "Event-Subclass: fusion::file\n";
-					$event .= "API-Command: cache\n";
-					$event .= "API-Command-Argument: flush\n";
-					event_socket::command($event);
-
-				//remove the cache
-					recursive_delete($this->location);
-
-				//set message
-					$result = '+OK cache flushed';
+		if ($this->method === "file") {
+			// connect to event socket
+			$esl = event_socket::create();
+			if ($esl === false) {
+				return false;
 			}
 
+			//send a custom event
+			$event = "sendevent CUSTOM\n";
+			$event .= "Event-Name: CUSTOM\n";
+			$event .= "Event-Subclass: fusion::file\n";
+			$event .= "API-Command: cache\n";
+			$event .= "API-Command-Argument: flush\n";
+			event_socket::command($event);
+
+			//remove the cache
+			recursive_delete($this->location);
+
+			//set message
+			$result = '+OK cache flushed';
+		}
+
 		//return result
-			return $result;
+		return $result;
 	}
 }
-
-?>
