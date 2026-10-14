@@ -53,8 +53,11 @@
 	//build all phone configs
 		if (strlen($_SESSION['provision']['path']['text']) > 0) {
 			if (is_dir($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . '/app/provision')) {
-				$prov = new provision;
-				$prov->domain_uuid = $domain_uuid;
+				$prov = new provision([
+					'domain_uuid' => $domain_uuid,
+					'domain_name' => $_SESSION['domains'][$domain_uuid]['domain_name'] ?? $_SESSION['domain_name'] ?? '',
+					'user_uuid' => $_SESSION['user_uuid'] ?? '',
+				]);
 				$response = $prov->write(null);
 				
 				//prepare then show response

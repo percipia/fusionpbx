@@ -483,8 +483,12 @@
 
 				//write the provision files
 					if (!empty($settings->get('provision', 'path'))) {
-						$prov = new provision(['settings' => $settings]);
-						$prov->domain_uuid = $domain_uuid;
+						$prov = new provision([
+							'domain_uuid' => $domain_uuid,
+							'domain_name' => $_SESSION['domains'][$domain_uuid]['domain_name'] ?? $_SESSION['domain_name'] ?? '',
+							'user_uuid' => $_SESSION['user_uuid'] ?? '',
+							'settings' => $settings->get_domain_uuid() === $domain_uuid ? $settings : null,
+						]);
 						$prov->device_uuid = $device_uuid;
 						$response = $prov->write();
 					}
@@ -1040,8 +1044,12 @@
 		}
 		if (permission_exists("device_files")) {
 			//get the template directory
-				$prov = new provision(['settings' => $settings]);
-				$prov->domain_uuid = $domain_uuid;
+				$prov = new provision([
+					'domain_uuid' => $domain_uuid,
+					'domain_name' => $_SESSION['domains'][$domain_uuid]['domain_name'] ?? $_SESSION['domain_name'] ?? '',
+					'user_uuid' => $_SESSION['user_uuid'] ?? '',
+					'settings' => $settings->get_domain_uuid() === $domain_uuid ? $settings : null,
+				]);
 				$template_dir = $prov->template_dir;
 				//$files = glob($prov->resolve_template($template_dir, $device_template).'/*');
 				$files = glob($template_dir.'/'.$device_template.'/*');

@@ -615,8 +615,11 @@ class device {
 
 					//write the provision files
 					if (!empty($this->settings->get('provision', 'path'))) {
-						$prov              = new provision;
-						$prov->domain_uuid = $this->domain_uuid;
+						$prov = new provision([
+							'domain_uuid' => $this->domain_uuid,
+							'domain_name' => $this->domain_name,
+							'user_uuid' => $this->user_uuid,
+						]);
 						$response          = $prov->write();
 					}
 
@@ -1165,8 +1168,11 @@ class device {
 
 					//write the provision files
 					if (!empty($this->settings->get('provision', 'path'))) {
-						$prov              = new provision;
-						$prov->domain_uuid = $this->domain_uuid;
+						$prov = new provision([
+							'domain_uuid' => $this->domain_uuid,
+							'domain_name' => $this->domain_name,
+							'user_uuid' => $this->user_uuid,
+						]);
 						$response          = $prov->write();
 					}
 

@@ -850,8 +850,11 @@ class extension {
 					//write the provision files
 					if (!empty($this->settings->get('provision', 'path'))) {
 						if (is_dir(dirname(__DIR__, 4) . '/app/provision')) {
-							$prov              = new provision;
-							$prov->domain_uuid = $this->domain_uuid;
+							$prov = new provision([
+								'domain_uuid' => $this->domain_uuid,
+								'domain_name' => $this->domain_name,
+								'user_uuid' => $this->user_uuid,
+							]);
 							$response          = $prov->write();
 						}
 					}

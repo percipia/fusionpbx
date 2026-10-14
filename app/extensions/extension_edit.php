@@ -880,8 +880,11 @@
 
 						//write the provision files
 							if (!empty($provision_path) && is_dir(dirname(__DIR__, 2).'/app/provision')) {
-								$prov = new provision;
-								$prov->domain_uuid = $domain_uuid;
+								$prov = new provision([
+									'domain_uuid' => $domain_uuid,
+									'domain_name' => $_SESSION['domains'][$domain_uuid]['domain_name'] ?? $_SESSION['domain_name'] ?? '',
+									'user_uuid' => $_SESSION['user_uuid'] ?? '',
+								]);
 								$response = $prov->write();
 							}
 
